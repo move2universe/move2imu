@@ -269,12 +269,12 @@ which_acc_vals <- function(x, acc_cols = NULL, non_na = "any") {
 group_timestamps <- function(x, tolerance = 0.5) {
   tolerance <- units::as_units(tolerance, "s")
   acc_i <- which_acc_vals(x)
-  idx <- split(acc_i, as.character(mt_track_id(x[acc_i, ])))
+  idx <- split(acc_i, as.character(move2::mt_track_id(x[acc_i, ])))
   
   grps <- lapply(
     idx,
     function(i) {
-      d <- units::as_units(diff(mt_time(x[i, ])), "s")
+      d <- units::as_units(diff(move2::mt_time(x[i, ])), "s")
       i[cumsum(c(TRUE, d > tolerance))]
     }
   )
