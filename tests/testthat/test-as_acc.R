@@ -23,8 +23,8 @@ test_that("Can get acc from long-format acc data", {
   
   expect_s3_class(x, "acc")
   expect_length(x, nrow(gulls))
-  expect_equal(sum(!is.na(x)), length(unique(group_timestamps(gulls)))) 
-  expect_equal(is.na(x[acc_i]), duplicated(group_timestamps(gulls)))
+  expect_equal(sum(!is.na(x)), length(unique(parse_bursts(gulls)))) 
+  expect_equal(is.na(x[acc_i]), duplicated(parse_bursts(gulls)))
   expect_true(is_uniform(x))
   expect_equal(
     unique(purrr::map(field(x[!is.na(x)], "bursts"), colnames))[[1]],

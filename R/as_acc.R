@@ -119,7 +119,7 @@ as_acc_long <- function(x, tolerance = 1, acc_cols = NULL, ...) {
   
   # Generate vector of ids for each distinct burst based on sequential
   # timestamps within a given temporal tolerance
-  ts_grps <- group_timestamps(x, tolerance = tolerance)
+  ts_grps <- parse_bursts(x, tolerance = tolerance)
   
   # Split all rows with acc data into burst groups based on timestamp groups
   idx <- unname(split(which_acc_vals(x), ts_grps))
@@ -163,7 +163,7 @@ which_acc_vals <- function(x, acc_cols = NULL, non_na = "any") {
   has_vals
 }
 
-group_timestamps <- function(x, tolerance = 0.5) {
+parse_bursts <- function(x, tolerance = 0.5) {
   tolerance <- units::as_units(tolerance, "s")
   acc_i <- which_acc_vals(x)
   idx <- split(acc_i, as.character(move2::mt_track_id(x[acc_i, ])))
