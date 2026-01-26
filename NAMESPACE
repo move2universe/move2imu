@@ -2,6 +2,7 @@
 
 S3method(as_acc,default)
 S3method(as_acc,move2)
+S3method(burst_dur,acc)
 S3method(format,acc)
 S3method(obj_print_data,acc)
 S3method(obj_print_footer,acc)

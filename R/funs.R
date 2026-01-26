@@ -52,6 +52,24 @@ is_uniform<-function(x){
   all(duplicated(purrr::map_lgl(field(x[!is.na(x)], "bursts"), inherits, "units"))[-1])
 }
 
+burst_dur <- function(x) {
+  UseMethod("burst_dur")
+}
+
+#' @export
+burst_dur.acc <- function(x) {
+  bursts <- field(x, "bursts")
+  frq <- field(x, "frequency")
+  
+  dur <- purrr::map2_dbl(
+    bursts,
+    frq,
+    function(x, y) (nrow(x) %||% NA) / y
+  )
+  
+  units::set_units(dur, "s") # not sure if this is guaranteed...but units gives 1/Hz by default which is annoying.
+}
+
 #' @export
 #' @rdname explore-functions
 
