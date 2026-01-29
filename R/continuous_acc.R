@@ -68,3 +68,78 @@ merge_continuous_acc <- function(x) {
     start = burst_starts[i]
   )
 }
+
+#' Split an `acc` object at regular intervals
+#' 
+#' Split the bursts in an `acc` object into bursts of a given time duration.
+#'
+#' @inheritParams merge_continuous_acc
+#' @param interval Numeric or units object defining the time intervals at which
+#'   `x` will be split. If no units are provided, the interval is assumed to
+#'   be in period units of `x` (i.e., 1 divided by the frequency units).
+#'
+#' @returns An `acc` vector
+#' @export
+#'
+#' @examples
+#' a <- acc(
+#'   c(acc_burst_example(1:60, 1:60), acc_burst_example(101:140)),
+#'   frequency = c(units::set_units(20, "Hz"), units::set_units(40, "Hz")),
+#'   start = as.POSIXct(c(0, 10), tz = "UTC")
+#' )
+#' 
+#' x <- split_continuous_acc(a, units::set_units(1, "s"))
+#' x
+#' 
+#' # Start times handled automatically 
+#' field(x, "start")
+#' 
+#' # Records are not guaranteed to have same duration depending on interval
+#' # and burst size:
+#' x <- split_continuous_acc(a, 0.7)
+#' 
+#' burst_dur(x)
+split_continuous_acc <- function(x, interval) {
+  assertthat::assert_that(as.numeric(interval) > 0)
+
+  x <- purrr::map(
+    x,
+    function(a) {
+      b <- field(a, "bursts")
+      frq <- field(a, "frequency")
+      st <- field(a, "start")
+      
+      # coerce user interval into units of (1 / frequency) which is what
+      # is implied when we split burst records by index
+      frq_units <- units::as_units(units(frq[[1]]), mode = "standard")
+      period_units <- 1 / frq_units
+
+      interval <- units::set_units(
+        interval, 
+        units(period_units), 
+        mode = "standard"
+      )
+
+      # number of rows per chunk
+      i <- units::drop_units((interval / period_units) * frq[[1]])
+      
+      a_split <- purrr::map(
+        b,
+        function(m) {
+          idx <- unname(split(seq_len(nrow(m)), ceiling(seq_len(nrow(m)) / i)))
+          b_split <- lapply(idx, function(j) m[j, , drop = FALSE])
+          
+          acc(
+            b_split, 
+            frq[[1]], 
+            st + cumsum(c(0, rep(interval, length(b_split) - 1)))
+          )
+        }
+      )
+      
+      a_split[[1]]
+    }
+  )
+  
+  purrr::reduce(x, function(x, y) c(x, y))
+}

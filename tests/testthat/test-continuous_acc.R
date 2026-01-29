@@ -103,3 +103,104 @@ test_that("Handle empty acc vectors when binding", {
   expect_identical(merge_continuous_acc(acc()), acc())
   expect_identical(merge_continuous_acc(c(acc(), acc())), acc())
 })
+
+test_that("Can split acc at a given interval", {
+  a <- acc(
+    c(acc_burst_example(1:60, 1:60), acc_burst_example(101:140)),
+    frequency = c(units::set_units(20, "Hz"), units::set_units(40, "Hz")),
+    start = as.POSIXct(c(0, 10), tz = "UTC")
+  )
+  
+  interval <- 0.5
+  split <- split_continuous_acc(a, interval = interval)
+  
+  expect_length(split, units::drop_units(sum(ceiling(burst_dur(a) / interval))))
+  expect_true(all(units::drop_units(burst_dur(split)) == interval))
+  
+  expect_equal(
+    purrr::map_int(field(split, "bursts"), nrow),
+    c(rep(10, 6), rep(20, 2))
+  )
+  expect_equal(
+    do.call(rbind, field(split, "bursts")[1:6]),
+    field(a, "bursts")[[1]]
+  )
+  expect_equal(
+    do.call(rbind, field(split, "bursts")[7:8]),
+    field(a, "bursts")[[2]]
+  )
+  expect_equal(
+    field(split, "frequency"),
+    units::set_units(c(rep(20, 6), rep(40, 2)), "Hz")
+  )
+  expect_identical(
+    field(a, "start")[1] + cumsum(c(0, rep(interval, 5))),
+    field(split, "start")[1:6]
+  )
+  expect_identical(
+    field(a, "start")[2] + cumsum(c(0, interval)),
+    field(split, "start")[7:8]
+  )
+})
+
+test_that("Correctly split when burst length not divisible by interval", {
+  a <- acc(
+    c(acc_burst_example(1:60, 1:60), acc_burst_example(101:140)),
+    frequency = c(units::set_units(20, "Hz"), units::set_units(40, "Hz")),
+    start = as.POSIXct(c(0, 10), tz = "UTC")
+  )
+  
+  interval <- 0.7
+  split <- split_continuous_acc(a, interval = interval)
+  dur <- burst_dur(a)
+  
+  expect_length(split, units::drop_units(sum(ceiling(burst_dur(a) / interval))))
+  
+  # Bursts should be split into equal time lengths other than for the last
+  # element of each split burst, which will capture whatever burst duration remains
+  expect_equal(
+    units::drop_units(burst_dur(split)),
+    c(
+      c(rep(interval, dur[1] %/% interval), dur[1] - (interval * dur[1] %/% interval)),
+      c(rep(interval, dur[2] %/% interval), dur[2] - (interval * dur[2] %/% interval))
+    )
+  )
+})
+
+test_that("Can recover split continuous data by merging", {
+  a <- acc(
+    c(acc_burst_example(1:60, 1:60), acc_burst_example(101:140)),
+    frequency = c(units::set_units(20, "Hz"), units::set_units(40, "Hz")),
+    start = as.POSIXct(c(0, 10), tz = "UTC")
+  )
+  
+  expect_identical(
+    merge_continuous_acc(split_continuous_acc(a, interval = 0.5)),
+    a
+  )
+})
+
+test_that("Long intervals do not modify input acc", {
+  a <- acc(
+    c(acc_burst_example(1:60, 1:60), acc_burst_example(101:140)),
+    frequency = c(units::set_units(20, "Hz"), units::set_units(40, "Hz")),
+    start = as.POSIXct(c(0, 10), tz = "UTC")
+  )
+  
+  expect_identical(split_continuous_acc(a, interval = max(burst_dur(a))), a)
+})
+
+test_that("Can standardize interval units when splitting", {
+  a <- acc(
+    c(acc_burst_example(1:60, 1:60), acc_burst_example(101:140)),
+    frequency = c(units::set_units(20, "kHz"), units::set_units(40, "kHz")),
+    start = as.POSIXct(c(0, 10), tz = "UTC")
+  )
+  
+  # Default should be in 1/frq units
+  expect_length(split_continuous_acc(a, interval = 0.5), 8)
+  expect_identical(
+    split_continuous_acc(a, interval = 0.5),
+    split_continuous_acc(a, interval = units::set_units(0.5 / 1000, "s"))
+  )
+})
