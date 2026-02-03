@@ -40,7 +40,7 @@ test_that("Can get acc from long-format acc data", {
   
   # Identify time series gap points
   gap_i <- which(c(TRUE, diff(gulls_data$timestamp[non_na]) > 0.5))
-
+  
   expect_warning(
     acc <- as_acc(gulls_data), 
     "Detected multiple valid acceleration column sets"
@@ -73,6 +73,38 @@ test_that("Can get acc from long-format acc data", {
     field(acc, "start"),
     sort(gulls_data[non_na, ][gap_i, ]$timestamp)
   )
+})
+
+test_that("Can split long-format data into bursts by inferred frequency", {
+  t1 <- tibble::tibble(
+    id = 1,
+    acceleration_x = 1:69,
+    acceleration_y = 1:69,
+    acceleration_z = 1:69,
+    timestamp = as.POSIXct(
+      c(
+        seq(1, 3, by = 0.5), 4, 5.5, 
+        seq(6, 10, by = 0.5), seq(10.5, 50, by = 0.75)
+      ), 
+      "UTC"
+    ),
+    x = 1, 
+    y = 1
+  )
+  
+  m1 <- move2::mt_as_move2(
+    t1,
+    coords = c("x", "y"),
+    time_column = "timestamp",
+    track_id_column = "id"
+  )
+  
+  a <- as_acc(m1, tolerance = 1)
+  
+  expect_length(a, 4)
+  expect_equal(purrr::map_int(field(a, "bursts"), nrow), c(5, 1, 11, 52))
+  expect_equal(as.numeric(field(a, "frequency")), c(2, NA, 2, 1.3333))
+  expect_length(as_acc(m1, tolerance = 0.6), 55)
 })
 
 test_that("Can drop missing acc values", {
@@ -126,6 +158,6 @@ test_that("Equivalent data in burst and long format produce same acc", {
     time_column = "timestamp",
     track_id_column = "id"
   )
-
+  
   expect_identical(as_acc(m1), as_acc(m2))
 })

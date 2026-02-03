@@ -194,7 +194,41 @@ which_acc_vals <- function(x, acc_cols = NULL, non_na = "any") {
   has_vals
 }
 
-parse_bursts <- function(x, tolerance = 0.5) {
+#' Group long-format acceleration records into bursts
+#'
+#' @description
+#' Based on the timestamps of the records in long-format acceleration
+#' data, identify bursts based on the observed time gaps between records. Gaps
+#' that exceed a set threshold will be used to group records into bursts.
+#' Further, any observed changes in data collection frequency will also be
+#' used to split records into distinct bursts.
+#' 
+#' @details
+#' For continuous data, sensors may dynamically update collection frequency.
+#' However, an `acc` burst should not contain data from multiple collection
+#' frequencies, so we must split these data into distinct bursts, despite the
+#' fact that there may be no gap in collection.
+#' 
+#' For acceleration records at the boundary of a frequency change, there is
+#' a fundamental ambiguity as to whether these records should be included in
+#' the burst prior to or the burst after the boundary timestamp. Our approach
+#' groups records at the boundary time with the burst prior to the boundary
+#' timestamp.
+#'
+#' @param x move2 object with long-format acceleration data
+#' @param tolerance Numeric value indicating the maximum allowable gap (in
+#'   seconds) between consecutive timestamps that should be included in the 
+#'   same burst.
+#' @param freq_tol Noise parameter used when comparing frequencies to identify
+#'   changes in data collection frequency in continuous data. Time differences
+#'   that are within this value will be considered equal for the purposes of
+#'   identifying consistent runs of a given collection frequency. This avoids
+#'   error associated with floating point representation and sensor collection
+#'   noise when identifying bursts.
+#'
+#' @returns Integer vector of IDs identifying burst groups
+#' @noRd
+parse_bursts <- function(x, tolerance = 0.5, freq_tol = 1e-6) {
   tolerance <- units::as_units(tolerance, "s")
   acc_i <- which_acc_vals(x)
   idx <- split(acc_i, as.character(move2::mt_track_id(x[acc_i, ])))
@@ -203,7 +237,27 @@ parse_bursts <- function(x, tolerance = 0.5) {
     idx,
     function(i) {
       d <- units::as_units(diff(move2::mt_time(x[i, ])), "s")
-      i[cumsum(c(TRUE, d > tolerance))]
+      
+      # Identify collection gaps
+      above_tol <- c(TRUE, d > tolerance)
+      
+      # Identify frequency changes with some error tolerance
+      frq_change <- !near(
+        as.numeric(d[-1]), 
+        as.numeric(d[-length(d)]), 
+        tol = freq_tol
+      )
+      
+      # The frequency at adjacent times must be different and both diffs 
+      # involved in this frequency change must be below the threshold
+      frq_change <- frq_change & d[-1] <= tolerance & d[-length(d)] <= tolerance
+        
+      # First two records cannot be resolved as a frequency change because
+      # of lack of temporal resolution, but this is consistent with our approach
+      # of including boundary records with the previous burst
+      frq_change <- c(FALSE, FALSE, frq_change)
+      
+      cumsum(frq_change | above_tol)
     }
   )
   
