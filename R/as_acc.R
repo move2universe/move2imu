@@ -257,7 +257,7 @@ parse_bursts <- function(x, tolerance = 0.5, freq_tol = 1e-6) {
       # of including boundary records with the previous burst
       frq_change <- c(FALSE, FALSE, frq_change)
       
-      cumsum(frq_change | above_tol)
+      i[cumsum(frq_change | above_tol)]
     }
   )
   
