@@ -146,7 +146,11 @@ as_acc_long <- function(x,
   idx <- unname(split(which_acc_vals(x), ts_grps))
   
   # Extract records for each burst into a separate matrix
-  acc_lst <- lapply(idx, function(i) m[i, , drop = FALSE])
+  acc_lst <- lapply(idx, function(i) {
+    x <- m[i, , drop = FALSE]
+    rownames(x) <- NULL # Standardize data.frame and tibble inputs
+    x
+  })
   
   # Calculate mean frequency for each burst
   freq <- unname(unlist(

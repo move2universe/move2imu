@@ -76,7 +76,7 @@ test_that("Can get acc from long-format acc data", {
 })
 
 test_that("Can split long-format data into bursts by inferred frequency", {
-  t1 <- tibble::tibble(
+  t1 <- data.frame(
     id = 1,
     acceleration_x = 1:69,
     acceleration_y = 1:69,
@@ -122,7 +122,7 @@ test_that("Can drop missing acc values", {
 })
 
 test_that("Equivalent data in burst and long format produce same acc", {
-  t1 <- tibble::tibble(
+  t1 <- data.frame(
     id = 1,
     acceleration_x = 1:10,
     acceleration_y = 1:10,
@@ -132,10 +132,10 @@ test_that("Equivalent data in burst and long format produce same acc", {
     y = 1
   )
   
-  t2 <- tibble::tibble(
+  t2 <- data.frame(
     id = 1,
     acceleration_axes = "XYZ",
-    acceleration_sampling_frequency_per_axis = units::set_units(10, "Hz"),
+    acceleration_sampling_frequency_per_axis = 10,
     accelerations_raw = c(
       paste0(rep(1:5, each = 3), collapse = " "),
       paste0(rep(6:10, each = 3), collapse = " ")
