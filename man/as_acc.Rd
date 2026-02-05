@@ -24,6 +24,19 @@ either loaded from disk using \link[move2:mt_read]{move2::mt_read} or downloaded
 seconds) between consecutive timestamps that should be included in the
 same burst. Ignored for acceleration data that are already grouped
 into bursts (e.g. e-obs data).}
+
+\item{merge_continuous}{Logical value indicating whether to merge
+adjacent acceleration bursts. Two adjacent bursts can be merged if the
+first burst ends at the same time that the second starts and the
+burst frequency is identical between the two. This is useful for
+processing continuous acceleration data that have been stored in chunks
+split at regular intervals.}
+
+\item{drop}{Logical indicating whether empty acceleration objects should
+be dropped from the output. If \code{drop = FALSE}, then the length of the
+output will match the number of rows in the input data \code{x} and acceleration
+bursts will be stored at the index location corresponding to the start time
+of the burst.}
 }
 \description{
 In many cases the \code{as_acc} function will directly create an acceleration

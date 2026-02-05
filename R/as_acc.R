@@ -11,6 +11,17 @@
 #'   seconds) between consecutive timestamps that should be included in the 
 #'   same burst. Ignored for acceleration data that are already grouped 
 #'   into bursts (e.g. e-obs data).
+#' @param merge_continuous Logical value indicating whether to merge
+#'   adjacent acceleration bursts. Two adjacent bursts can be merged if the
+#'   first burst ends at the same time that the second starts and the
+#'   burst frequency is identical between the two. This is useful for
+#'   processing continuous acceleration data that have been stored in chunks
+#'   split at regular intervals.
+#' @param drop Logical indicating whether empty acceleration objects should
+#'   be dropped from the output. If `drop = FALSE`, then the length of the
+#'   output will match the number of rows in the input data `x` and acceleration
+#'   bursts will be stored at the index location corresponding to the start time
+#'   of the burst.
 #' @param ... currently not used
 #'
 #' @details The resulting vector will be as long as the input. This means it 
