@@ -10,7 +10,7 @@ as_acc(x, ...)
 
 \method{as_acc}{default}(x, ...)
 
-\method{as_acc}{move2}(x, tolerance = 0.5, merge_continuous = TRUE, drop = TRUE, ...)
+\method{as_acc}{move2}(x, merge_continuous = TRUE, drop = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{move2} containing acceleration data as collected by EOBS,
@@ -19,11 +19,6 @@ either loaded from disk using \link[move2:mt_read]{move2::mt_read} or downloaded
 \link[move2:movebank_download_study]{move2::movebank_download_study}.}
 
 \item{...}{currently not used}
-
-\item{tolerance}{Numeric value indicating the maximum allowable gap (in
-seconds) between consecutive timestamps that should be included in the
-same burst. Ignored for acceleration data that are already grouped
-into bursts (e.g. e-obs data).}
 
 \item{merge_continuous}{Logical value indicating whether to merge
 adjacent acceleration bursts. Two adjacent bursts can be merged if the

@@ -7,10 +7,6 @@
 #'   Ornitela, or similar tracking devices. Most of the time this will be 
 #'   either loaded from disk using [move2::mt_read] or downloaded using 
 #'   [move2::movebank_download_study].
-#' @param tolerance Numeric value indicating the maximum allowable gap (in
-#'   seconds) between consecutive timestamps that should be included in the 
-#'   same burst. Ignored for acceleration data that are already grouped 
-#'   into bursts (e.g. e-obs data).
 #' @param merge_continuous Logical value indicating whether to merge
 #'   adjacent acceleration bursts. Two adjacent bursts can be merged if the
 #'   first burst ends at the same time that the second starts and the
@@ -42,16 +38,16 @@ as_acc.default <- function(x, ...) {
 
 #' @rdname as_acc
 #' @export
-as_acc.move2 <- function(x, tolerance = 0.5, merge_continuous = TRUE, drop = TRUE, ...) {
+as_acc.move2 <- function(x, merge_continuous = TRUE, drop = TRUE, ...) {
   acc_cols <- active_acc_cols(x)
   
   acc <- switch(
     acc_cols_to_type(acc_cols),
-    "eobs" = as_acc_move2_eobs(x, ...),
-    "burst" = as_acc_move2_burst(x, ...),
-    "xyz" = as_acc_move2_xyz(x, tolerance = tolerance, ...),
-    "raw_xyz" = as_acc_move2_raw_xyz(x, tolerance = tolerance, ...),
-    "tilt" = as_acc_move2_tilt(x, tolerance = tolerance, ...),
+    "eobs"    = as_acc_move2_eobs(x, ...),
+    "burst"   = as_acc_move2_burst(x, ...),
+    "xyz"     = as_acc_move2_xyz(x, ...),
+    "raw_xyz" = as_acc_move2_raw_xyz(x, ...),
+    "tilt"    = as_acc_move2_tilt(x, ...),
     abort_unsupported_cols()
   )
   
@@ -90,20 +86,20 @@ as_acc_move2_burst <- function(x, ...) {
   )
 }
 
-as_acc_move2_raw_xyz <- function(x, tolerance = 0.5, ...) {
+as_acc_move2_raw_xyz <- function(x, ...) {
   assertthat::assert_that(has_acc_raw_xyz_cols(x))
-  as_acc_long(x, tolerance = tolerance, ...)
+  as_acc_long(x, ...)
 }
 
-as_acc_move2_xyz <- function(x, tolerance = 0.5, ...) {
+as_acc_move2_xyz <- function(x, ...) {
   assertthat::assert_that(has_acc_xyz_cols(x))
-  as_acc_long(x, tolerance = tolerance, ...)
+  as_acc_long(x, ...)
 }
 
 # TODO: decide whether tilt is supported? It seems to co-occur with raw xyz cols
-as_acc_move2_tilt <- function(x, tolerance = 0.5, ...) {
+as_acc_move2_tilt <- function(x, ...) {
   assertthat::assert_that(has_acc_tilt_cols(x))
-  as_acc_long(x, tolerance = tolerance, ...)
+  as_acc_long(x, ...)
 }
 
 as_acc_burst <- function(acc, axes, freq, timestamp) {
@@ -130,8 +126,7 @@ as_acc_burst <- function(acc, axes, freq, timestamp) {
 
 # TODO: this should maybe be refactored to be analogous to `as_acc_burst` which doesn't
 # take input move2 `x`, just takes the data cols.
-as_acc_long <- function(x, 
-                        tolerance = 1, 
+as_acc_long <- function(x,
                         acc_cols = NULL, 
                         timestamp = move2::mt_time(x), 
                         frq_digits = 4,
@@ -149,9 +144,8 @@ as_acc_long <- function(x,
     m <- m * units::as_units(units::deparse_unit(x[[acc_cols[[1]]]]))
   }
   
-  # Generate vector of ids for each distinct burst based on sequential
-  # timestamps within a given temporal tolerance
-  ts_grps <- parse_bursts(x, tolerance = tolerance)
+  # Generate vector of ids for each distinct burst based on sequential timestamps
+  ts_grps <- parse_bursts(x)
   
   # Split all rows with acc data into burst groups based on timestamp groups
   idx <- unname(split(which_acc_vals(x), ts_grps))
@@ -230,9 +224,6 @@ which_acc_vals <- function(x, acc_cols = NULL, non_na = "any") {
 #' to `frq_changes` for details on our approach.
 #'
 #' @param x move2 object with long-format acceleration data
-#' @param tolerance Numeric value indicating the maximum allowable gap (in
-#'   seconds) between consecutive timestamps that should be included in the 
-#'   same burst.
 #' @param freq_tol Noise parameter used when comparing frequencies to identify
 #'   changes in data collection frequency in continuous data. Time differences
 #'   that are within this value will be considered equal for the purposes of
@@ -242,8 +233,7 @@ which_acc_vals <- function(x, acc_cols = NULL, non_na = "any") {
 #'
 #' @returns Integer vector of IDs identifying burst groups
 #' @noRd
-parse_bursts <- function(x, tolerance = 0.5, freq_tol = 1e-6) {
-  tolerance <- units::as_units(tolerance, "s")
+parse_bursts <- function(x, freq_tol = 1e-6) {
   acc_i <- which_acc_vals(x)
   idx <- split(acc_i, as.character(move2::mt_track_id(x[acc_i, ])))
   
@@ -251,12 +241,7 @@ parse_bursts <- function(x, tolerance = 0.5, freq_tol = 1e-6) {
     idx,
     function(i) {
       d <- units::as_units(diff(move2::mt_time(x[i, ])), "s")
-      
-      # Identify collection gaps
-      above_tol <- c(TRUE, d > tolerance)
-      frq_boundaries <- frq_changes(as.numeric(d), freq_tol = freq_tol)
-      
-      i[cumsum(frq_boundaries | above_tol)]
+      i[cumsum(frq_changes(as.numeric(d), freq_tol = freq_tol))]
     }
   )
   
