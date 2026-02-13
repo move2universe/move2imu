@@ -81,6 +81,7 @@ as_acc_move2_eobs <- function(x, ...) {
     x[["eobs_acceleration_axes"]],
     x[["eobs_acceleration_sampling_frequency_per_axis"]],
     timestamp = move2::mt_time(x),
+    id = move2::mt_track_id(x),
     ...
   )
 }
@@ -93,6 +94,7 @@ as_acc_move2_burst <- function(x, ...) {
     x[["acceleration_axes"]],
     x[["acceleration_sampling_frequency_per_axis"]],
     timestamp = move2::mt_time(x),
+    id = move2::mt_track_id(x),
     ...
   )
 }
@@ -113,7 +115,7 @@ as_acc_move2_tilt <- function(x, min_frq = 1, ...) {
   as_acc_long(x, min_frq = min_frq, ...)
 }
 
-as_acc_burst <- function(acc, axes, freq, timestamp) {
+as_acc_burst <- function(acc, axes, freq, timestamp, id) {
   colnms <- strsplit(as.character(axes), "")
   n_axis <- nchar(as.character(axes))
   mlist <- lapply(strsplit(acc, " "), as.integer)
@@ -132,7 +134,7 @@ as_acc_burst <- function(acc, axes, freq, timestamp) {
   
   mlist[i] <- mapply("colnames<-", mlist[i], colnms[i], SIMPLIFY = FALSE)
   
-  acc(mlist, frequency = freq, start = timestamp)
+  acc(mlist, frequency = freq, start = timestamp, id = as.character(id))
 }
 
 # TODO: this should maybe be refactored to be analogous to `as_acc_burst` which doesn't
@@ -140,7 +142,8 @@ as_acc_burst <- function(acc, axes, freq, timestamp) {
 as_acc_long <- function(x,
                         min_frq = 1,
                         acc_cols = NULL, 
-                        timestamp = move2::mt_time(x), 
+                        timestamp = move2::mt_time(x),
+                        id = move2::mt_track_id(x),
                         frq_digits = 4,
                         ...) {
   acc_cols <- acc_cols %||% active_acc_cols(x, quiet = TRUE)
@@ -187,7 +190,8 @@ as_acc_long <- function(x,
     acc(
       list(NULL), 
       units::set_units(NA, "Hz"), 
-      start = as.POSIXct(NA, tz = attr(timestamp, "tzone") %||% "UTC")
+      start = as.POSIXct(NA, tz = attr(timestamp, "tzone") %||% "UTC"),
+      id = NA_character_
     ), 
     nrow(x)
   )
@@ -195,7 +199,7 @@ as_acc_long <- function(x,
   i <- sapply(idx, function(x) x[1]) # first index of each ts group
   
   if (length(i) > 0) {
-    acc[i] <- acc(acc_lst, units::as_units(freq, "Hz"), start = timestamp[i])
+    acc[i] <- acc(acc_lst, units::as_units(freq, "Hz"), start = timestamp[i], id = as.character(id[i]))
   }
   
   acc

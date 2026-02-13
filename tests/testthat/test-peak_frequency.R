@@ -67,11 +67,11 @@ test_that("Multiple axis peak freq intercept does not matter", {
 
 test_that("NA returns empty", {
   expect_equal(
-    peak_frequency(new_acc(list(NULL), frequency = NA, start = as.POSIXct(NA))), 
+    peak_frequency(new_acc(list(NULL), frequency = NA, start = as.POSIXct(NA), id = NA)), 
     list(NULL)
   )
   expect_equal(
-    peak_frequency(new_acc(list(NULL, NULL), frequency = c(NA, NA), start = rep(as.POSIXct(NA), 2))), 
+    peak_frequency(new_acc(list(NULL, NULL), frequency = c(NA, NA), start = rep(as.POSIXct(NA), 2), id = c(NA, NA))), 
     list(NULL, NULL)
   )
   

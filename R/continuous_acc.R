@@ -45,7 +45,11 @@ merge_continuous_acc <- function(x) {
   )
   is_same_n_axis <- (axes[-1] == axes[-n]) & (n_axis(x)[-1] == n_axis(x)[-n])
   
-  to_bind <- c(FALSE, is_adjacent_burst & is_same_frq & is_same_n_axis)
+  # Collapsible bursts must have same IDs
+  ids <- acc_id(x)
+  is_same_id <- (ids[-1] == ids[-n]) | (is.na(ids[-1]) & is.na(ids[-n]))
+  
+  to_bind <- c(FALSE, is_adjacent_burst & is_same_frq & is_same_n_axis & is_same_id)
   to_bind[is.na(to_bind)] <- FALSE
   
   # Split entries in the acc vector into groups that should be collapsed and
@@ -65,7 +69,8 @@ merge_continuous_acc <- function(x) {
   acc(
     bursts_comb, 
     frequency = units::set_units(fq[i], "Hz"),
-    start = burst_starts[i]
+    start = burst_starts[i],
+    id = acc_id(x)[i]
   )
 }
 

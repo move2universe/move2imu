@@ -1,6 +1,9 @@
 test_that("Can combine adjacent bursts into single burst", {
   d <- albatrosses()
-
+  
+  # Force same ID for a simpler expected merge output for this test
+  d[[move2::mt_track_id_column(d)]] <- "tmp"
+  
   # Simulate bursts that start at the end point of the previous burst
   move2::mt_time(d) <- seq(
     min(move2::mt_time(d)), 
@@ -41,63 +44,97 @@ test_that("Can combine adjacent bursts into single burst", {
   )
 })
 
-# TODO: this is a big of a clunky test, but it covers many possible
-# combinations of issues that would prevent elements from being collapsed
-# together. This could be refactored and we could build more atomic
-# unit tests for these behaviors by building explicit test cases with 
-# acc_burst_example()
-test_that("Do not combine bursts with different n axes or frequencies", {
-  a <- as_acc(albatrosses_messy(), merge_continuous = FALSE)
-  a2 <- merge_continuous_acc(a)
+test_that("Do not combine bursts with different axes", {
+  t <- data.frame(
+    id = 1,
+    acceleration_axes = c("XYZ", "XYZ", "XY", "XYZ"),
+    acceleration_sampling_frequency_per_axis = 10,
+    accelerations_raw = c(
+      paste0(rep(1:5, each = 3), collapse = " "),
+      paste0(rep(6:10, each = 3), collapse = " "),
+      paste0(rep(11:15, each = 2), collapse = " "),
+      paste0(rep(16:20, each = 3), collapse = " ")
+    ),
+    timestamp = as.POSIXct(c(1, 1.5, 2, 2.5), "UTC"),
+    x = 1,
+    y = 1
+  )
   
-  # Hard-coding the split indices that we should expect from the 
-  # test data:
-  split_i <- c(1, 4, 7, 11, 12, 13, 31, 33, 44)
+  m <- move2::mt_as_move2(
+    t,
+    coords = c("x", "y"),
+    time_column = "timestamp",
+    track_id_column = "id"
+  )
   
-  expect_true(is_acc(a2))
-  expect_length(a2, length(split_i))
+  a <- as_acc(m)
   
-  expect_identical(starts(a2), starts(a)[split_i])
-  expect_identical(freqs(a2), freqs(a)[split_i])
+  expect_length(a, 3)
+  expect_identical(
+    purrr::map(bursts(a), colnames),
+    list(c("X", "Y", "Z"), c("X", "Y"), c("X", "Y", "Z"))
+  )
+  expect_identical(burst_n(a), as.integer(c(10, 5, 5)))
+})
+
+test_that("Do not combine bursts with different frequencies", {
+  t <- data.frame(
+    id = 1,
+    acceleration_axes = "XYZ",
+    acceleration_sampling_frequency_per_axis = c(10, 10, 20, 10),
+    accelerations_raw = c(
+      paste0(rep(1:5, each = 3), collapse = " "),
+      paste0(rep(6:10, each = 3), collapse = " "),
+      paste0(rep(11:20, each = 3), collapse = " "),
+      paste0(rep(21:25, each = 3), collapse = " ")
+    ),
+    timestamp = as.POSIXct(c(1, 1.5, 2, 2.5), "UTC"),
+    x = 1,
+    y = 1
+  )
   
-  # Manually confirming all the groups we expect. Easiest way to be thorough
-  # in this case.
-  expect_identical(
-    bursts(a2)[[1]],
-    do.call(rbind, bursts(a)[1:3])
+  m <- move2::mt_as_move2(
+    t,
+    coords = c("x", "y"),
+    time_column = "timestamp",
+    track_id_column = "id"
   )
-  expect_identical(
-    bursts(a2)[[2]],
-    do.call(rbind, bursts(a)[4:6])
+  
+  a <- as_acc(m)
+  
+  expect_length(a, 3)
+  expect_identical(as.numeric(freqs(a)), c(10, 20, 10))
+  expect_identical(as.numeric(burst_dur(a)), c(1, 0.5, 0.5))
+})
+
+test_that("Do not combine bursts with different IDs", {
+  t <- data.frame(
+    id = c(1, 1, 1, 2),
+    acceleration_axes = "XYZ",
+    acceleration_sampling_frequency_per_axis = 10,
+    accelerations_raw = c(
+      paste0(rep(1:5, each = 3), collapse = " "),
+      paste0(rep(6:10, each = 3), collapse = " "),
+      paste0(rep(11:15, each = 3), collapse = " "),
+      paste0(rep(16:20, each = 3), collapse = " ")
+    ),
+    timestamp = as.POSIXct(c(1, 1.5, 2, 2.5), "UTC"),
+    x = 1,
+    y = 1
   )
-  expect_identical(
-    bursts(a2)[[3]],
-    do.call(rbind, bursts(a)[7:10])
+  
+  m <- move2::mt_as_move2(
+    t,
+    coords = c("x", "y"),
+    time_column = "timestamp",
+    track_id_column = "id"
   )
-  expect_identical(
-    bursts(a2)[[4]],
-    bursts(a)[[11]]
-  )
-  expect_identical(
-    bursts(a2)[[5]],
-    bursts(a)[[12]]
-  )
-  expect_identical(
-    bursts(a2)[[6]],
-    do.call(rbind, bursts(a)[13:30])
-  )
-  expect_identical(
-    bursts(a2)[[7]],
-    do.call(rbind, bursts(a)[31:32])
-  )
-  expect_identical(
-    bursts(a2)[[8]],
-    do.call(rbind, bursts(a)[33:43])
-  )
-  expect_identical(
-    bursts(a2)[[9]],
-    do.call(rbind, bursts(a)[44:45])
-  )
+  
+  a <- as_acc(m)
+  
+  expect_length(a, 2)
+  expect_identical(acc_id(a), c("1", "2"))
+  expect_identical(burst_n(a), as.integer(c(15, 5)))
 })
 
 test_that("Don't combine bursts without start time", {
