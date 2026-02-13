@@ -83,7 +83,7 @@ as_acc.move2 <- function(x, acc_cols = NULL, min_frq = 1, merge_continuous = TRU
   acc
 }
 
-as_acc_move2_eobs <- function(x, ...) {
+as_acc_move2_eobs <- function(x, force_int = TRUE, ...) {
   assert_all_cols_present(x, acc_eobs_cols())
   
   as_acc_burst(
@@ -92,11 +92,12 @@ as_acc_move2_eobs <- function(x, ...) {
     x[["eobs_acceleration_sampling_frequency_per_axis"]],
     timestamp = move2::mt_time(x),
     id = move2::mt_track_id(x),
+    force_int = force_int,
     ...
   )
 }
 
-as_acc_move2_burst <- function(x, ...) {
+as_acc_move2_burst <- function(x, force_int = FALSE, ...) {
   assert_all_cols_present(x, acc_burst_cols())
   
   as_acc_burst(
@@ -105,14 +106,33 @@ as_acc_move2_burst <- function(x, ...) {
     x[["acceleration_sampling_frequency_per_axis"]],
     timestamp = move2::mt_time(x),
     id = move2::mt_track_id(x),
+    force_int = force_int,
     ...
   )
 }
 
-as_acc_burst <- function(acc, axes, freq, timestamp, id) {
+as_acc_burst <- function(acc, axes, freq, timestamp, id, force_int = FALSE) {
   colnms <- strsplit(as.character(axes), "")
   n_axis <- nchar(as.character(axes))
-  mlist <- lapply(strsplit(acc, " "), as.integer)
+  acc_split <- strsplit(acc, " ")
+  
+  if (force_int) {
+    all_acc <- unlist(acc_split)
+    all_acc <- all_acc[!is.na(all_acc)]
+    
+    if (any((as.numeric(all_acc) %% 1) != 0)) {
+      rlang::warn(
+        paste0(
+          "Detected numeric acceleration values, but expected integers. ",
+          "Some precision will be lost."
+        )
+      )
+    }
+    
+    mlist <- purrr::map(acc_split, function(x) as.integer(as.numeric(x)))
+  } else {
+    mlist <- purrr::map(acc_split, function(x) as.numeric(x))
+  }
   
   i <- !is.na(n_axis)
   

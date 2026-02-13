@@ -249,9 +249,9 @@ test_that("Preserve time zone", {
 test_that("Equivalent data in burst and long format produce same acc", {
   t1 <- data.frame(
     id = 1,
-    acceleration_x = 1:10,
-    acceleration_y = 1:10,
-    acceleration_z = 1:10,
+    acceleration_x = as.numeric(1:10),
+    acceleration_y = as.numeric(1:10),
+    acceleration_z = as.numeric(1:10),
     timestamp = as.POSIXct(seq(1, 1.9, by = 0.1), "UTC"),
     x = 1, 
     y = 1
@@ -285,4 +285,54 @@ test_that("Equivalent data in burst and long format produce same acc", {
   )
   
   expect_identical(as_acc(m1), as_acc(m2))
+})
+
+test_that("Coerce to integer for eobs", {
+  t <- data.frame(
+    id = 1,
+    eobs_acceleration_axes = "XYZ",
+    eobs_acceleration_sampling_frequency_per_axis = 10,
+    eobs_accelerations_raw = c(
+      paste0(rep(1.1:5.1, each = 3), collapse = " "),
+      paste0(rep(6.1:10.1, each = 3), collapse = " ")
+    ),
+    timestamp = as.POSIXct(c(1, 1.5), "UTC"),
+    x = 1,
+    y = 1
+  )
+  
+  m <- move2::mt_as_move2(
+    t,
+    coords = c("x", "y"),
+    time_column = "timestamp",
+    track_id_column = "id"
+  )
+  
+  expect_warning(a <- as_acc(m), "Detected numeric acceleration")
+  expect_identical(unlist(bursts(a)), rep(1:10, 3))
+})
+
+test_that("Don't coerce non-eobs burst cols", {
+  t <- data.frame(
+    id = 1,
+    acceleration_axes = "XYZ",
+    acceleration_sampling_frequency_per_axis = 10,
+    accelerations_raw = c(
+      paste0(rep(1.1:5.1, each = 3), collapse = " "),
+      paste0(rep(6.1:10.1, each = 3), collapse = " ")
+    ),
+    timestamp = as.POSIXct(c(1, 1.5), "UTC"),
+    x = 1,
+    y = 1
+  )
+  
+  m <- move2::mt_as_move2(
+    t,
+    coords = c("x", "y"),
+    time_column = "timestamp",
+    track_id_column = "id"
+  )
+  
+  expect_silent(a <- as_acc(m))
+  expect_identical(unlist(bursts(a)), rep(1.1:10.1, 3))
 })
