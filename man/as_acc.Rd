@@ -10,7 +10,7 @@ as_acc(x, ...)
 
 \method{as_acc}{default}(x, ...)
 
-\method{as_acc}{move2}(x, merge_continuous = TRUE, drop = TRUE, ...)
+\method{as_acc}{move2}(x, min_frq = 1, merge_continuous = TRUE, drop = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{move2} containing acceleration data as collected by EOBS,
@@ -19,6 +19,15 @@ either loaded from disk using \link[move2:mt_read]{move2::mt_read} or downloaded
 \link[move2:movebank_download_study]{move2::movebank_download_study}.}
 
 \item{...}{currently not used}
+
+\item{min_frq}{Numeric value indicating the
+minimum allowable within-burst data collection frequency when identifying
+bursts in long-format acceleration data. Any two adjacent timestamps
+that fall outside of the period defined by this frequency will be split
+into separate bursts. If no units are provided, this value is assumed to
+be in Hz.
+
+Ignored if data are already in predefined bursts (e.g. e-obs).}
 
 \item{merge_continuous}{Logical value indicating whether to merge
 adjacent acceleration bursts. Two adjacent bursts can be merged if the

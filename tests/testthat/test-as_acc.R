@@ -106,6 +106,51 @@ test_that("Can split long-format data into bursts by inferred frequency", {
   expect_equal(as.numeric(freqs(a)), c(2, NA, 2, 1.3333))
 })
 
+test_that("Can use `min_frq` to avoid building bursts below frq thresh", {
+  t1 <- data.frame(
+    id = 1,
+    acceleration_x = 1:69,
+    acceleration_y = 1:69,
+    acceleration_z = 1:69,
+    timestamp = as.POSIXct(
+      c(
+        seq(1, 3, by = 0.5), 4, 5.5, 
+        seq(6, 10, by = 0.5), seq(10.5, 50, by = 0.75)
+      ), 
+      "UTC"
+    ),
+    x = 1, 
+    y = 1
+  )
+  
+  m1 <- move2::mt_as_move2(
+    t1,
+    coords = c("x", "y"),
+    time_column = "timestamp",
+    track_id_column = "id"
+  )
+  
+  a1 <- as_acc(m1, min_frq = 1)
+  a2 <- as_acc(m1, min_frq = 2)
+  
+  # First bursts should be identical, but final burst should be split 
+  # fully into length-1 "bursts"
+  expect_identical(a2[1:3], a1[1:3])
+  expect_length(a2, length(a1) - 1 + nrow(bursts(a1)[[4]]))
+  expect_identical(do.call(rbind, bursts(a2)[4:length(a2)]), bursts(a1)[[4]])
+  expect_true(all(is.na(freqs(a2)[4:length(a2)])))
+  
+  expect_length(as_acc(m1, min_frq = Inf), nrow(m1))
+  expect_identical(a1, as_acc(m1, min_frq = 0))
+  
+  # If `drop = FALSE`, partitioned bursts should fill indices that were
+  # previously empty, and overall vector length should stay the same.
+  expect_length(
+    suppressWarnings(as_acc(gulls(), min_frq = 40, drop = FALSE)),
+    nrow(gulls())
+  )
+})
+
 test_that("Can drop missing acc values", {
   gulls_data <- gulls()
   

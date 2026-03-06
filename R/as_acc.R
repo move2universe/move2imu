@@ -7,6 +7,14 @@
 #'   Ornitela, or similar tracking devices. Most of the time this will be 
 #'   either loaded from disk using [move2::mt_read] or downloaded using 
 #'   [move2::movebank_download_study].
+#' @param min_frq Numeric value indicating the 
+#'   minimum allowable within-burst data collection frequency when identifying
+#'   bursts in long-format acceleration data. Any two adjacent timestamps 
+#'   that fall outside of the period defined by this frequency will be split
+#'   into separate bursts. If no units are provided, this value is assumed to
+#'   be in Hz. 
+#'   
+#'   Ignored if data are already in predefined bursts (e.g. e-obs).
 #' @param merge_continuous Logical value indicating whether to merge
 #'   adjacent acceleration bursts. Two adjacent bursts can be merged if the
 #'   first burst ends at the same time that the second starts and the
@@ -38,16 +46,16 @@ as_acc.default <- function(x, ...) {
 
 #' @rdname as_acc
 #' @export
-as_acc.move2 <- function(x, merge_continuous = TRUE, drop = TRUE, ...) {
+as_acc.move2 <- function(x, min_frq = 1, merge_continuous = TRUE, drop = TRUE, ...) {
   acc_cols <- active_acc_cols(x)
   
   acc <- switch(
     acc_cols_to_type(acc_cols),
     "eobs"    = as_acc_move2_eobs(x, ...),
     "burst"   = as_acc_move2_burst(x, ...),
-    "xyz"     = as_acc_move2_xyz(x, ...),
-    "raw_xyz" = as_acc_move2_raw_xyz(x, ...),
-    "tilt"    = as_acc_move2_tilt(x, ...),
+    "xyz"     = as_acc_move2_xyz(x, min_frq = min_frq, ...),
+    "raw_xyz" = as_acc_move2_raw_xyz(x, min_frq = min_frq, ...),
+    "tilt"    = as_acc_move2_tilt(x, min_frq = min_frq, ...),
     abort_unsupported_cols()
   )
   
@@ -86,20 +94,20 @@ as_acc_move2_burst <- function(x, ...) {
   )
 }
 
-as_acc_move2_raw_xyz <- function(x, ...) {
+as_acc_move2_raw_xyz <- function(x, min_frq = 1, ...) {
   assertthat::assert_that(has_acc_raw_xyz_cols(x))
-  as_acc_long(x, ...)
+  as_acc_long(x, min_frq = min_frq, ...)
 }
 
-as_acc_move2_xyz <- function(x, ...) {
+as_acc_move2_xyz <- function(x, min_frq = 1, ...) {
   assertthat::assert_that(has_acc_xyz_cols(x))
-  as_acc_long(x, ...)
+  as_acc_long(x, min_frq = min_frq, ...)
 }
 
 # TODO: decide whether tilt is supported? It seems to co-occur with raw xyz cols
-as_acc_move2_tilt <- function(x, ...) {
+as_acc_move2_tilt <- function(x, min_frq = 1, ...) {
   assertthat::assert_that(has_acc_tilt_cols(x))
-  as_acc_long(x, ...)
+  as_acc_long(x, min_frq = min_frq, ...)
 }
 
 as_acc_burst <- function(acc, axes, freq, timestamp) {
@@ -127,6 +135,7 @@ as_acc_burst <- function(acc, axes, freq, timestamp) {
 # TODO: this should maybe be refactored to be analogous to `as_acc_burst` which doesn't
 # take input move2 `x`, just takes the data cols.
 as_acc_long <- function(x,
+                        min_frq = 1,
                         acc_cols = NULL, 
                         timestamp = move2::mt_time(x), 
                         frq_digits = 4,
@@ -144,8 +153,9 @@ as_acc_long <- function(x,
     m <- m * units::as_units(units::deparse_unit(x[[acc_cols[[1]]]]))
   }
   
-  # Generate vector of ids for each distinct burst based on sequential timestamps
-  ts_grps <- parse_bursts(x)
+  # Generate vector of ids for each distinct burst based on sequential
+  # timestamps collected at a minimum frequency
+  ts_grps <- parse_bursts(x, min_frq = min_frq)
   
   # Split all rows with acc data into burst groups based on timestamp groups
   idx <- unname(split(which_acc_vals(x), ts_grps))
@@ -224,6 +234,12 @@ which_acc_vals <- function(x, acc_cols = NULL, non_na = "any") {
 #' to `frq_changes` for details on our approach.
 #'
 #' @param x move2 object with long-format acceleration data
+#' @param min_frq Numeric value indicating the 
+#'   minimum allowable within-burst data collection frequency when identifying
+#'   bursts in long-format acceleration data. Any two adjacent timestamps 
+#'   that fall outside of the period defined by this frequency will be split
+#'   into separate bursts. If no units are provided, this value is assumed to
+#'   be in Hz.
 #' @param freq_tol Noise parameter used when comparing frequencies to identify
 #'   changes in data collection frequency in continuous data. Time differences
 #'   that are within this value will be considered equal for the purposes of
@@ -233,7 +249,15 @@ which_acc_vals <- function(x, acc_cols = NULL, non_na = "any") {
 #'
 #' @returns Integer vector of IDs identifying burst groups
 #' @noRd
-parse_bursts <- function(x, freq_tol = 1e-6) {
+parse_bursts <- function(x, min_frq = 1, freq_tol = 1e-6) {
+  assertthat::assert_that(min_frq >= 0)
+  
+  if (!inherits(min_frq, "units")) {
+    min_frq <- units::set_units(min_frq, "Hz")
+  }
+  
+  burst_gap_thresh <- units::set_units(1 / min_frq, "s")
+  
   acc_i <- which_acc_vals(x)
   idx <- split(acc_i, as.character(move2::mt_track_id(x[acc_i, ])))
   
@@ -241,7 +265,12 @@ parse_bursts <- function(x, freq_tol = 1e-6) {
     idx,
     function(i) {
       d <- units::as_units(diff(move2::mt_time(x[i, ])), "s")
-      i[cumsum(frq_changes(as.numeric(d), freq_tol = freq_tol))]
+      
+      # Identify collection split points based on min frq and frq changes
+      below_frq <- c(TRUE, d > burst_gap_thresh)
+      frq_bounds <- frq_changes(as.numeric(d), freq_tol = freq_tol)
+      
+      i[cumsum(below_frq | frq_bounds)]
     }
   )
   
