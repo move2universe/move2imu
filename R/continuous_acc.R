@@ -109,6 +109,10 @@ split_continuous_acc <- function(x, interval) {
       frq <- freqs(a)
       st <- starts(a)
       
+      if (is.na(a) || nrow(b[[1]]) <= 1) {
+        return(a)
+      }
+      
       # coerce user interval into units of (1 / frequency) which is what
       # is implied when we split burst records by index
       frq_units <- units::as_units(units(frq[[1]]), mode = "standard")
