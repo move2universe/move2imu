@@ -41,7 +41,7 @@ peak_frq_ <- function(burst, frq, resolution = NA) {
     b_centered <- cbind(b_centered, matrix(0, ncol = to_pad, nrow = nrow(b_centered)))
   }
   
-  b_mod <- do.call(rbind, lapply(apply(b_centered, 1, fft, simplify = F), Mod))[, 1:ceiling(ncol(b_centered)/2), drop = FALSE]
+  b_mod <- do.call(rbind, lapply(apply(b_centered, 1, stats::fft, simplify = F), Mod))[, 1:ceiling(ncol(b_centered)/2), drop = FALSE]
   peak<- apply(b_mod, 1, which.max)
   
   (peak - 1) * (frq / ncol(b_mod) / 2)

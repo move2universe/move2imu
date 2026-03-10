@@ -2,6 +2,7 @@
 % Please edit documentation in R/funs.R
 \name{n_axis}
 \alias{n_axis}
+\alias{explore-functions}
 \alias{n_samples}
 \alias{is_uniform}
 \alias{is.na.acc}

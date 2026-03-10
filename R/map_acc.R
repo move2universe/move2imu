@@ -5,8 +5,8 @@
 #' to each element of an `acc` vector while providing access to each element's
 #' burst, frequency, and start time metadata.
 #' 
-#' Note that some common operations have already been implemented as stand-alone
-#' functions. See [explore-functions].
+#' Note that some [common operations][explore-functions] have already been implemented as stand-alone
+#' functions.
 #' 
 #' @details
 #' This function behaves similarly to the [purrr::map()] family of functions.

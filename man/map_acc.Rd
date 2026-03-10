@@ -34,8 +34,8 @@ This function provides a general framework to apply an arbitrary function
 to each element of an \code{acc} vector while providing access to each element's
 burst, frequency, and start time metadata.
 
-Note that some common operations have already been implemented as stand-alone
-functions. See \link{explore-functions}.
+Note that some \link[=explore-functions]{common operations} have already been implemented as stand-alone
+functions.
 }
 \details{
 This function behaves similarly to the \code{\link[purrr:map]{purrr::map()}} family of functions.

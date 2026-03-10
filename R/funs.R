@@ -4,6 +4,7 @@
 #' @param x an acc vector
 #'
 #' @rdname explore-functions
+#' @aliases explore-functions
 #' @export
 #' @examples
 #' x <- acc(
