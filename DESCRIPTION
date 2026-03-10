@@ -27,6 +27,7 @@ Suggests:
     move2,
     rmarkdown,
     testthat (>= 3.0.0),
+    tibble,
     withr
 Config/testthat/edition: 3
 RoxygenNote: 7.3.2
