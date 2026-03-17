@@ -10,12 +10,14 @@
 acc <- function(bursts = list(), 
                 frequency = units::set_units(double(), "Hz"),
                 start = NULL,
-                id = NULL) {
+                id = NULL, # should rename to burst_id then...?
+                tag_id = NULL) {
   bursts <- new_acc_list(bursts)
   n <- vec_size(bursts)
   
-  id <- id %||% NA_character_
   start <- start %||% NA_real_
+  id <- id %||% NA_character_
+  tag_id <- tag_id %||% NA_character_
   
   if (inherits(start, "POSIXt")) {
     tz <- attr(start, "tzone")
@@ -29,16 +31,18 @@ acc <- function(bursts = list(),
     bursts = bursts, 
     frequency = vec_recycle(frequency, n), 
     start = vec_recycle(start, n), 
-    id = vec_recycle(id, n)
+    id = vec_recycle(id, n),
+    tag_id = vec_recycle(tag_id, n)
   )
 }
 
 new_acc <- function(bursts = new_acc_list(list()), 
                     frequency = units::set_units(double(), "Hz"),
                     start = as.POSIXct(double(), tz = "UTC"),
-                    id = character()) {
+                    id = character(),
+                    tag_id = character()) {
   new_rcrd(
-    list(bursts = bursts, frequency = frequency, start = start, id = id),
+    list(bursts = bursts, frequency = frequency, start = start, id = id, tag_id = tag_id),
     class = "acc"
   )
 }
