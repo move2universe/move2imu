@@ -92,7 +92,7 @@ as_acc_move2_eobs <- function(x, ...) {
     x[["eobs_acceleration_sampling_frequency_per_axis"]],
     timestamp = move2::mt_time(x),
     id = move2::mt_track_id(x),
-    tag_id = move2::mt_as_event_attribute(x, tag_id)$tag_id,
+    tag_id = mt_tag_id(x),
     ...
   )
 }
@@ -106,7 +106,7 @@ as_acc_move2_burst <- function(x, ...) {
     x[["acceleration_sampling_frequency_per_axis"]],
     timestamp = move2::mt_time(x),
     id = move2::mt_track_id(x),
-    tag_id = move2::mt_as_event_attribute(x, tag_id)$tag_id,
+    tag_id = mt_tag_id(x),
     ...
   )
 }
@@ -140,7 +140,7 @@ as_acc_move2_long <- function(x,
                               min_frq = 1,
                               timestamp = move2::mt_time(x),
                               id = move2::mt_track_id(x),
-                              tag_id = NULL,
+                              tag_id = mt_tag_id(x),
                               frq_digits = 4,
                               ...) {
   acc_cols <- acc_cols %||% active_acc_cols(x)
@@ -149,9 +149,7 @@ as_acc_move2_long <- function(x,
   assert_valid_acc_colset(acc_cols)
   
   assert_matched_acc_units(x, acc_cols)
-  
-  tag_id <- move2::mt_as_event_attribute(x, tag_id)$tag_id # Guard against missing!
-  
+
   m <- as.matrix(data.frame(x)[, acc_cols])
   colnames(m) <- toupper(regmatches(acc_cols, regexpr("(.)$", acc_cols)))
   
@@ -221,7 +219,7 @@ which_acc_vals <- function(x, acc_cols = NULL) {
     has_vals <- which(rowSums(!is.na(x[acc_cols])) == length(acc_cols))
   }
   
-  has_vals
+  unname(has_vals)
 }
 
 #' Group long-format acceleration records into bursts
@@ -368,6 +366,17 @@ assert_matched_acc_units <- function(x, cols) {
       get_units(x[[cols[[1]]]]) == get_units(x[[cols[[i + 1]]]])
     )
   }
+}
+
+# Safer way to access tag IDs in move2 objects, if it exists.
+mt_tag_id <- function(x, tag_id = "tag_id") {
+  assertthat::assert_that(inherits(x, "move2"))
+  tryCatch(
+    move2::mt_as_event_attribute(x, dplyr::all_of(tag_id))[[tag_id]],
+    error = function(cnd) {
+      rep(NA_character_, nrow(x))
+    }
+  )
 }
 
 # Hacky unit comparison for now. Some acc cols don't come with units

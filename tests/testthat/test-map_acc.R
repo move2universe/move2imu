@@ -3,9 +3,9 @@ test_that("acc map function generator always returns a function", {
   expect_true(is.function(as_acc_mapper(function(.br) .br)))
 })
 
-test_that("returned function always accepts .br, .fq, .st by name", {
+test_that("returned function always accepts .br, .fq, .st, .ti by name", {
   f <- as_acc_mapper(function(.br) .br)
-  expect_no_error(f(.br = 1, .fq = 2, .st = 3))
+  expect_no_error(f(.br = 1, .fq = 2, .st = 3, .ti = "1092"))
 })
 
 test_that("reserved function arguments interpreted correctly", {
@@ -122,3 +122,4 @@ test_that("map_acc() basic requirements", {
   expect_error(map_acc(acc_example(), NULL), "must be a function or")
   expect_error(map_acc(1, length), "does not inherit from class acc")
 })
+

@@ -90,6 +90,10 @@ starts <- function(x) {
   field(x, "start")
 }
 
+tag_ids <- function(x) {
+  field(x, "tag_id")
+}
+
 #' @export
 #' @rdname explore-functions
 acc_id <- function(x) {

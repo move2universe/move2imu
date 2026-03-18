@@ -85,10 +85,11 @@ map_acc <- function(acc, .f, simplify = FALSE, .progress = FALSE) {
     list(
       .br = bursts(acc),
       .fq = freqs(acc),
-      .st = starts(acc)
+      .st = starts(acc),
+      .ti = tag_ids(acc)
     ),
-    function(.br, .fq, .st) {
-      f(.br = .br, .fq = .fq, .st = .st)
+    function(.br, .fq, .st, .ti) {
+      f(.br = .br, .fq = .fq, .st = .st, .ti = .ti)
     },
     .progress = .progress
   )
@@ -104,7 +105,7 @@ as_acc_mapper <- function(.f) {
   if (rlang::is_formula(.f)) {
     # Build function with custom arg names to refer to acc fields
     f <- rlang::new_function(
-      args = rlang::pairlist2(.br = , .fq = , .st = ),
+      args = rlang::pairlist2(.br = , .fq = , .st = , .ti = ),
       body = rlang::f_rhs(.f),
       env  = rlang::f_env(.f)
     )
@@ -113,8 +114,8 @@ as_acc_mapper <- function(.f) {
     # are required. `force()` ensures correct enclosing env for f
     force(.f)
     
-    f <- function(.br, .fq, .st) {
-      available <- list(.br = .br, .fq = .fq, .st = .st)
+    f <- function(.br, .fq, .st, .ti) {
+      available <- list(.br = .br, .fq = .fq, .st = .st, .ti = .ti)
       do.call(.f, available[names(available) %in% names(formals(.f))])
     }
   } else { 

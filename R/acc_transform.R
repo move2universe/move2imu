@@ -13,24 +13,41 @@ eobs_transform <- function(acc,
   warn_unexpected_names(offset, "offset")
   warn_unexpected_names(slope, "slope")
   
-  tag_id <- field(acc, "tag_id")
-  b <- field(acc, "bursts")
-  
-  purrr::map2(
-    b,
-    tag_id,
+  map_acc(
+    acc,
     function(.br, .ti) {
       if (!rlang::is_null(tag_config)) {
+        # If a tag config df is provided, get transformation params for that tag
+        # and replace with defaults if tag does not exist or is incomplete
         tag_specs <- tag_config[tag_config$tag_id == .ti, ]
+        
+        if (nrow(tag_specs) == 0) {
+          rlang::warn(
+            paste0(
+              "Could not find tag_id ", .ti, 
+              " in `tag_config`. Returning original values."
+            )
+          )
+          return(.br)
+        } else if (nrow(tag_specs) > 1) {
+          rlang::abort(
+            c(
+              "`tag_config` must contain only one row per tag ID.",
+              i = paste0("Multiple rows found for ID ", .ti)
+            )
+          )
+        }
         
         tag_gen <- tag_specs$tag_gen %||% tag_gen
         sensitivity <- tag_specs$sensitivity %||% sensitivity
+        
+        # For params with axis-specific values, extract all that
+        # exist safely into named vector
         offset <- extract_axis_arg(tag_specs, "offset") %||% offset
         slope <- extract_axis_arg(tag_specs, "slope")  %||% slope
-      } else {
-        if (rlang::is_null(tag_gen)) {
-          rlang::abort("If no config provided, need a tag generation")
-        }
+      } else if (rlang::is_null(tag_gen)) {
+        # For e-obs, can't identify transform params without a tag generation
+        rlang::abort("`tag_gen` must be present if no `tag_config` provided.")
       }
       
       eobs_transform_(
@@ -53,62 +70,51 @@ eobs_transform_ <- function(x,
                             units = "m/s^2") {
   rlang::arg_match(units, c("m/s^2", "g"))
   
+  # Maybe want better checks on whether the data are truly raw or not
   if (inherits(x, "units")) {
-    rlang::warn("Cannot transform values that already contain units. Returning input.") # Maybe want better checks on whether the data are truly raw or not
+    rlang::warn(
+      "Cannot transform values that already contain units. Returning input."
+    )
     return(x)
   }
   
-  if (!all(x[, axis_present] <= 4095 & x[, axis_present] >= 0)) {
+  # Get available axes and default tag config params
+  axes <- intersect(AXES, colnames(x))
+  
+  if (!all(x[, axes] <= 4095 & x[, axes] >= 0)) {
     rlang::abort("Raw e-obs values should be between 0 and 4095.")
   }
   
-  axis_present <- intersect(c("X", "Y", "Z"), colnames(x))
+  default_specs <- get_tag_specs(tag_gen, sensitivity %||% "low")
   
-  sensitivity <- sensitivity %||% "low"
-  tag_specs <- get_tag_specs(tag_gen, sensitivity)
+  # Set axis default vals and remove axes not found in input matrix
+  offset <- recycle_to_axes(offset, default = default_specs$offset, axes = axes)
+  slope <- recycle_to_axes(slope, default = default_specs$slope, axes = axes)
   
-  # Ensure that missing axis params get defaults and superfluous axis params are removed
-  offset <- resolve_axis_arg(offset, c(X = 2048, Y = 2048, Z = 2048), axis_present)
-  slope <- resolve_axis_arg(slope, c(X = tag_specs$slope, Y = tag_specs$slope, Z = tag_specs$slope), axis_present)
-
   offset <- as.numeric(offset)
   slope <- as.numeric(slope)
   
-  y_adj <- c(X = 1, Y = tag_specs$y, Z = 1)
-  y_adj <- y_adj[intersect(axis_present, names(y_adj))]
+  # Handle flipped y-axis orientation on some tag generations
+  y_adj <- c(X = 1, Y = default_specs$y, Z = 1)
+  scale <- y_adj[axes] * slope
   
-  scale <- y_adj * slope
-  
-  m <- sweep(x[, axis_present, drop = FALSE], 2, offset, `-`)
-  m <- sweep(m, 2, scale, `*`)
+  # Apply transformation
+  xt <- sweep(x[, axes, drop = FALSE], 2, offset, `-`)
+  xt <- sweep(xt, 2, scale, `*`)
   
   if (units == "m/s^2") {
-    m <- m * GRAV_CONST
+    xt <- xt * GRAV_CONST
   }
   
-  colnames(m) <- axis_present
+  colnames(xt) <- axes
+  xt <- units::set_units(xt, units, mode = "standard")
   
-  units::set_units(m, units, mode = "standard")
-}
-
-# Ensure input args have only X/Y/Z axes and remove axes missing from input matrix
-resolve_axis_arg <- function(x, defaults, axis_present) {
-  if (!is.null(x)) {
-    bad <- setdiff(names(x), c("X", "Y", "Z"))
-    if (length(bad) > 0) {
-      x <- x[intersect(names(x), c("X", "Y", "Z"))]
-    }
-  }
-  
-  resolved <- defaults
-  resolved[names(x)] <- x
-  resolved[is.na(resolved)] <- defaults[is.na(resolved)]
-  resolved[axis_present]
+  xt
 }
 
 extract_axis_arg <- function(config_row, col_pattern) {
-  axes <- c(X = "x", Y = "y", Z = "z")
-  cols <- paste(col_pattern, axes, sep = "_")
+  cols <- colnames(config_row)
+  cols <- cols[grepl(cols, pattern = col_pattern)]
   cols_present <- intersect(cols, colnames(config_row))
   
   if (length(cols_present) == 0L) {
@@ -116,8 +122,28 @@ extract_axis_arg <- function(config_row, col_pattern) {
   }
   
   vals <- unlist(config_row[, cols_present, drop = FALSE])
-  names(vals) <- names(axes)[match(cols_present, cols)]
+  names(vals) <- AXES[match(cols_present, cols)]
   vals
+}
+
+# Recycle a scalar or named vector to a length-3 named vector (X, Y, Z).
+# `default` fills any axis not supplied in a named vector. Axis names that do
+# not match X/Y/Z are silently dropped
+recycle_to_axes <- function(x, default = NA_real_, axes = AXES) {
+  if (is.null(names(x))) {
+    names(x) <- axes[seq_along(x)]
+  }
+  
+  # Remove unrecognized axis labels
+  x <- x[intersect(axes, names(x))]
+  
+  # Set defaults
+  out <- rep(default, length(axes))
+  names(out) <- axes
+  
+  # Replace non-default values
+  out[names(x)] <- x
+  out
 }
 
 get_tag_specs <- function(tag_gen, sensitivity = "low") {
@@ -147,17 +173,18 @@ eobs_tag_id_config <- function() {
   )
 }
 
-warn_unexpected_names <- function(x, arg, nms = c("X", "Y", "Z")) {
+warn_unexpected_names <- function(x, arg, nms = AXES) {
   d <- setdiff(names(x), nms)
   
   if (length(d) > 0) {
     rlang::warn(
       c(
         paste0("Ignoring unrecognized element(s) in arg `", arg, "`: \"", paste0(d, collapse = "\", \""), "\""),
-        i = paste0(arg, " should have elements only for axes X, Y, and/or Z")
+        i = paste0("Supported names: \"", paste0(nms, collapse = "\", \""), "\"")
       )
     )
   }
 }
 
 GRAV_CONST <- 9.80665
+AXES <- c("X", "Y", "Z")
