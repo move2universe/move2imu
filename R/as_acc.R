@@ -103,7 +103,7 @@ as_acc_move2_ <- function(x, acc_cols = NULL, min_frq = 1, merge_continuous = TR
   
   acc_type <- acc_cols_to_type(acc_cols)
   
-  if (acc_type %in% c("xyz", "raw_xyz", "tilt")) {
+  if (acc_type %in% c("xyz", "raw_xyz")) {
     acc <- as_acc_move2_long(x, acc_cols = acc_cols, min_frq = min_frq, ...)
   } else if (acc_type == "eobs") {
     acc <- as_acc_move2_eobs(x, ...)
@@ -263,10 +263,13 @@ as_acc_move2_long <- function(x,
 which_acc_vals <- function(x, acc_cols = NULL) {
   acc_cols <- acc_cols %||% active_acc_cols(x)
   
+  assert_valid_acc_colset(acc_cols)
+  assert_all_cols_present(x, acc_cols)
+  
   x <- as.data.frame(x) # Drop sticky move2 columns
   
   # Long-format columns only need at least one column to have data
-  if (acc_cols_to_type(acc_cols) %in% c("xyz", "raw_xyz", "tilt")) {
+  if (acc_cols_to_type(acc_cols) %in% c("xyz", "raw_xyz")) {
     has_vals <- which(rowSums(!is.na(x[acc_cols])) > 0)
   } else {
     has_vals <- which(rowSums(!is.na(x[acc_cols])) == length(acc_cols))

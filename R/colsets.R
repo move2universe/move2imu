@@ -62,20 +62,20 @@
 #'   active_acc_cols(alb)
 #' }
 active_acc_cols <- function(x) {
-  acc_colsets(x)
+  colsets <- acc_colsets(x)
+  
+  if (length(colsets) > 1) {
+    rlang::warn("Detected multiple valid acceleration column sets.")
+  }
+  
+  colsets
 }
 
 #' @export
 #' @rdname acc-cols
 acc_colsets <- function(x) {
   i <- which(
-    c(
-      has_acc_eobs_cols(x),
-      has_acc_burst_cols(x),
-      has_acc_xyz_cols(x),
-      has_acc_raw_xyz_cols(x),
-      has_acc_tilt_cols(x)
-    )
+    purrr::map_lgl(acc_colset_config(), function(colset) colset$is_in_(x))
   )
   
   if (length(i) == 0) {
@@ -135,7 +135,7 @@ duplicated_acc_rows <- function(x, colsets = NULL) {
 #' 
 #' - `acc_eobs_cols()` and `acc_burst_cols()` must be present in their entirety
 #' within a data source to be used when parsing acceleration data.
-#' - For `acc_xyz_cols()`, `acc_raw_xyz_cols()`, and `acc_tilt_cols()`, any
+#' - For `acc_xyz_cols()` and `acc_raw_xyz_cols()`, any
 #' subset of the set's columns can be used to parse acceleration
 #' data.
 #' 
@@ -150,7 +150,7 @@ duplicated_acc_rows <- function(x, colsets = NULL) {
 #' @examples
 #' valid_acc_colsets()
 valid_acc_colsets <- function() {
-  purrr::map(acc_colset_config(), function(x) x$cols)
+  purrr::map(acc_colset_config(), function(colset) colset$cols)
 }
 
 #' @export
@@ -193,35 +193,46 @@ acc_raw_xyz_cols <- function() {
   )
 }
 
-#' @export
-#' @rdname valid_acc_colsets
-acc_tilt_cols <- function() {
-  c(
-    "tilt_x",
-    "tilt_y",
-    "tilt_z"
-  )
-}
-
 # This defines all colsets but also the order in which colsets are selected
 # as default colsets by active_acc_cols(). Can also be expanded to accommodate
 # more metadata if needed
+#
+# is_ functions designed to check whether an input colset `x` is a valid
+# representation of the colset in the config
+#
+# is_in_ functions designed to check whether an input move2 `x` contains a given
+# colset while accounting for fact that subsets are allowed for certain colsets
 acc_colset_config <- function() {
   list(
-    list(type = "eobs", cols = acc_eobs_cols()),
-    list(type = "burst", cols = acc_burst_cols()),
-    list(type = "xyz", cols = acc_xyz_cols()),
-    list(type = "raw_xyz", cols = acc_raw_xyz_cols()),
-    list(type = "tilt", cols = acc_tilt_cols())
+    eobs = list(
+      type = "eobs", 
+      cols = acc_eobs_cols(), 
+      is_ = function(x) is_acc_eobs_cols(x),
+      is_in_ = function(x) all(acc_eobs_cols() %in% colnames(x))
+    ),
+    burst = list(
+      type = "burst", 
+      cols = acc_burst_cols(), 
+      is_ = function(x) is_acc_burst_cols(x),
+      is_in_ = function(x) all(acc_burst_cols() %in% colnames(x))
+    ),
+    xyz = list(
+      type = "xyz", 
+      cols = acc_xyz_cols(), 
+      is_ = function(x) is_acc_xyz_cols(x),
+      is_in_ = function(x) any(acc_xyz_cols() %in% colnames(x))
+    ),
+    raw_xyz = list(
+      type = "raw_xyz", 
+      cols = acc_raw_xyz_cols(), 
+      is_ = function(x) is_acc_raw_xyz_cols(x),
+      is_in_ = function(x) any(acc_raw_xyz_cols() %in% colnames(x))
+    )
   )
 }
 
 is_valid_acc_colset <- function(cols) {
-  is_acc_eobs_cols(cols) ||
-    is_acc_burst_cols(cols) ||
-    is_acc_xyz_cols(cols) ||
-    is_acc_raw_xyz_cols(cols) ||
-    is_acc_tilt_cols(cols)
+  any(purrr::map_lgl(acc_colset_config(), function(colset) colset$is_(cols)))
 }
 
 # is_* functions designed to check whether a vector represents a given colset
@@ -242,32 +253,6 @@ is_acc_xyz_cols <- function(x) {
   all(x %in% acc_xyz_cols()) && !anyDuplicated(x)
 }
 
-is_acc_tilt_cols <- function(x) {
-  all(x %in% acc_tilt_cols()) && !anyDuplicated(x)
-}
-
-# has_* functions designed to check whether an input move2 contains a given
-# colset while accounting for fact that subsets are allowed for certain colsets
-has_acc_eobs_cols <- function(x) {
-  all(acc_eobs_cols() %in% colnames(x))
-}
-
-has_acc_burst_cols <- function(x) {
-  all(acc_burst_cols() %in% colnames(x))
-}
-
-has_acc_raw_xyz_cols <- function(x) {
-  any(acc_raw_xyz_cols() %in% colnames(x))
-}
-
-has_acc_xyz_cols <- function(x) {
-  any(acc_xyz_cols() %in% colnames(x))
-}
-
-has_acc_tilt_cols <- function(x) {
-  any(acc_tilt_cols() %in% colnames(x))
-}
-
 cols_empty <- function(x, cols) {
   assert_all_cols_present(x, cols)
   purrr::map_lgl(
@@ -277,13 +262,13 @@ cols_empty <- function(x, cols) {
 }
 
 acc_types <- function() {
-  purrr::map_chr(acc_colset_config(), function(x) x$type)
+  purrr::map_chr(acc_colset_config(), function(colset) colset$type)
 }
 
 acc_cols_to_type <- function(acc_cols) {
   assert_valid_acc_colset(acc_cols)
   i <- purrr::map_lgl(valid_acc_colsets(), function(x) all(acc_cols %in% x))
-  acc_types()[i]
+  unname(acc_types()[i])
 }
 
 abort_missing_acc_cols <- function(call = rlang::caller_env()) {

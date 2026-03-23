@@ -6,7 +6,6 @@
 \alias{acc_burst_cols}
 \alias{acc_xyz_cols}
 \alias{acc_raw_xyz_cols}
-\alias{acc_tilt_cols}
 \title{Valid acceleration data column sets}
 \usage{
 valid_acc_colsets()
@@ -18,8 +17,6 @@ acc_burst_cols()
 acc_xyz_cols()
 
 acc_raw_xyz_cols()
-
-acc_tilt_cols()
 }
 \value{
 For \code{valid_acc_colsets()}, a list of vectors of valid column sets.
@@ -32,7 +29,7 @@ of these column sets to be processed by \code{as_acc()}.
 \itemize{
 \item \code{acc_eobs_cols()} and \code{acc_burst_cols()} must be present in their entirety
 within a data source to be used when parsing acceleration data.
-\item For \code{acc_xyz_cols()}, \code{acc_raw_xyz_cols()}, and \code{acc_tilt_cols()}, any
+\item For \code{acc_xyz_cols()} and \code{acc_raw_xyz_cols()}, any
 subset of the set's columns can be used to parse acceleration
 data.
 }

@@ -73,22 +73,22 @@ test_that("Can get acc from long-format acc data", {
 })
 
 test_that("Can manually specify acc columns to use for parsing", {
-  cols <- acc_tilt_cols()
+  cols <- acc_raw_xyz_cols()
   
   a <- as_acc(gulls(), acc_cols = cols)
   i <- which_acc_vals(gulls(), acc_cols = cols)
   
   expect_equal(
     unlist(map_acc(a, ~ .br[, 1])),
-    units::drop_units(gulls()[[cols[[1]]]][i])
+    gulls()[[cols[[1]]]][i]
   )
   expect_equal(
     unlist(map_acc(a, ~ .br[, 2])),
-    units::drop_units(gulls()[[cols[[2]]]][i])
+    gulls()[[cols[[2]]]][i]
   )
   expect_equal(
     unlist(map_acc(a, ~ .br[, 3])),
-    units::drop_units(gulls()[[cols[[3]]]][i])
+    gulls()[[cols[[3]]]][i]
   )
 })
 
