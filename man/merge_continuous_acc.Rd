@@ -8,6 +8,12 @@ merge_continuous_acc(x)
 }
 \arguments{
 \item{x}{An \code{acc} vector}
+
+\item{drop}{Logical indicating whether to drop entries that have been merged
+into other bursts. If \code{drop = FALSE}, the output will have the same length
+as the input \code{x}, with \code{NA} values at positions where bursts were merged
+into a preceding burst. This is useful for retaining index matching between
+the input and output vectors. Default is \code{TRUE}.}
 }
 \value{
 An \code{acc} vector

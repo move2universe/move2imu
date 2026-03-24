@@ -49,5 +49,6 @@ acc_list <- function(x) {
 
 new_acc_list <- function(x) {
   assertthat::assert_that(all(unlist(lapply(x, \(y) is.null(y) || !is.null(colnames(y))))))
+  
   new_list_of(x, ptype = matrix(numeric()), class = "acc_list")
 }

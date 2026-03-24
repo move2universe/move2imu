@@ -6,6 +6,11 @@
 #' frequencies or acceleration axes will not be merged.
 #'
 #' @param x An `acc` vector
+#' @param drop Logical indicating whether to drop entries that have been merged
+#'   into other bursts. If `drop = FALSE`, the output will have the same length
+#'   as the input `x`, with `NA` values at positions where bursts were merged
+#'   into a preceding burst. This is useful for retaining index matching between
+#'   the input and output vectors. Default is `TRUE`.
 #' 
 #' @returns An `acc` vector
 #' @export
@@ -18,36 +23,50 @@
 #' )
 #' 
 #' merge_continuous_acc(a)
-merge_continuous_acc <- function(x) {
+merge_continuous_acc <- function(x, drop = TRUE) {
   n <- vec_size(x)
+  
+  # Work only with non-NA entries; track their original positions
+  valid <- which(!is.na(x))
+  
+  if (length(valid) <= 1) {
+    if (drop) return(x[valid])
+    return(x)
+  }
+  
+  burst_starts <- starts(x)
+  
+  xv <- x[valid]
+  sv <- burst_starts[valid]
+  nv <- length(valid)
   
   # Collapsible bursts must end at the start time of the subsequent burst
   # TODO: add a tolerance parameter here to account for small deviations?
-  burst_starts <- starts(x)
-  timediff <- burst_starts + units::as_difftime(burst_dur(x))
-  is_adjacent_burst <- burst_starts[-1] == timediff[-n]
+  timediff <- sv + units::as_difftime(burst_dur(xv))
+  is_adjacent_burst <- sv[-1] == timediff[-nv]
   
   # If no adjacent bursts, no need to proceed
   if (!any(is_adjacent_burst, na.rm = TRUE)) {
+    if (drop) return(xv)
     return(x)
   }
   
   # Collapsible bursts must have the same frequency
-  fq <- freqs(x)
-  is_same_frq <- fq[-1] == fq[-n]
+  fq <- freqs(xv)
+  is_same_frq <- fq[-1] == fq[-nv]
   
   # Collapsible bursts must have axis structure
   # Check both axis names and length to disambiguate possible name duplication
   # after collapsing to single string
   axes <- purrr::map_chr(
-    bursts(x), 
+    bursts(xv),
     function(b) paste0(colnames(b), collapse = "_")
   )
-  is_same_n_axis <- (axes[-1] == axes[-n]) & (n_axis(x)[-1] == n_axis(x)[-n])
+  is_same_n_axis <- (axes[-1] == axes[-nv]) & (n_axis(xv)[-1] == n_axis(xv)[-nv])
   
   # Collapsible bursts must have same IDs
-  ids <- acc_id(x)
-  is_same_id <- (ids[-1] == ids[-n]) | (is.na(ids[-1]) & is.na(ids[-n]))
+  iv <- acc_id(x)[valid]
+  is_same_id <- (iv[-1] == iv[-nv]) | (is.na(iv[-1]) & is.na(iv[-nv]))
   
   to_bind <- c(FALSE, is_adjacent_burst & is_same_frq & is_same_n_axis & is_same_id)
   to_bind[is.na(to_bind)] <- FALSE
@@ -59,19 +78,28 @@ merge_continuous_acc <- function(x) {
   bursts_comb <- purrr::map(
     idx,
     function(i) {
-      purrr::reduce(bursts(x)[i], function(x, y) rbind(x, y))
+      purrr::reduce(bursts(xv)[i], function(x, y) rbind(x, y))
     }
   )
   
   # Get first entry in each group. This defines the burst freq and start time.
-  i <- purrr::map_int(idx, function(x) x[1])
+  merged_i <- purrr::map_int(idx, function(x) x[1])
   
-  acc(
-    bursts_comb, 
-    frequency = units::set_units(fq[i], "Hz"),
-    start = burst_starts[i],
-    id = acc_id(x)[i]
+  merged <- acc(
+    bursts_comb,
+    frequency = units::set_units(fq[merged_i], "Hz"),
+    start = sv[merged_i],
+    id = iv[merged_i]
   )
+  
+  # If retaining index matching, fill merged idx with NA acc
+  if (!drop) {
+    out <- vec_rep(acc(list(NULL), units::set_units(NA, "Hz")), n)
+    out[valid[merged_i]] <- merged
+    merged <- out
+  }
+  
+  merged
 }
 
 #' Split an `acc` object at regular intervals
@@ -111,7 +139,9 @@ split_continuous_acc <- function(x, interval) {
     x,
     function(.br, .fq, .st) {
       if (rlang::is_empty(.br) || nrow(.br) <= 1) {
-        return(.br)
+        return(
+          acc(list(NULL), .fq, .st)
+        )
       }
       
       # coerce user interval into units of (1 / frequency) which is what

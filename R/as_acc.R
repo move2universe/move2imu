@@ -73,7 +73,7 @@ as_acc.move2 <- function(x, acc_cols = NULL, min_frq = 1, merge_continuous = TRU
   }
   
   if (merge_continuous) {
-    acc <- merge_continuous_acc(acc)
+    acc <- merge_continuous_acc(acc, drop = drop)
   }
   
   if (drop) {
