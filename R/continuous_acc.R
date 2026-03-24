@@ -6,6 +6,9 @@
 #' frequencies or acceleration axes will not be merged.
 #'
 #' @param x An `acc` vector
+#' @param acc_ids Vector indicating groups to which the elements in `x` belong.
+#'   If provided, bursts in `x` will not be merged across different values of
+#'   this vector, even if their timestamps and frequencies align.
 #' @param drop Logical indicating whether to drop entries that have been merged
 #'   into other bursts. If `drop = FALSE`, the output will have the same length
 #'   as the input `x`, with `NA` values at positions where bursts were merged
@@ -23,7 +26,7 @@
 #' )
 #' 
 #' merge_continuous_acc(a)
-merge_continuous_acc <- function(x, drop = TRUE) {
+merge_continuous_acc <- function(x, acc_ids = NULL, drop = TRUE) {
   n <- vec_size(x)
   
   # Work only with non-NA entries; track their original positions
@@ -64,9 +67,13 @@ merge_continuous_acc <- function(x, drop = TRUE) {
   )
   is_same_n_axis <- (axes[-1] == axes[-nv]) & (n_axis(xv)[-1] == n_axis(xv)[-nv])
   
-  # Collapsible bursts must have same IDs
-  iv <- acc_id(x)[valid]
-  is_same_id <- (iv[-1] == iv[-nv]) | (is.na(iv[-1]) & is.na(iv[-nv]))
+  if (rlang::is_null(acc_ids)) {
+    is_same_id <- vctrs::vec_recycle(TRUE, nv - 1)
+  } else {
+    # Don't collapse bursts across different sources, if IDs provided
+    acc_ids_v <- acc_ids[valid]
+    is_same_id <- (acc_ids_v[-1] == acc_ids_v[-nv]) | (is.na(acc_ids_v[-1]) & is.na(acc_ids_v[-nv]))
+  }
   
   to_bind <- c(FALSE, is_adjacent_burst & is_same_frq & is_same_n_axis & is_same_id)
   to_bind[is.na(to_bind)] <- FALSE
@@ -88,17 +95,16 @@ merge_continuous_acc <- function(x, drop = TRUE) {
   merged <- acc(
     bursts_comb,
     frequency = units::set_units(fq[merged_i], "Hz"),
-    start = sv[merged_i],
-    id = iv[merged_i]
+    start = sv[merged_i]
   )
-  
+
   # If retaining index matching, fill merged idx with NA acc
   if (!drop) {
     out <- vec_rep(acc(list(NULL), units::set_units(NA, "Hz")), n)
     out[valid[merged_i]] <- merged
     merged <- out
   }
-  
+
   merged
 }
 

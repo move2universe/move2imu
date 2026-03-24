@@ -125,19 +125,18 @@ test_that("Non-mergeable bursts ignore merge arg regardless of drop arg", {
 
 test_that("Partial merge with drop = FALSE respects ID boundaries", {                                                                                                                           
   # 4 adjacent bursts, same freq, but IDs split at position 3
-  a <- acc(                                                                                                                                                                                     
+  a <- acc(
     c(
-      acc_burst_example(1:30),                                                                                                                                                                  
-      acc_burst_example(31:60),                                                                                                                                                                 
+      acc_burst_example(1:30),
+      acc_burst_example(31:60),
       acc_burst_example(61:90),
-      acc_burst_example(91:120)                                                                                                                                                                 
-    ),                                                    
+      acc_burst_example(91:120)
+    ),
     frequency = units::set_units(10, "Hz"),
-    start = as.POSIXct(c(0, 3, 6, 9), tz = "UTC"),                                                                                                                                              
-    id = c("a", "a", "b", "b")
-  )                                                                                                                                                                                             
-  
-  merged <- merge_continuous_acc(a, drop = FALSE)
+    start = as.POSIXct(c(0, 3, 6, 9), tz = "UTC")
+  )
+
+  merged <- merge_continuous_acc(a, acc_ids = c("a", "a", "b", "b"), drop = FALSE)
   
   expect_length(merged, 4)                                
   expect_identical(which(!is.na(merged)), c(1L, 3L))
@@ -234,7 +233,6 @@ test_that("Do not combine bursts with different IDs", {
   a <- as_acc(m)
   
   expect_length(a, 2)
-  expect_identical(acc_id(a), c("1", "2"))
   expect_identical(burst_n(a), as.integer(c(15, 5)))
 })
 

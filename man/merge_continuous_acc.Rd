@@ -4,10 +4,14 @@
 \alias{merge_continuous_acc}
 \title{Merge adjacent bursts in an \code{acc} vector}
 \usage{
-merge_continuous_acc(x)
+merge_continuous_acc(x, acc_ids = NULL, drop = TRUE)
 }
 \arguments{
 \item{x}{An \code{acc} vector}
+
+\item{acc_ids}{Vector indicating groups to which the elements in \code{x} belong.
+If provided, bursts in \code{x} will not be merged across different values of
+this vector, even if their timestamps and frequencies align.}
 
 \item{drop}{Logical indicating whether to drop entries that have been merged
 into other bursts. If \code{drop = FALSE}, the output will have the same length

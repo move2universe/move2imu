@@ -9,7 +9,6 @@
 \alias{bursts}
 \alias{freqs}
 \alias{starts}
-\alias{acc_id}
 \alias{burst_dur}
 \alias{burst_n}
 \alias{is_acc}
@@ -28,8 +27,6 @@ bursts(x)
 freqs(x)
 
 starts(x)
-
-acc_id(x)
 
 burst_dur(x)
 

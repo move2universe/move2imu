@@ -7,8 +7,7 @@
 acc(
   bursts = list(),
   frequency = units::set_units(double(), "Hz"),
-  start = NULL,
-  id = NULL
+  start = NULL
 )
 }
 \arguments{
@@ -17,9 +16,6 @@ acc(
 \item{frequency}{The frequency of the acceleration recordings. Either the same length of \code{bursts} or it will be recycled}
 
 \item{start}{Start time of the burst, in POSIXct format}
-
-\item{id}{Group identifier for this burst (for instance, to identify
-bursts that come from the same source)}
 }
 \description{
 Create a \code{acc} vector

@@ -73,7 +73,7 @@ as_acc.move2 <- function(x, acc_cols = NULL, min_frq = 1, merge_continuous = TRU
   }
   
   if (merge_continuous) {
-    acc <- merge_continuous_acc(acc, drop = drop)
+    acc <- merge_continuous_acc(acc, acc_ids = move2::mt_track_id(x), drop = drop)
   }
   
   if (drop) {
@@ -91,7 +91,6 @@ as_acc_move2_eobs <- function(x, force_int = TRUE, ...) {
     x[["eobs_acceleration_axes"]],
     x[["eobs_acceleration_sampling_frequency_per_axis"]],
     timestamp = move2::mt_time(x),
-    id = move2::mt_track_id(x),
     force_int = force_int,
     ...
   )
@@ -105,13 +104,12 @@ as_acc_move2_burst <- function(x, force_int = FALSE, ...) {
     x[["acceleration_axes"]],
     x[["acceleration_sampling_frequency_per_axis"]],
     timestamp = move2::mt_time(x),
-    id = move2::mt_track_id(x),
     force_int = force_int,
     ...
   )
 }
 
-as_acc_burst <- function(acc, axes, freq, timestamp, id, force_int = FALSE) {
+as_acc_burst <- function(acc, axes, freq, timestamp, force_int = FALSE) {
   colnms <- strsplit(as.character(axes), "")
   n_axis <- nchar(as.character(axes))
   acc_split <- strsplit(acc, " ")
@@ -148,7 +146,7 @@ as_acc_burst <- function(acc, axes, freq, timestamp, id, force_int = FALSE) {
   
   mlist[i] <- mapply("colnames<-", mlist[i], colnms[i], SIMPLIFY = FALSE)
   
-  acc(mlist, frequency = freq, start = timestamp, id = as.character(id))
+  acc(mlist, frequency = freq, start = timestamp)
 }
 
 # TODO: this should maybe be refactored to be analogous to `as_acc_burst` which doesn't
@@ -157,7 +155,6 @@ as_acc_move2_long <- function(x,
                               acc_cols = NULL,
                               min_frq = 1,
                               timestamp = move2::mt_time(x),
-                              id = move2::mt_track_id(x),
                               frq_digits = 4,
                               ...) {
   acc_cols <- acc_cols %||% active_acc_cols(x)
@@ -208,8 +205,7 @@ as_acc_move2_long <- function(x,
     acc(
       list(NULL), 
       units::set_units(NA, "Hz"), 
-      start = as.POSIXct(NA, tz = attr(timestamp, "tzone") %||% "UTC"),
-      id = NA_character_
+      start = as.POSIXct(NA, tz = attr(timestamp, "tzone") %||% "UTC")
     ), 
     nrow(x)
   )
@@ -217,7 +213,7 @@ as_acc_move2_long <- function(x,
   i <- sapply(idx, function(x) x[1]) # first index of each ts group
   
   if (length(i) > 0) {
-    acc[i] <- acc(acc_lst, units::as_units(freq, "Hz"), start = timestamp[i], id = as.character(id[i]))
+    acc[i] <- acc(acc_lst, units::as_units(freq, "Hz"), start = timestamp[i])
   }
   
   acc

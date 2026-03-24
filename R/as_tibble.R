@@ -11,7 +11,7 @@ as_tibble.acc <- function(x, include_bursts = FALSE, ...) {
 #' @export
 as.data.frame.acc <- function(x, ...) {
   data.frame(
-    id = acc_id(x),
+    # bursts = I(bursts(x)),
     frequency = freqs(x),
     start = starts(x)
   )
