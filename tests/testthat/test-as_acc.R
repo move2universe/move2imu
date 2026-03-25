@@ -336,3 +336,14 @@ test_that("Don't coerce non-eobs burst cols", {
   expect_silent(a <- as_acc(m))
   expect_identical(unlist(bursts(a)), rep(1.1:10.1, 3))
 })
+
+test_that("as_acc() checks long-format coltypes", {
+  g <- gulls()
+  g[["acceleration_raw_x"]] <- "foobar"
+  
+  expect_error(
+    as_acc(g, acc_cols = acc_raw_xyz_cols()),
+    "Detected non-numeric columns"
+  )
+  expect_silent(as_acc(g, acc_cols = "acceleration_raw_y"))
+})

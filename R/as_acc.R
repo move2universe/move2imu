@@ -164,7 +164,7 @@ as_acc_move2_long <- function(x,
   
   assert_all_cols_present(x, acc_cols)
   assert_valid_acc_colset(acc_cols)
-  
+  assert_acc_cols_numeric(x, acc_cols)
   assert_matched_acc_units(x, acc_cols)
   
   m <- as.matrix(data.frame(x)[, acc_cols])
@@ -380,6 +380,23 @@ assert_matched_acc_units <- function(x, cols) {
   for (i in seq_len(length(cols) - 1)) {
     assertthat::assert_that(
       get_units(x[[cols[[1]]]]) == get_units(x[[cols[[i + 1]]]])
+    )
+  }
+}
+
+assert_acc_cols_numeric <- function(x, acc_cols, call = rlang::caller_env()) {
+  cols_num <- purrr::map_lgl(acc_cols, function(col) is.numeric(x[[col]]))
+  
+  if (any(!cols_num)) {
+    rlang::abort(
+      c(
+        paste0(
+          "Detected non-numeric columns: \"", 
+          paste0(acc_cols[!cols_num], collapse = "\", \""), "\""
+        ),
+        i = "Acceleration columns must contain numeric data."
+      ),
+      call = call
     )
   }
 }
