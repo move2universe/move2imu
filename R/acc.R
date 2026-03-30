@@ -21,10 +21,22 @@ acc <- function(bursts = list(),
   
   start <- as.POSIXct(as.double(start), tz = tz)
   
+  frequency <- vec_recycle(frequency, n)
+  start <- vec_recycle(start, n)
+
+  # Ensure metadata is NA when bursts are missing, so that the record is
+  # consistently all-NA and vec_detect_missing() agrees with is.na()
+  na_burst <- vec_detect_missing(bursts)
+  
+  if (any(na_burst)) {
+    frequency[na_burst] <- units::set_units(NA, "Hz")
+    start[na_burst] <- as.POSIXct(NA, tz = tz)
+  }
+
   new_acc(
-    bursts = bursts, 
-    frequency = vec_recycle(frequency, n), 
-    start = vec_recycle(start, n)
+    bursts = bursts,
+    frequency = frequency,
+    start = start
   )
 }
 

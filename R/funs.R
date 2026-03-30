@@ -55,21 +55,10 @@ is_uniform<-function(x){
     all(duplicated(purrr::map_lgl(bursts(x[!is.na(x)]), inherits, "units"))[-1])
 }
 
-# TODO: I don't love this construction since it isn't entirely clear what
-# criteria are being used to determine if an entry is NA. Previoulsy this was
-# essentially determining whether an acc was NA based on the frequency and start, as
-# the bursts were NULL and therefore ignored. Now at least we explicitly check
-# bursts for NA, since this seems most relevant. But it would be reasonable
-# for a user to expect that this is checking the full acc record. We should
-# probably base this and na.omit on vctrs completion criteria and export
-# as different functions.
 #' @rdname explore-functions
 #' @export
 is.na.acc <- function(x) {
-  purrr::map_lgl(
-    bursts(x),
-    function(b) rlang::is_empty(b) | rlang::is_na(b)
-  )
+  vctrs::vec_detect_missing(x)
 }
 
 #' @export

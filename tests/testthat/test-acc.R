@@ -47,10 +47,18 @@ test_that("properties are correctly calculated",{
   expect_false(is_uniform(x2))
   expect_true(is_uniform(x2[c(1,3)]))
   
-  # is.na should use bursts to determine missingness
-  field(x2, "frequency")[1] <- units::set_units(1, "Hz")
-  field(x2, "start")[1] <- as.POSIXct(1, tz = "UTC")
-  expect_identical(is.na(x2), c(TRUE, FALSE, FALSE))
+})
+
+test_that("constructor replaces metadata with NA when bursts are missing", {
+  a <- acc(
+    list(NULL),
+    frequency = units::set_units(10, "Hz"),
+    start = as.POSIXct(0, tz = "UTC")
+  )
+  expect_true(is.na(a))
+  expect_true(vctrs::vec_detect_missing(a))
+  expect_true(is.na(freqs(a)))
+  expect_true(is.na(starts(a)))
 })
 
 test_that("duration is correctly calculated", {
