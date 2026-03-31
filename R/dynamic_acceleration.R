@@ -1,26 +1,14 @@
 #' @export
 vedba <- function(x) {
-  na_units <- detect_burst_units(x)
-  map_acc(x, function(.br) vedba_(.br, na_units = na_units), simplify = TRUE)
+  dba_(x, .f = function(.br) vedba_(.br))
 }
 
 #' @export
 odba <- function(x) {
-  na_units <- detect_burst_units(x)
-  map_acc(x, function(.br) odba_(.br, na_units = na_units), simplify = TRUE)
+  dba_(x, .f = function(.br) odba_(.br))
 }
 
-vedba_ <- function(b, na_units = NULL, ...) {
-  if (rlang::is_empty(b) || rlang::is_na(b)) {
-    na_val <- NA_real_
-    
-    if (!is.null(na_units)) {
-      na_val <- units::set_units(na_val, na_units, mode = "standard")
-    }
-    
-    return(na_val)
-  }
-
+vedba_ <- function(b, ...) {
   if (inherits(b, "units")) {
     u <- units(b)
     b <- t(b) - units::set_units(colMeans(b), u, mode = "standard")
@@ -35,17 +23,7 @@ vedba_ <- function(b, na_units = NULL, ...) {
   vedba
 }
 
-odba_ <- function(b, na_units = NULL, ...) {
-  if (rlang::is_empty(b) || rlang::is_na(b)) {
-    na_val <- NA_real_
-    
-    if (!is.null(na_units)) {
-      na_val <- units::set_units(na_val, na_units, mode = "standard")
-    }
-    
-    return(na_val)
-  }
-
+odba_ <- function(b, ...) {
   if (inherits(b, "units")) {
     u <- units(b)
     b <- t(b) - units::set_units(colMeans(b), u, mode = "standard")
@@ -60,18 +38,37 @@ odba_ <- function(b, na_units = NULL, ...) {
   odba
 }
 
-# Helper to identify the primary units for the bursts in an acc vector
-# acc vector bursts can have heterogeneous units, but units can be coerced
-# to each other when simplifying computed values to a vector, as is done in DBA
-# functions. This finds the first entry in an acc with units.
-detect_burst_units <- function(x) {
-  b <- purrr::detect(bursts(x), ~ inherits(.x, "units"))
-  
-  if (!is.null(b)) {
-    u <- units(b)
-  } else {
-    u <- NULL
+# Handle NA value logic. Process only non-NA entries, then reassign.
+# For speed considerations, as accumulation of NA values can add meaningful
+# processing time in map_acc()
+dba_ <- function(x, .f) {
+  if (length(x) == 0) {
+    return(NULL)
   }
   
-  u
+  x_na <- is.na(x)
+  
+  if (all(x_na)) {
+    return(rep(NA_real_, length(x)))
+  }
+  
+  dba_non_na <- map_acc(x[!x_na], function(.br) .f(.br), simplify = TRUE)
+  
+  if (all(!x_na)) {
+    return(dba_non_na)
+  }
+  
+  if (inherits(dba_non_na, "units")) {
+    dba <- units::set_units(
+      rep(NA_real_, length(x)), 
+      units(dba_non_na), 
+      mode = "standard"
+    )
+  } else {
+    dba <- rep(NA_real_, length(x))
+  }
+  
+  dba[!x_na] <- dba_non_na
+  
+  dba
 }

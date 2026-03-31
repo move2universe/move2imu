@@ -25,15 +25,29 @@
 #'   x=sin((1:200)/(5/(pi*2))))), units::set_units(400,'Hz'))
 #'   peak_frequency(a, units::set_units(.005, "Hz"))
 peak_frequency <- function(x, resolution = NA) {
-  map_acc(x, function(.br, .fq) peak_frq_(.br, .fq, resolution = resolution))
+  x_na <- is.na(x)
+
+  if (all(x_na)) {
+    return(as.list(rep(NA_real_, length(x))))
+  }
+
+  peak_frq_non_na <- map_acc(
+    x[!x_na],
+    function(.br, .fq) peak_frq_(.br, .fq, resolution = resolution)
+  )
+
+  if (all(!x_na)) {
+    return(peak_frq_non_na)
+  }
+
+  peak_frq <- vector("list", length(x))
+  peak_frq[x_na] <- list(NA_real_)
+  peak_frq[!x_na] <- peak_frq_non_na
+  peak_frq
 }
 
 # Peak frequency for a single burst and frq
 peak_frq_ <- function(burst, frq, resolution = NA) {
-  if (rlang::is_empty(burst) || rlang::is_na(burst)) {
-    return(NA_real_)
-  }
-  
   if (inherits(burst, "units")) {
     burst <- units::drop_units(burst)
   }
