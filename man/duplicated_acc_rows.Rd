@@ -13,7 +13,7 @@ either loaded from disk using \link[move2:mt_read]{move2::mt_read} or downloaded
 \link[move2:movebank_download_study]{move2::movebank_download_study}.}
 
 \item{acc_cols}{Vector or list of column sets to check for overlap. Defaults
-to the column sets detected by \code{\link[=acc_colsets]{acc_colsets()}}.}
+to the column sets detected by \code{\link[=active_acc_colsets]{active_acc_colsets()}}.}
 }
 \value{
 An integer vector of row indices with duplicated acceleration data
@@ -29,7 +29,7 @@ of \code{as_acc()} to avoid processing duplicated records.
 }
 \seealso{
 \itemize{
-\item \code{\link[=acc_colsets]{acc_colsets()}} to identify available column sets in a \code{move2} object.
+\item \code{\link[=active_acc_colsets]{active_acc_colsets()}} to identify available column sets in a \code{move2} object.
 \item \code{\link[=as_acc]{as_acc()}} to generate an \code{acc} vector from a \code{move2} object.
 }
 }

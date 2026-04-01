@@ -93,12 +93,12 @@ test_that("Can manually specify acc columns to use for parsing", {
 })
 
 test_that("Can manually specify a subset of long-format cols", {
-  col <- "acceleration_raw_y"
+  col <- acc_colset(acc_y = "acceleration_raw_y")
   
   a <- as_acc(gulls(), acc_cols = col)
   i <- which_acc_vals(gulls(), acc_cols = col)
   
-  expect_equal(unlist(map_acc(a, ~ .br[, 1])), gulls()[[col]][i])
+  expect_equal(unlist(map_acc(a, ~ .br[, 1])), gulls()[[as.character(col)]][i])
 })
 
 test_that("Can manually specify acc columns in mixed acc type data", {
@@ -124,13 +124,13 @@ test_that("Can manually specify acc columns in mixed acc type data", {
 
 test_that("Error on duplicate acc rows across colsets", {
   m <- move2::mt_stack(gulls(), albatrosses())
-
+  
   # Add raw xyz values to rows that already have eobs data
   eobs_rows <- which(!is.na(m$eobs_accelerations_raw))
   m$acceleration_raw_x[eobs_rows[1:3]] <- 1
   m$acceleration_raw_y[eobs_rows[1:3]] <- 1
   m$acceleration_raw_z[eobs_rows[1:3]] <- 1
-
+  
   expect_error(
     suppressWarnings(as_acc(m)),
     "multiple sources of acceleration data"
@@ -139,10 +139,10 @@ test_that("Error on duplicate acc rows across colsets", {
 
 test_that("Automatically get all available colsets", {
   m <- move2::mt_stack(gulls(), albatrosses())
-
+  
   expect_warning(a <- as_acc(m), "Detected multiple")
   a2 <- c(as_acc(gulls()), as_acc(albatrosses()))
-
+  
   # Ensure same ordering on comparison
   expect_identical(a2[order(starts(a2))], a[order(starts(a))])
 })
@@ -150,26 +150,26 @@ test_that("Automatically get all available colsets", {
 test_that("Multi-colset coalesce preserves index alignment with drop = FALSE", {
   m <- move2::mt_stack(gulls(), albatrosses())
   suppressWarnings(a <- as_acc(m, drop = FALSE))
-
+  
   expect_length(a, nrow(m))
 })
 
 test_that("Multi-colset coalesce places values at correct indices", {
   m <- move2::mt_stack(gulls(), albatrosses())
-
+  
   a_eobs <- as_acc(m, acc_cols = acc_eobs_cols(), drop = FALSE)
   a_raw <- as_acc(m, acc_cols = acc_raw_xyz_cols(), drop = FALSE)
   suppressWarnings(a_all <- as_acc(m, drop = FALSE))
-
+  
   eobs_idx <- which(!is.na(a_eobs))
   raw_idx <- which(!is.na(a_raw))
-
+  
   # No overlap between colsets
   expect_length(intersect(eobs_idx, raw_idx), 0)
-
+  
   # Combined non-NA count matches sum of individual colsets
   expect_equal(sum(!is.na(a_all)), length(eobs_idx) + length(raw_idx))
-
+  
   # Values at each colset's indices match
   expect_identical(a_all[eobs_idx], a_eobs[eobs_idx])
   expect_identical(a_all[raw_idx], a_raw[raw_idx])
@@ -177,16 +177,16 @@ test_that("Multi-colset coalesce places values at correct indices", {
 
 test_that("Multi-colset drop = TRUE is subset of drop = FALSE", {
   m <- move2::mt_stack(gulls(), albatrosses())
-
+  
   suppressWarnings(a_drop <- as_acc(m, drop = TRUE))
   suppressWarnings(a_no_drop <- as_acc(m, drop = FALSE))
-
+  
   expect_identical(a_drop, a_no_drop[!is.na(a_no_drop)])
 })
 
 test_that("Correctly error on bad acc_cols specifications", {
   expect_error(as_acc(gulls(), acc_cols = acc_eobs_cols()), "Missing columns")
-  expect_error(as_acc(gulls(), acc_cols = "foobar"), "Invalid acc columns")
+  expect_error(as_acc(gulls(), acc_cols = "foobar"), "must be an `acc_colset`")
 })
 
 test_that("Can split long-format data into bursts by inferred frequency", {
@@ -411,5 +411,72 @@ test_that("as_acc() checks long-format coltypes", {
     as_acc(g, acc_cols = acc_raw_xyz_cols()),
     "Detected non-numeric columns"
   )
-  expect_silent(as_acc(g, acc_cols = "acceleration_raw_y"))
+  expect_silent(as_acc(g, acc_cols = acc_colset(acc_y = "acceleration_raw_y")))
+})
+
+test_that("as_acc() rejects plain character vector for acc_cols", {
+  expect_error(
+    as_acc(albatrosses(), acc_cols = c("eobs_accelerations_raw")),
+    "acc_colset"
+  )
+})
+
+test_that("as_acc() errors on swapped burst column types", {
+  a <- albatrosses()
+  
+  # Swap bursts and frequency columns
+  expect_error(
+    as_acc(a, acc_cols = acc_colset(
+      bursts = "eobs_acceleration_sampling_frequency_per_axis",
+      axes = "eobs_acceleration_axes",
+      frequency = "eobs_accelerations_raw"
+    )),
+    "must be character"
+  )
+})
+
+test_that("Custom burst-format colset works end-to-end", {
+  alb <- albatrosses()
+  
+  a <- as_acc(alb, acc_cols = acc_eobs_cols())
+  
+  colnames(alb)[colnames(alb) == "eobs_acceleration_axes"] <- "my_axes"
+  colnames(alb)[colnames(alb) == "eobs_acceleration_sampling_frequency_per_axis"] <- "my_freq"
+  colnames(alb)[colnames(alb) == "eobs_accelerations_raw"] <- "my_bursts"
+  
+  # Use the eobs columns via a custom colset (equivalent to acc_eobs_cols())
+  custom <- acc_colset(
+    bursts = "my_bursts",
+    axes = "my_axes",
+    frequency = "my_freq"
+  )
+  
+  # adjust for fact that eobs uses force_int = TRUE, but custom cols don't
+  expect_identical(
+    as_acc(alb, acc_cols = custom, force_int = TRUE),
+    a
+  )
+})
+
+test_that("Custom long-format colset works end-to-end", {
+  gul <- gulls()
+  
+  a <- as_acc(gul, acc_cols = acc_raw_xyz_cols())
+  
+  colnames(gul)[colnames(gul) == "acceleration_raw_x"] <- "acc_x"
+  colnames(gul)[colnames(gul) == "acceleration_raw_y"] <- "acc_y"
+  colnames(gul)[colnames(gul) == "acceleration_raw_z"] <- "acc_z"
+  
+  # Use the eobs columns via a custom colset (equivalent to acc_eobs_cols())
+  custom <- acc_colset(
+    acc_x = "acc_x",
+    acc_y = "acc_y",
+    acc_z = "acc_z"
+  )
+  
+  # adjust for fact that eobs uses force_int = TRUE, but custom cols don't
+  expect_identical(
+    as_acc(gul, acc_cols = custom),
+    a
+  )
 })

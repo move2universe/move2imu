@@ -7,11 +7,13 @@
 #'   Ornitela, or similar tracking devices. Most of the time this will be 
 #'   either loaded from disk using [move2::mt_read] or downloaded using 
 #'   [move2::movebank_download_study].
-#' @param acc_cols Character vector of column names identifying the columns in
-#'   `x` that contain the acceleration data to be used when constructing the
-#'   output `acc` vector. By default, constructs bursts for all column sets that
-#'   are detected in `x` that also contain data. See [valid_acc_colsets()] to 
-#'   identify supported acceleration column names.
+#' @param acc_cols Vector or list of column sets specifying the columns of `x` 
+#'   that contain acceleration data. By default, constructs bursts for all 
+#'   column sets that are detected in `x` that also contain data 
+#'   (see [active_acc_colsets()]). 
+#'   
+#'   Use [acc_colset()] to specify a custom set
+#'   of columns to use when identifying acceleration data in `x`.
 #' @param min_frq Numeric value indicating the 
 #'   minimum allowable within-burst data collection frequency when identifying
 #'   bursts in long-format acceleration data. Any two adjacent timestamps 
@@ -52,7 +54,28 @@ as_acc.default <- function(x, ...) {
 #' @rdname as_acc
 #' @export
 as_acc.move2 <- function(x, acc_cols = NULL, min_frq = 1, merge_continuous = TRUE, drop = TRUE, ...) {
-  colsets <- acc_cols %||% acc_colsets(x)
+  assertthat::assert_that(move2::mt_is_track_id_cleaved(x))
+  assertthat::assert_that(move2::mt_is_time_ordered(x))
+  
+  if (!rlang::is_null(acc_cols)) {
+    if (is_acc_colset(acc_cols)) {
+      colsets <- acc_cols
+    } else if (rlang::is_list(acc_cols) && all(purrr::map_lgl(acc_cols, is_acc_colset))) {
+      colsets <- acc_cols
+    } else {
+      rlang::abort(
+        c(
+          "`acc_cols` must be an `acc_colset` object or a list of such objects.", 
+          i = "Use `acc_colset()` to create an `acc_colset` object.")
+      )
+    }
+  } else {
+    colsets <- active_acc_colsets(x)
+    
+    if (length(colsets) > 1) {
+      rlang::warn("Detected multiple valid acceleration column sets.")
+    }
+  }
   
   # Standardize case where user supplied a single colset as a vector
   if (!rlang::is_list(colsets)) {
@@ -72,11 +95,11 @@ as_acc.move2 <- function(x, acc_cols = NULL, min_frq = 1, merge_continuous = TRU
     colsets, 
     function(cols) {
       as_acc_move2_(
-        x, 
+        x,
         acc_cols = cols,
         min_frq = min_frq,
-        merge_continuous = merge_continuous, 
-        drop = FALSE, 
+        merge_continuous = merge_continuous,
+        drop = FALSE,
         ...
       )
     }
@@ -91,23 +114,24 @@ as_acc.move2 <- function(x, acc_cols = NULL, min_frq = 1, merge_continuous = TRU
   acc
 }
 
-as_acc_move2_ <- function(x, acc_cols, min_frq = 1, merge_continuous = TRUE, drop = TRUE, ...) {
-  assertthat::assert_that(move2::mt_is_track_id_cleaved(x))
-  assertthat::assert_that(move2::mt_is_time_ordered(x))
+as_acc_move2_ <- function(x, acc_cols, min_frq = 1, merge_continuous = TRUE, drop = TRUE, force_int = NULL, ...) {
+  check_acc_cols(x, acc_cols)
   
-  assert_valid_acc_colset(acc_cols)
-  assert_all_cols_present(x, acc_cols)
+  acc_type <- attr(acc_cols, "type")
   
-  acc_type <- acc_cols_to_type(acc_cols)
-  
-  if (acc_type %in% c("xyz", "raw_xyz")) {
+  if (acc_type == "long") {
     acc <- as_acc_move2_long(x, acc_cols = acc_cols, min_frq = min_frq, ...)
-  } else if (acc_type == "eobs") {
-    acc <- as_acc_move2_eobs(x, ...)
   } else if (acc_type == "burst") {
-    acc <- as_acc_move2_burst(x, ...)
+    acc <- as_acc_burst(
+      x[[acc_cols[["bursts"]]]],
+      x[[acc_cols[["axes"]]]],
+      x[[acc_cols[["frequency"]]]],
+      timestamp = move2::mt_time(x),
+      force_int = force_int %||% is_acc_eobs_cols(acc_cols),
+      ...
+    )
   } else {
-    abort_missing_acc_cols()
+    abort_missing_acc_colset()
   }
   
   if (merge_continuous) {
@@ -121,36 +145,10 @@ as_acc_move2_ <- function(x, acc_cols, min_frq = 1, merge_continuous = TRUE, dro
   acc
 }
 
-as_acc_move2_eobs <- function(x, force_int = TRUE, ...) {
-  assert_all_cols_present(x, acc_eobs_cols())
-  
-  as_acc_burst(
-    x[["eobs_accelerations_raw"]],
-    x[["eobs_acceleration_axes"]],
-    x[["eobs_acceleration_sampling_frequency_per_axis"]],
-    timestamp = move2::mt_time(x),
-    force_int = force_int,
-    ...
-  )
-}
-
-as_acc_move2_burst <- function(x, force_int = FALSE, ...) {
-  assert_all_cols_present(x, acc_burst_cols())
-  
-  as_acc_burst(
-    x[["accelerations_raw"]],
-    x[["acceleration_axes"]],
-    x[["acceleration_sampling_frequency_per_axis"]],
-    timestamp = move2::mt_time(x),
-    force_int = force_int,
-    ...
-  )
-}
-
 as_acc_burst <- function(acc, axes, freq, timestamp, force_int = FALSE) {
   colnms <- strsplit(as.character(axes), "")
   n_axis <- nchar(as.character(axes))
-  acc_split <- strsplit(acc, " ")
+  acc_split <- strsplit(as.character(acc), " ")
   
   if (force_int) {
     all_acc <- unlist(acc_split)
@@ -195,13 +193,10 @@ as_acc_move2_long <- function(x,
                               timestamp = move2::mt_time(x),
                               frq_digits = 4,
                               ...) {
-  assert_all_cols_present(x, acc_cols)
-  assert_valid_acc_colset(acc_cols)
-  assert_acc_cols_numeric(x, acc_cols)
-  assert_matched_acc_units(x, acc_cols)
+  col_names <- as.character(acc_cols)
+  m <- as.matrix(data.frame(x)[, col_names])
   
-  m <- as.matrix(data.frame(x)[, acc_cols])
-  colnames(m) <- toupper(regmatches(acc_cols, regexpr("(.)$", acc_cols)))
+  colnames(m) <- names(acc_cols)
   
   # TODO: may want a safer way to handle units. Some acc will have units, others not
   if (inherits(x[[acc_cols[[1]]]], "units")) {
@@ -256,13 +251,14 @@ as_acc_move2_long <- function(x,
 }
 
 which_acc_vals <- function(x, acc_cols) {
-  assert_valid_acc_colset(acc_cols)
   assert_all_cols_present(x, acc_cols)
   
   x <- as.data.frame(x) # Drop sticky move2 columns
   
+  type <- attr(acc_cols, "type")
+  
   # Long-format columns only need at least one column to have data
-  if (acc_cols_to_type(acc_cols) %in% c("xyz", "raw_xyz")) {
+  if (type == "long") {
     has_vals <- which(rowSums(!is.na(x[acc_cols])) > 0)
   } else {
     has_vals <- which(rowSums(!is.na(x[acc_cols])) == length(acc_cols))
@@ -407,10 +403,38 @@ new_frq_regime <- function(n, n_next = 0, prev_run = FALSE) {
   c(start, rep(FALSE, n - 1))
 }
 
-assert_matched_acc_units <- function(x, cols) {
-  for (i in seq_len(length(cols) - 1)) {
-    assertthat::assert_that(
-      get_units(x[[cols[[1]]]]) == get_units(x[[cols[[i + 1]]]])
+check_acc_cols <- function(x, acc_cols, call = rlang::caller_env()) {
+  assert_all_cols_present(x, acc_cols, call = call)
+  
+  if (attr(acc_cols, "type") == "burst") {
+    assert_burst_col_types(x, acc_cols, call = call)
+  } else {
+    assert_matched_acc_units(x, acc_cols, call = call)
+    assert_acc_cols_numeric(x, acc_cols, call = call)
+  }
+}
+
+assert_matched_acc_units <- function(x, cols, call = rlang::caller_env()) {
+  unique_units <- unique(
+    purrr::map(
+      cols, 
+      function(col) {
+        if (inherits(x[[col]], "units")) {
+          units(x[[col]])
+        } else {
+          NA
+        }
+      }
+    )
+  )
+  
+  if (length(unique_units) != 1) {
+    rlang::abort(
+      c(
+        "Multiple units detected across input acc columns.",
+        i = "All acceleration columns must have consistent units."
+      ),
+      call = call
     )
   }
 }
@@ -432,12 +456,26 @@ assert_acc_cols_numeric <- function(x, acc_cols, call = rlang::caller_env()) {
   }
 }
 
-# Hacky unit comparison for now. Some acc cols don't come with units
-get_units <- function(x) {
-  if (inherits(x, "units")) {
-    units(x)
-  } else {
-    "None"
+assert_burst_col_types <- function(x, acc_cols, call = rlang::caller_env()) {
+  bursts_col <- acc_cols[["bursts"]]
+  axes_col <- acc_cols[["axes"]]
+  freq_col <- acc_cols[["frequency"]]
+  
+  if (!is.character(x[[bursts_col]]) && !is.factor(x[[bursts_col]])) {
+    rlang::abort(c(
+      paste0("`bursts` column \"", bursts_col, "\" must be character, not ", class(x[[bursts_col]])[1])
+    ), call = call)
+  }
+  
+  if (!is.character(x[[axes_col]]) && !is.factor(x[[axes_col]])) {
+    rlang::abort(c(
+      paste0("`axes` column \"", axes_col, "\" must be character, not ", class(x[[axes_col]])[1])
+    ), call = call)
+  }
+  
+  if (!is.numeric(x[[freq_col]])) {
+    rlang::abort(c(
+      paste0("`frequency` column \"", freq_col, "\" must be numeric, not ", class(x[[freq_col]])[1])
+    ), call = call)
   }
 }
-
