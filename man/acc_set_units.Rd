@@ -4,7 +4,7 @@
 \alias{acc_set_units}
 \title{Set or convert units on burst data in an \code{acc} vector}
 \usage{
-acc_set_units(acc, units, ...)
+acc_set_units(acc, units)
 }
 \arguments{
 \item{acc}{An \code{acc} vector.}

@@ -1,8 +1,33 @@
+#' Calculate dynamic body acceleration (DBA) for an `acc` vector
+#'
+#' @description
+#' Compute vectorial dynamic body acceleration (VeDBA) or overall
+#' dynamic body acceleration (ODBA) for each burst in an `acc` vector.
+#'
+#' Dynamic body acceleration is computed by subtracting the static
+#' acceleration component from each axis and then summarizing the remaining
+#' dynamic acceleration with:
+#'
+#' - VeDBA: mean of the Euclidean norm across samples
+#' - ODBA: mean of the sum of absolute values across samples
+#'
+#' @param x An `acc` vector.
+#'
+#' @returns A numeric vector the same length as `x`.
+#'
 #' @export
+#' @rdname dba
+#'
+#' @examples
+#' a <- acc_example()
+#' 
+#' vedba(a)
+#' odba(a)
 vedba <- function(x) {
   dba_(x, .f = function(.br) vedba_(.br))
 }
 
+#' @rdname dba
 #' @export
 odba <- function(x) {
   dba_(x, .f = function(.br) odba_(.br))

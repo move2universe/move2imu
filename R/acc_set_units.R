@@ -27,7 +27,7 @@
 #' # Convert between units
 #' a_ms2 <- acc_set_units(a, "m/s^2")
 #' acc_set_units(a_ms2, "standard_free_fall")
-acc_set_units <- function(acc, units, ...) {
+acc_set_units <- function(acc, units) {
   assertthat::assert_that(inherits(acc, "acc"))
   assertthat::assert_that(is.character(units), length(units) == 1)
 
