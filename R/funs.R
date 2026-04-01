@@ -2,6 +2,7 @@
 #' Functions to explore an `acc` vector
 #'
 #' @param x an acc vector
+#' @param value Replacement value.
 #'
 #' @rdname explore-functions
 #' @aliases explore-functions
@@ -67,16 +68,37 @@ bursts <- function(x) {
   field(x, "bursts")
 }
 
+#' @rdname explore-functions
+#' @export
+`bursts<-` <- function(x, value) {
+  field(x, "bursts") <- value
+  x
+}
+
 #' @export
 #' @rdname explore-functions
 freqs <- function(x) {
   field(x, "frequency")
 }
 
+#' @rdname explore-functions
+#' @export
+`freqs<-` <- function(x, value) {
+  field(x, "frequency") <- value
+  x
+}
+
 #' @export
 #' @rdname explore-functions
 starts <- function(x) {
   field(x, "start")
+}
+
+#' @rdname explore-functions
+#' @export
+`starts<-` <- function(x, value) {
+  field(x, "start") <- value
+  x
 }
 
 #' @export

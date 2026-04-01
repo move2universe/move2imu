@@ -7,8 +7,11 @@
 \alias{is_uniform}
 \alias{is.na.acc}
 \alias{bursts}
+\alias{bursts<-}
 \alias{freqs}
+\alias{freqs<-}
 \alias{starts}
+\alias{starts<-}
 \alias{burst_dur}
 \alias{burst_n}
 \alias{burst_units}
@@ -25,9 +28,15 @@ is_uniform(x)
 
 bursts(x)
 
+bursts(x) <- value
+
 freqs(x)
 
+freqs(x) <- value
+
 starts(x)
+
+starts(x) <- value
 
 burst_dur(x)
 
@@ -39,6 +48,8 @@ is_acc(x)
 }
 \arguments{
 \item{x}{an acc vector}
+
+\item{value}{Replacement value.}
 }
 \description{
 Functions to explore an \code{acc} vector
