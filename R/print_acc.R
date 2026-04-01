@@ -46,7 +46,8 @@ pillar_shaft.acc <- function(x, ...) {
 #' @export
 obj_print_footer.acc <- function(x, ...) {
   f <- freqs(x)[!is.na(x)]
-  if (length(unique(f)) == 1) {
+
+  if (length(unique(f)) <= 1) {
     r <- format(f[1])
   } else {
     r <- paste(format(range(f)), collapse = " - ")
