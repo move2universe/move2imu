@@ -222,6 +222,22 @@ test_that("axes accepts lowercase and whitespace", {
   expect_equal(colnames(result), c("X", "Y"))
 })
 
+test_that("per-axis params with omitted axes calibrate correctly", {
+  cal <- acc_calibration(
+    offset_x = 1000, offset_y = 900,
+    slope_x = 0.001, slope_y = 0.002
+  )
+
+  result <- suppressWarnings(cal[[1]](b))
+
+  # X and Y are calibrated
+  expect_equal(as.numeric(result[, "X"]), (b[, "X"] - 1000) * 0.001 * GRAV_CONST)
+  expect_equal(as.numeric(result[, "Y"]), (b[, "Y"] - 900) * 0.002 * GRAV_CONST)
+
+  # Z has no params, so produces NAs
+  expect_true(all(is.na(result[, "Z"])))
+})
+
 test_that("axes vectorizes across elements", {
   tf <- acc_calibration(
     offset = c(2048, 2048),

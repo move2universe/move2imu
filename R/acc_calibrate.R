@@ -167,12 +167,12 @@ acc_calibration <- function(manufacturer = NULL,
     axes = axes
   )
   
-  # Coerce NULLs to list(NULL) so they recycle as length 1, not length 0
+  # Coerce NULLs to NA so they recycle as length 1, not length 0
   args <- purrr::map(
     args,
     function(x) {
       if (is.null(x)) {
-        list(NULL)
+        NA
       } else {
         x
       }
@@ -232,7 +232,7 @@ acc_calibration_ <- function(manufacturer = NULL,
         rlang::abort("`tag_id` must be provided when `manufacturer = \"eobs\"`")
       }
       
-      specs <- eobs_specs(tag_id, sensitivity %||% "low")
+      specs <- eobs_specs(tag_id, first_valid(sensitivity, "low"))
     } else if (manufacturer == "ornitela") {
       specs <- ornitela_specs()
     } else {
