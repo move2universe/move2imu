@@ -140,8 +140,8 @@ test_that("Partial merge with drop = FALSE respects ID boundaries", {
   
   expect_length(merged, 4)                                
   expect_identical(which(!is.na(merged)), c(1L, 3L))
-  expect_equal(burst_n(merged[1]), as.integer(nrow(bursts(a)[[1]]) + nrow(bursts(a)[[2]])))                                                                                                     
-  expect_equal(burst_n(merged[3]), as.integer(nrow(bursts(a)[[3]]) + nrow(bursts(a)[[4]])))                                                                                                     
+  expect_equal(n_samples(merged[1]), as.integer(nrow(bursts(a)[[1]]) + nrow(bursts(a)[[2]])))                                                                                                     
+  expect_equal(n_samples(merged[3]), as.integer(nrow(bursts(a)[[3]]) + nrow(bursts(a)[[4]])))                                                                                                     
 }) 
 
 test_that("Do not combine bursts with different axes", {
@@ -174,7 +174,7 @@ test_that("Do not combine bursts with different axes", {
     purrr::map(bursts(a), colnames),
     list(c("X", "Y", "Z"), c("X", "Y"), c("X", "Y", "Z"))
   )
-  expect_identical(burst_n(a), as.integer(c(10, 5, 5)))
+  expect_identical(n_samples(a), as.integer(c(10, 5, 5)))
 })
 
 test_that("Do not combine bursts with different frequencies", {
@@ -233,7 +233,7 @@ test_that("Do not combine bursts with different IDs", {
   a <- as_acc(m)
   
   expect_length(a, 2)
-  expect_identical(burst_n(a), as.integer(c(15, 5)))
+  expect_identical(n_samples(a), as.integer(c(15, 5)))
 })
 
 test_that("Don't combine bursts without start time", {

@@ -3,7 +3,6 @@
 \name{n_axis}
 \alias{n_axis}
 \alias{explore-functions}
-\alias{n_samples}
 \alias{is_uniform}
 \alias{is.na.acc}
 \alias{bursts}
@@ -13,14 +12,12 @@
 \alias{starts}
 \alias{starts<-}
 \alias{burst_dur}
-\alias{burst_n}
+\alias{n_samples}
 \alias{burst_units}
 \alias{is_acc}
 \title{Functions to explore an \code{acc} vector}
 \usage{
 n_axis(x)
-
-n_samples(x)
 
 is_uniform(x)
 
@@ -40,7 +37,7 @@ starts(x) <- value
 
 burst_dur(x)
 
-burst_n(x)
+n_samples(x)
 
 burst_units(x)
 

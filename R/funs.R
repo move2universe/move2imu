@@ -37,14 +37,6 @@ n_axis <- function(x) {
 }
 
 #' @export
-#' @rdname explore-functions
-n_samples <- function(x) {
-  r <- rep(NA_integer_, vec_size(x))
-  r[!is.na(x)] <- purrr::map_int(bursts(x[!is.na(x)]), nrow)
-  r
-}
-
-#' @export
 #' @importFrom stats na.omit
 #' @rdname explore-functions
 is_uniform<-function(x){
@@ -104,12 +96,12 @@ starts <- function(x) {
 #' @export
 #' @rdname explore-functions
 burst_dur <- function(x) {
-  units::set_units(as.numeric(burst_n(x) / freqs(x)), "s")
+  units::set_units(as.numeric(n_samples(x) / freqs(x)), "s")
 }
 
 #' @export
 #' @rdname explore-functions
-burst_n <- function(x) {
+n_samples <- function(x) {
   purrr::map_int(bursts(x), function(b) nrow(b) %||% NA_integer_)
 }
 
