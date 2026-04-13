@@ -86,35 +86,35 @@ test_that("Resolution alows to identify partial frequencies", {
 })
 
 test_that("Resolution alows to identify partial frequencies", {
-  m <- matrix(runif(100), ncol=10)
-  colnames(m) <- LETTERS[1:10]
-  
+  m <- matrix(runif(30), ncol = 3)
+  colnames(m) <- c("X", "Y", "Z")
+
   a <- acc(list(m), units::set_units(23, "Hz"))
-  
+
   p <- unname(unlist(
     peak_frequency(a, resolution = units::set_units(.005, "Hz"))
   ))
-  expect_equal((((p / .005) + .5) %% 1) - .5, rep(0, 10))
-  
+  expect_equal((((p / .005) + .5) %% 1) - .5, rep(0, 3))
+
   p <- unname(unlist(
     peak_frequency(a, resolution = units::set_units(.025, "Hz"))
   ))
-  expect_equal((((p / .025) + .5) %% 1) - .5, rep(0, 10))
-  
-  m <- matrix(runif(1000), ncol=10)
-  colnames(m) <- LETTERS[1:10]
-  
+  expect_equal((((p / .025) + .5) %% 1) - .5, rep(0, 3))
+
+  m <- matrix(runif(300), ncol = 3)
+  colnames(m) <- c("X", "Y", "Z")
+
   a <- acc(list(m), units::set_units(23, "Hz"))
-  
+
   p <- unname(unlist(
     peak_frequency(a, resolution = units::set_units(.005,"Hz"))
   ))
-  expect_equal((((p / .005) + .5) %% 1) - .5, rep(0, 10))
+  expect_equal((((p / .005) + .5) %% 1) - .5, rep(0, 3))
   
   p <- unname(unlist(
     peak_frequency(a, resolution = units::set_units(0.025,"Hz"))
   ))
-  expect_equal((((p / .025) + .5) %% 1) - .5, rep(0, 10))
+  expect_equal((((p / .025) + .5) %% 1) - .5, rep(0, 3))
 })
 
 test_that("peak_frequency returns NA for NA elements", {

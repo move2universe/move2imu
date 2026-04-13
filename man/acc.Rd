@@ -13,7 +13,9 @@ acc(
 \arguments{
 \item{bursts}{a list of matrices}
 
-\item{frequency}{The frequency of the acceleration recordings. Either the same length of \code{bursts} or it will be recycled}
+\item{frequency}{The frequency of the acceleration recordings. Either the
+same length of \code{bursts} or it will be recycled. If no units are specified,
+the frequency is assumed to be in Hz.}
 
 \item{start}{Start time of the burst, in POSIXct format}
 }

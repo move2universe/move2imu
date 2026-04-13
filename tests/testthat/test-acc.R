@@ -61,6 +61,48 @@ test_that("constructor replaces metadata with NA when bursts are missing", {
   expect_true(is.na(starts(a)))
 })
 
+test_that("frequency must be in frequency-compatible units", {
+  expect_error(
+    acc(list(cbind(X = 1:3)), frequency = units::set_units(10, "km")),
+    "frequency unit"
+  )
+
+  # Valid frequency units should work
+  expect_no_error(
+    a <- acc(list(cbind(X = 1:3)), frequency = units::set_units(10, "kHz"))
+  )
+  expect_equal(units::deparse_unit(freqs(a)), "kHz")
+  
+  # Bare numeric is coerced to Hz
+  a <- acc(list(cbind(X = 1:3)), frequency = 10)
+  expect_equal(units::deparse_unit(freqs(a)), "Hz")
+})
+
+test_that("burst matrix columns must be named X, Y, or Z", {
+  # Unnamed columns
+  expect_error(
+    acc(list(matrix(1:6, ncol = 2)), frequency = 10),
+    "named"
+  )
+
+  # A mix of named and unnamed bursts should also error
+  expect_error(
+    acc(list(cbind(X = 1:3, Y = 4:6), matrix(1:6, ncol = 2)), frequency = 10),
+    "named"
+  )
+
+  # Invalid column names
+  expect_error(
+    acc(list(cbind(A = 1:3, B = 4:6)), frequency = 10),
+    "named"
+  )
+
+  # NULL bursts (NA entries) don't need column names
+  expect_no_error(
+    acc(list(NULL), frequency = NA)
+  )
+})
+
 test_that("duration is correctly calculated", {
   a <- acc(
     c(
