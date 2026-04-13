@@ -163,6 +163,19 @@ static_acc <- function(x) {
 }
 
 #' @export
-vec_cast.acc.acc <- function(x, to, ...) {
-  x
+vec_ptype2.acc.acc <- function(x, y, ...) {
+  freq_common <- vctrs::vec_ptype2(freqs(x), freqs(y))
+  
+  new_acc(
+    bursts = new_acc_list(list()),
+    frequency = freq_common,
+    start = as.POSIXct(double(), tz = "UTC")
+  )
 }
+
+#' @export
+vec_cast.acc.acc <- function(x, to, ...) {
+  freqs(x) <- units::set_units(freqs(x), units::deparse_unit(freqs(to)), mode = "standard")
+  x                                                                                                                                    
+}
+

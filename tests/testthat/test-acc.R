@@ -103,6 +103,58 @@ test_that("burst matrix columns must be named X, Y, or Z", {
   )
 })
 
+test_that("c() handles different frequency units", {
+  a1 <- acc(
+    acc_burst_example(1:10, 1:10),
+    frequency = units::set_units(20, "kHz"),
+    start = as.POSIXct(0, tz = "UTC")
+  )
+  a2 <- acc(
+    acc_burst_example(1:10, 1:10),
+    frequency = units::set_units(20, "Hz"),
+    start = as.POSIXct(1, tz = "UTC")
+  )
+
+  a <- c(a1, a2)
+  expect_length(a, 2)
+
+  # Both frequencies should be in the same unit
+  expect_identical(
+    units::deparse_unit(freqs(a)[1]),
+    units::deparse_unit(freqs(a)[2])
+  )
+
+  # Numeric values should be correctly converted
+  expect_equal(as.numeric(freqs(a)[1]), 20)
+  expect_equal(as.numeric(freqs(a)[2]), 0.02)
+
+  # NA frequencies are preserved
+  a_na <- acc(list(NULL), frequency = units::set_units(NA, "Hz"))
+  a <- c(a1, a_na)
+  expect_length(a, 2)
+  expect_equal(as.numeric(freqs(a)[1]), 20)
+  expect_true(is.na(freqs(a)[2]))
+
+  # Combining with empty acc
+  a <- c(a1, acc())
+  expect_length(a, 1)
+  expect_equal(as.numeric(freqs(a)[1]), 20)
+
+  # Three-way combine with mixed units
+  a3 <- acc(
+    acc_burst_example(1:10, 1:10),
+    frequency = units::set_units(0.001, "MHz"),
+    start = as.POSIXct(2, tz = "UTC")
+  )
+  a <- c(a1, a2, a3)
+  expect_length(a, 3)
+  expect_equal(as.numeric(freqs(a)), c(20, 0.02, 1))
+  expect_identical(
+    units::deparse_unit(freqs(a)),
+    "kHz"
+  )
+})
+
 test_that("duration is correctly calculated", {
   a <- acc(
     c(
