@@ -369,7 +369,7 @@ test_that("Can standardize interval units when splitting", {
     start = as.POSIXct(c(0, 10), tz = "UTC")
   )
   
-  # Default should be in 1/frq units
+  # Default should be in 1/freq units
   expect_length(split_continuous_acc(a, interval = 0.5), 8)
   expect_identical(
     split_continuous_acc(a, interval = 0.5),

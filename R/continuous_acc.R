@@ -56,7 +56,7 @@ merge_continuous_acc <- function(x, acc_ids = NULL, drop = TRUE) {
   
   # Collapsible bursts must have the same frequency
   fq <- freqs(xv)
-  is_same_frq <- fq[-1] == fq[-nv]
+  is_same_freq <- fq[-1] == fq[-nv]
   
   # Collapsible bursts must have axis structure
   # Check both axis names and length to disambiguate possible name duplication
@@ -75,7 +75,7 @@ merge_continuous_acc <- function(x, acc_ids = NULL, drop = TRUE) {
     is_same_id <- (acc_ids_v[-1] == acc_ids_v[-nv]) | (is.na(acc_ids_v[-1]) & is.na(acc_ids_v[-nv]))
   }
   
-  to_bind <- c(FALSE, is_adjacent_burst & is_same_frq & is_same_n_axis & is_same_id)
+  to_bind <- c(FALSE, is_adjacent_burst & is_same_freq & is_same_n_axis & is_same_id)
   to_bind[is.na(to_bind)] <- FALSE
   
   # Split entries in the acc vector into groups that should be collapsed and
@@ -152,8 +152,8 @@ split_continuous_acc <- function(x, interval) {
       
       # coerce user interval into units of (1 / frequency) which is what
       # is implied when we split burst records by index
-      frq_units <- units::as_units(units(.fq), mode = "standard")
-      period_units <- 1 / frq_units
+      freq_units <- units::as_units(units(.fq), mode = "standard")
+      period_units <- 1 / freq_units
       
       interval <- units::set_units(
         interval, 

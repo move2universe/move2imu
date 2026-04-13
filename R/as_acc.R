@@ -14,13 +14,13 @@
 #'   
 #'   Use [acc_colset()] to specify a custom set
 #'   of columns to use when identifying acceleration data in `x`.
-#' @param min_frq Numeric value indicating the 
+#' @param min_freq Numeric value indicating the
 #'   minimum allowable within-burst data collection frequency when identifying
-#'   bursts in long-format acceleration data. Any two adjacent timestamps 
+#'   bursts in long-format acceleration data. Any two adjacent timestamps
 #'   that fall outside of the period defined by this frequency will be split
 #'   into separate bursts. If no units are provided, this value is assumed to
-#'   be in Hz. 
-#'   
+#'   be in Hz.
+#'
 #'   Ignored if data are already in predefined bursts (e.g. e-obs).
 #' @param merge_continuous Logical value indicating whether to merge
 #'   adjacent acceleration bursts. Two adjacent bursts can be merged if the
@@ -53,7 +53,7 @@ as_acc.default <- function(x, ...) {
 
 #' @rdname as_acc
 #' @export
-as_acc.move2 <- function(x, acc_cols = NULL, min_frq = 1, merge_continuous = TRUE, drop = TRUE, ...) {
+as_acc.move2 <- function(x, acc_cols = NULL, min_freq = 1, merge_continuous = TRUE, drop = TRUE, ...) {
   assertthat::assert_that(move2::mt_is_track_id_cleaved(x))
   assertthat::assert_that(move2::mt_is_time_ordered(x))
   
@@ -97,7 +97,7 @@ as_acc.move2 <- function(x, acc_cols = NULL, min_frq = 1, merge_continuous = TRU
       as_acc_move2_(
         x,
         acc_cols = cols,
-        min_frq = min_frq,
+        min_freq = min_freq,
         merge_continuous = merge_continuous,
         drop = FALSE,
         ...
@@ -114,13 +114,13 @@ as_acc.move2 <- function(x, acc_cols = NULL, min_frq = 1, merge_continuous = TRU
   acc
 }
 
-as_acc_move2_ <- function(x, acc_cols, min_frq = 1, merge_continuous = TRUE, drop = TRUE, force_int = NULL, ...) {
+as_acc_move2_ <- function(x, acc_cols, min_freq = 1, merge_continuous = TRUE, drop = TRUE, force_int = NULL, ...) {
   check_acc_cols(x, acc_cols)
   
   acc_type <- attr(acc_cols, "type")
   
   if (acc_type == "long") {
-    acc <- as_acc_move2_long(x, acc_cols = acc_cols, min_frq = min_frq, ...)
+    acc <- as_acc_move2_long(x, acc_cols = acc_cols, min_freq = min_freq, ...)
   } else if (acc_type == "burst") {
     acc <- as_acc_burst(
       x[[acc_cols[["bursts"]]]],
@@ -189,9 +189,9 @@ as_acc_burst <- function(x, axes, freq, timestamp, force_int = FALSE) {
 # take input move2 `x`, just takes the data cols.
 as_acc_move2_long <- function(x,
                               acc_cols,
-                              min_frq = 1,
+                              min_freq = 1,
                               timestamp = move2::mt_time(x),
-                              frq_digits = 4,
+                              freq_digits = 4,
                               ...) {
   col_names <- as.character(acc_cols)
   m <- as.matrix(data.frame(x)[, col_names])
@@ -205,7 +205,7 @@ as_acc_move2_long <- function(x,
   
   # Generate vector of ids for each distinct burst based on sequential
   # timestamps collected at a minimum frequency
-  ts_grps <- parse_bursts(x, acc_cols = acc_cols, min_frq = min_frq)
+  ts_grps <- parse_bursts(x, acc_cols = acc_cols, min_freq = min_freq)
   
   acc_i <- which_acc_vals(x, acc_cols = acc_cols)
   
@@ -229,7 +229,7 @@ as_acc_move2_long <- function(x,
     )
   ))
   
-  freq <- round(freq, digits = frq_digits)
+  freq <- round(freq, digits = freq_digits)
   
   # Attach acc bursts to index of the first record that belongs to that burst
   acc <- vec_rep(
@@ -285,12 +285,12 @@ which_acc_vals <- function(x, acc_cols) {
 #' For acceleration records at the boundary of a frequency change, there is
 #' a fundamental ambiguity as to whether these records should be included in
 #' the burst prior to or the burst after the boundary timestamp. See comments
-#' to `frq_changes` for details on our approach.
+#' to `freq_changes` for details on our approach.
 #'
 #' @param x move2 object with long-format acceleration data
-#' @param min_frq Numeric value indicating the 
+#' @param min_freq Numeric value indicating the
 #'   minimum allowable within-burst data collection frequency when identifying
-#'   bursts in long-format acceleration data. Any two adjacent timestamps 
+#'   bursts in long-format acceleration data. Any two adjacent timestamps
 #'   that fall outside of the period defined by this frequency will be split
 #'   into separate bursts. If no units are provided, this value is assumed to
 #'   be in Hz.
@@ -303,14 +303,14 @@ which_acc_vals <- function(x, acc_cols) {
 #'
 #' @returns Integer vector of IDs identifying burst groups
 #' @noRd
-parse_bursts <- function(x, acc_cols, min_frq = 1, freq_tol = 1e-6) {
-  assertthat::assert_that(min_frq >= 0)
-  
-  if (!inherits(min_frq, "units")) {
-    min_frq <- units::set_units(min_frq, "Hz")
+parse_bursts <- function(x, acc_cols, min_freq = 1, freq_tol = 1e-6) {
+  assertthat::assert_that(min_freq >= 0)
+
+  if (!inherits(min_freq, "units")) {
+    min_freq <- units::set_units(min_freq, "Hz")
   }
-  
-  burst_gap_thresh <- units::set_units(1 / min_frq, "s")
+
+  burst_gap_thresh <- units::set_units(1 / min_freq, "s")
   
   acc_i <- which_acc_vals(x, acc_cols = acc_cols)
   idx <- split(acc_i, as.character(move2::mt_track_id(x[acc_i, ])))
@@ -320,11 +320,11 @@ parse_bursts <- function(x, acc_cols, min_frq = 1, freq_tol = 1e-6) {
     function(i) {
       d <- units::as_units(diff(move2::mt_time(x[i, ])), "s")
       
-      # Identify collection split points based on min frq and frq changes
-      below_frq <- c(TRUE, d > burst_gap_thresh)
-      frq_bounds <- frq_changes(as.numeric(d), freq_tol = freq_tol)
-      
-      i[cumsum(below_frq | frq_bounds)]
+      # Identify collection split points based on min freq and freq changes
+      below_freq <- c(TRUE, d > burst_gap_thresh)
+      freq_bounds <- freq_changes(as.numeric(d), freq_tol = freq_tol)
+
+      i[cumsum(below_freq | freq_bounds)]
     }
   )
   
@@ -337,9 +337,9 @@ parse_bursts <- function(x, acc_cols, min_frq = 1, freq_tol = 1e-6) {
 # Sequential acceleration data may change frequency. This can occur either from
 # legitimate burst gaps or from changes in collection frequency. In general,
 # when a change of frequency is detected, we create a new group of acceleration
-# values. See `new_frq_regime()` for more on the logic of how split points
+# values. See `new_freq_regime()` for more on the logic of how split points
 # are determined in ambiguous cases.
-frq_changes <- function(x, freq_tol = 1e-6) {
+freq_changes <- function(x, freq_tol = 1e-6) {
   # Get runs of values within a given tolerance
   freq_within_tol <- cumsum(c(TRUE, as.numeric(abs(diff(x))) > freq_tol))
   r <- rle(freq_within_tol)
@@ -348,7 +348,7 @@ frq_changes <- function(x, freq_tol = 1e-6) {
   r$lengths[1] <- r$lengths[1] + 1
   
   runs <- list()
-  runs[1] <- list(new_frq_regime(r$lengths[1]))
+  runs[1] <- list(new_freq_regime(r$lengths[1]))
   
   # Length of subsequent run. Used when deciding which run to attach
   # ambiguous split points to
@@ -358,7 +358,7 @@ frq_changes <- function(x, freq_tol = 1e-6) {
   # new frequency regimes
   for (i in seq_len(length(r$lengths))[-1]) {
     runs[i] <- list(
-      new_frq_regime(
+      new_freq_regime(
         r$lengths[i], 
         n_next = n_next[i], 
         prev_run = runs[[i - 1]]
@@ -389,7 +389,7 @@ frq_changes <- function(x, freq_tol = 1e-6) {
 # (t + 2) is longer than 1. In these cases, we consider 
 # the (t + 1) record to belong to the (t + 2) sequence and the (t) record becomes
 # an isolated length-1 sequence.
-new_frq_regime <- function(n, n_next = 0, prev_run = FALSE) {
+new_freq_regime <- function(n, n_next = 0, prev_run = FALSE) {
   # If the previous run ends in FALSE, this run should start a new regime
   start <- !prev_run[length(prev_run)]
   

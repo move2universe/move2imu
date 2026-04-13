@@ -220,7 +220,7 @@ test_that("Can split long-format data into bursts by inferred frequency", {
   expect_equal(as.numeric(freqs(a)), c(2, NA, 2, 1.3333))
 })
 
-test_that("Can use `min_frq` to avoid building bursts below frq thresh", {
+test_that("Can use `min_freq` to avoid building bursts below freq thresh", {
   t1 <- data.frame(
     id = 1,
     acceleration_x = 1:69,
@@ -244,8 +244,8 @@ test_that("Can use `min_frq` to avoid building bursts below frq thresh", {
     track_id_column = "id"
   )
   
-  a1 <- as_acc(m1, min_frq = 1)
-  a2 <- as_acc(m1, min_frq = 2)
+  a1 <- as_acc(m1, min_freq = 1)
+  a2 <- as_acc(m1, min_freq = 2)
   
   # First bursts should be identical, but final burst should be split 
   # fully into length-1 "bursts"
@@ -254,13 +254,13 @@ test_that("Can use `min_frq` to avoid building bursts below frq thresh", {
   expect_identical(do.call(rbind, bursts(a2)[4:length(a2)]), bursts(a1)[[4]])
   expect_true(all(is.na(freqs(a2)[4:length(a2)])))
   
-  expect_length(as_acc(m1, min_frq = Inf), nrow(m1))
-  expect_identical(a1, as_acc(m1, min_frq = 0))
+  expect_length(as_acc(m1, min_freq = Inf), nrow(m1))
+  expect_identical(a1, as_acc(m1, min_freq = 0))
   
   # If `drop = FALSE`, partitioned bursts should fill indices that were
   # previously empty, and overall vector length should stay the same.
   expect_length(
-    as_acc(gulls(), min_frq = 40, drop = FALSE),
+    as_acc(gulls(), min_freq = 40, drop = FALSE),
     nrow(gulls())
   )
 })

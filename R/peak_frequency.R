@@ -31,23 +31,23 @@ peak_frequency <- function(x, resolution = NA) {
     return(as.list(rep(NA_real_, length(x))))
   }
 
-  peak_frq_non_na <- map_acc(
+  peak_freq_non_na <- map_acc(
     x[!x_na],
-    function(.br, .fq) peak_frq_(.br, .fq, resolution = resolution)
+    function(.br, .fq) peak_freq_(.br, .fq, resolution = resolution)
   )
 
   if (all(!x_na)) {
-    return(peak_frq_non_na)
+    return(peak_freq_non_na)
   }
 
-  peak_frq <- vector("list", length(x))
-  peak_frq[x_na] <- list(NA_real_)
-  peak_frq[!x_na] <- peak_frq_non_na
-  peak_frq
+  peak_freq <- vector("list", length(x))
+  peak_freq[x_na] <- list(NA_real_)
+  peak_freq[!x_na] <- peak_freq_non_na
+  peak_freq
 }
 
-# Peak frequency for a single burst and frq
-peak_frq_ <- function(burst, frq, resolution = NA) {
+# Peak frequency for a single burst and freq
+peak_freq_ <- function(burst, freq, resolution = NA) {
   if (inherits(burst, "units")) {
     burst <- units::drop_units(burst)
   }
@@ -55,12 +55,12 @@ peak_frq_ <- function(burst, frq, resolution = NA) {
   b_centered <- t(burst) - colMeans(burst)
   
   if(!is.na(resolution)){
-    to_pad <- units::drop_units(frq / resolution) - nrow(burst)
+    to_pad <- units::drop_units(freq / resolution) - nrow(burst)
     b_centered <- cbind(b_centered, matrix(0, ncol = to_pad, nrow = nrow(b_centered)))
   }
   
   b_mod <- do.call(rbind, lapply(apply(b_centered, 1, stats::fft, simplify = F), Mod))[, 1:ceiling(ncol(b_centered)/2), drop = FALSE]
   peak<- apply(b_mod, 1, which.max)
   
-  (peak - 1) * (frq / ncol(b_mod) / 2)
+  (peak - 1) * (freq / ncol(b_mod) / 2)
 }

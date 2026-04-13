@@ -13,7 +13,7 @@ as_acc(x, ...)
 \method{as_acc}{move2}(
   x,
   acc_cols = NULL,
-  min_frq = 1,
+  min_freq = 1,
   merge_continuous = TRUE,
   drop = TRUE,
   ...
@@ -35,7 +35,7 @@ column sets that are detected in \code{x} that also contain data
 Use \code{\link[=acc_colset]{acc_colset()}} to specify a custom set
 of columns to use when identifying acceleration data in \code{x}.}
 
-\item{min_frq}{Numeric value indicating the
+\item{min_freq}{Numeric value indicating the
 minimum allowable within-burst data collection frequency when identifying
 bursts in long-format acceleration data. Any two adjacent timestamps
 that fall outside of the period defined by this frequency will be split
