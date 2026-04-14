@@ -144,7 +144,7 @@ split_continuous_acc <- function(x, interval) {
   x <- map_acc(
     x,
     function(.br, .fq, .st) {
-      if (rlang::is_empty(.br) || nrow(.br) <= 1) {
+      if (rlang::is_empty(.br) || nrow(.br) < 1) {
         return(
           acc(list(NULL), .fq, .st)
         )
