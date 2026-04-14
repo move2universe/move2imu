@@ -250,42 +250,72 @@ test_that("Handle empty acc vectors when binding", {
   expect_identical(merge_continuous_acc(c(acc(), acc())), acc())
 })
 
+test_that("split_continuous_acc() on empty acc returns empty list", {
+  expect_identical(split_continuous_acc(acc(), 1), list())
+})
+
+test_that("split_continuous_acc() on single-element acc returns length-1 list", {
+  a <- acc(
+    acc_burst_example(1:20),
+    frequency = units::set_units(10, "Hz"),
+    start = as.POSIXct(0, tz = "UTC")
+  )
+
+  sp <- split_continuous_acc(a, 0.5)
+
+  expect_length(sp, 1)
+  expect_true(is_acc(sp[[1]]))
+  expect_length(sp[[1]], 4)
+  expect_identical(merge_continuous_acc(purrr::reduce(sp, c)), a)
+})
+
 test_that("Can split acc at a given interval", {
   a <- acc(
     c(acc_burst_example(1:60, 1:60), acc_burst_example(101:140)),
     frequency = c(units::set_units(20, "Hz"), units::set_units(40, "Hz")),
     start = as.POSIXct(c(0, 10), tz = "UTC")
   )
-  
+
   interval <- 0.5
   split <- split_continuous_acc(a, interval = interval)
-  
-  expect_length(split, units::drop_units(sum(ceiling(burst_dur(a) / interval))))
-  expect_true(all(units::drop_units(burst_dur(split)) == interval))
-  
+
+  # Returns a list the same length as the input
+  expect_length(split, length(a))
+  expect_true(is.list(split))
+  expect_true(all(purrr::map_lgl(split, is_acc)))
+
+  # Individual elements contain the expected number of split bursts
+  expect_length(split[[1]], 6)
+  expect_length(split[[2]], 2)
+
+  # Flatten to check burst properties
+  flat <- purrr::reduce(split, c)
+
+  expect_true(all(units::drop_units(burst_dur(flat)) == interval))
+
   expect_equal(
-    purrr::map_int(bursts(split), nrow),
+    purrr::map_int(bursts(flat), nrow),
     c(rep(10, 6), rep(20, 2))
   )
   expect_equal(
-    do.call(rbind, bursts(split)[1:6]),
+    do.call(rbind, bursts(flat)[1:6]),
     bursts(a)[[1]]
   )
   expect_equal(
-    do.call(rbind, bursts(split)[7:8]),
+    do.call(rbind, bursts(flat)[7:8]),
     bursts(a)[[2]]
   )
   expect_equal(
-    freqs(split),
+    freqs(flat),
     units::set_units(c(rep(20, 6), rep(40, 2)), "Hz")
   )
   expect_identical(
     starts(a)[1] + cumsum(c(0, rep(interval, 5))),
-    starts(split)[1:6]
+    starts(flat)[1:6]
   )
   expect_identical(
     starts(a)[2] + cumsum(c(0, interval)),
-    starts(split)[7:8]
+    starts(flat)[7:8]
   )
 })
 
@@ -295,17 +325,18 @@ test_that("Correctly split when burst length not divisible by interval", {
     frequency = c(units::set_units(20, "Hz"), units::set_units(40, "Hz")),
     start = as.POSIXct(c(0, 10), tz = "UTC")
   )
-  
+
   interval <- 0.7
   split <- split_continuous_acc(a, interval = interval)
+  flat <- purrr::reduce(split, c)
   dur <- burst_dur(a)
-  
-  expect_length(split, units::drop_units(sum(ceiling(burst_dur(a) / interval))))
-  
+
+  expect_length(flat, units::drop_units(sum(ceiling(burst_dur(a) / interval))))
+
   # Bursts should be split into equal time lengths other than for the last
   # element of each split burst, which will capture whatever burst duration remains
   expect_equal(
-    units::drop_units(burst_dur(split)),
+    units::drop_units(burst_dur(flat)),
     c(
       c(rep(interval, dur[1] %/% interval), dur[1] - (interval * dur[1] %/% interval)),
       c(rep(interval, dur[2] %/% interval), dur[2] - (interval * dur[2] %/% interval))
@@ -319,11 +350,19 @@ test_that("split_continuous_acc() retains NA", {
     frequency = c(units::set_units(20, "Hz"), units::set_units(NA, "Hz"), units::set_units(40, "Hz")),
     start = as.POSIXct(c(0, 10, 10), tz = "UTC")
   )
-  
+
   sp <- split_continuous_acc(a, 0.5)
-  
-  expect_equal(length(which(is.na(a))), length(which(is.na(sp))))
-  expect_identical(sp[!is.na(sp)], split_continuous_acc(a[!is.na(a)], 0.5))
+
+  expect_length(sp, length(a))
+
+  # NA element produces a length-1 NA acc
+  expect_length(sp[[2]], 1)
+  expect_true(is.na(sp[[2]]))
+
+  # Flattened non-NA results match splitting only the non-NA input
+  flat <- purrr::reduce(sp, c)
+  flat_no_na <- purrr::reduce(split_continuous_acc(a[!is.na(a)], 0.5), c)
+  expect_identical(flat[!is.na(flat)], flat_no_na)
 })
 
 test_that("Can recover split continuous data by merging", {
@@ -332,11 +371,9 @@ test_that("Can recover split continuous data by merging", {
     frequency = c(units::set_units(20, "Hz"), units::set_units(40, "Hz")),
     start = as.POSIXct(c(0, 10), tz = "UTC")
   )
-  
-  expect_identical(
-    merge_continuous_acc(split_continuous_acc(a, interval = 0.5)),
-    a
-  )
+
+  flat <- purrr::reduce(split_continuous_acc(a, interval = 0.5), c)
+  expect_identical(merge_continuous_acc(flat), a)
 })
 
 test_that("Can recover split continuous data by merging with NA", {
@@ -345,11 +382,31 @@ test_that("Can recover split continuous data by merging with NA", {
     frequency = c(units::set_units(20, "Hz"), units::set_units(NA, "Hz"), units::set_units(40, "Hz")),
     start = as.POSIXct(c(0, 10, 10), tz = "UTC")
   )
-  
-  expect_identical(
-    merge_continuous_acc(split_continuous_acc(a, interval = 0.5)),
-    a[!is.na(a)]
+
+  flat <- purrr::reduce(split_continuous_acc(a, interval = 0.5), c)
+  expect_identical(merge_continuous_acc(flat), a[!is.na(a)])
+})
+
+test_that("split_continuous_acc() preserves 1-sample bursts", {
+  a <- acc(
+    c(acc_burst_example(42, 43), acc_burst_example(1:20, 1:20)),
+    frequency = units::set_units(10, "Hz"),
+    start = as.POSIXct(c(0, 5), tz = "UTC")
   )
+
+  sp <- split_continuous_acc(a, 0.5)
+
+  # 1-sample burst should pass through unchanged
+  expect_length(sp[[1]], 1)
+  expect_false(is.na(sp[[1]]))
+  expect_identical(sp[[1]], a[1])
+
+  # Multi-sample burst still splits normally
+  expect_length(sp[[2]], 4)
+
+  # Round-trip preserves the 1-sample burst
+  flat <- purrr::reduce(sp, c)
+  expect_identical(merge_continuous_acc(flat), a)
 })
 
 test_that("Long intervals do not modify input acc", {
@@ -358,8 +415,9 @@ test_that("Long intervals do not modify input acc", {
     frequency = c(units::set_units(20, "Hz"), units::set_units(40, "Hz")),
     start = as.POSIXct(c(0, 10), tz = "UTC")
   )
-  
-  expect_identical(split_continuous_acc(a, interval = max(burst_dur(a))), a)
+
+  split <- split_continuous_acc(a, interval = max(burst_dur(a)))
+  expect_identical(purrr::reduce(split, c), a)
 })
 
 test_that("Can standardize interval units when splitting", {
@@ -368,11 +426,54 @@ test_that("Can standardize interval units when splitting", {
     frequency = c(units::set_units(20, "kHz"), units::set_units(40, "kHz")),
     start = as.POSIXct(c(0, 10), tz = "UTC")
   )
-  
+
+  split <- split_continuous_acc(a, interval = 0.5)
+  flat <- purrr::reduce(split, c)
+
   # Default should be in 1/freq units
-  expect_length(split_continuous_acc(a, interval = 0.5), 8)
+  expect_length(flat, 8)
   expect_identical(
-    split_continuous_acc(a, interval = 0.5),
+    split,
     split_continuous_acc(a, interval = units::set_units(0.5 / 1000, "s"))
   )
+})
+
+test_that("split_continuous_acc() round-trip in dataframe workflow", {
+  skip_if_not_installed("dplyr")
+  skip_if_not_installed("tidyr")
+  
+  # Covers normal bursts, adjacent bursts, NA element, and 1-sample burst
+  a <- acc(
+    c(
+      acc_burst_example(1:60, 1:60),
+      acc_burst_example(61:100, 61:100),
+      new_acc_list(list(NULL)),
+      acc_burst_example(42, 43),
+      acc_burst_example(101:140)
+    ),
+    frequency = c(
+      units::set_units(20, "Hz"), units::set_units(20, "Hz"),
+      units::set_units(NA, "Hz"),
+      units::set_units(10, "Hz"), units::set_units(40, "Hz")
+    ),
+    start = as.POSIXct(c(0, 3, 10, 20, 30), tz = "UTC")
+  )
+
+  tbl <- tibble::tibble(
+    id = c("x", "x", "y", "z", "z"),
+    a = a,
+    row_id = seq_len(5)
+  )
+
+  # Split, unnest, re-merge with row_id to prevent cross-row merging, filter
+  result <- tbl |>
+    dplyr::mutate(a = split_continuous_acc(a, units::set_units(1, "s"))) |>
+    tidyr::unnest(a) |>
+    dplyr::mutate(a2 = merge_continuous_acc(a, acc_ids = row_id, drop = FALSE)) |>
+    dplyr::filter(!is.na(a2))
+
+  # NA row drops after filter, all others recover
+  expect_equal(nrow(result), 4)
+  expect_identical(result$id, c("x", "x", "z", "z"))
+  expect_identical(result$a2, a[!is.na(a)])
 })

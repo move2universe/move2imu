@@ -14,10 +14,12 @@ split_continuous_acc(x, interval)
 be in period units of \code{x} (i.e., 1 divided by the frequency units).}
 }
 \value{
-An \code{acc} vector
+A list of \code{acc} vectors, the same length as \code{x}. Each element
+contains the split pieces of the corresponding input burst.
 }
 \description{
 Split the bursts in an \code{acc} object into bursts of a given time duration.
+The result is a list of \code{acc} vectors of the same length as the input.
 }
 \examples{
 a <- acc(
@@ -29,12 +31,32 @@ a <- acc(
 x <- split_continuous_acc(a, units::set_units(1, "s"))
 x
 
-# Start times handled automatically 
-starts(x)
+# Flatten to a single acc vector
+flat <- purrr::reduce(x, c)
+flat
 
-# Records are not guaranteed to have same duration depending on interval
-# and burst size:
-x <- split_continuous_acc(a, 0.7)
+# Start times are updated to match the start of each split component
+starts(flat)
 
-burst_dur(x)
+# Use merge_continuous_acc() on flat
+identical(merge_continuous_acc(flat), a)
+
+\dontrun{
+# In a dataframe, split and unnest to retain index matching
+library(dplyr)
+library(tidyr)
+
+tbl <- tibble::tibble(id = c("a", "b"), burst = a)
+
+tbl <- tbl |>
+  mutate(burst = split_continuous_acc(burst, units::set_units(1, "s"))) |>
+  unnest(burst) |>
+  mutate(timestamp = starts(burst))
+  
+tbl
+  
+# Use merge_continuous_acc() to recover original bursts
+tbl |> 
+  mutate(burst = merge_continuous_acc(burst, acc_ids = id, drop = FALSE))
+}
 }

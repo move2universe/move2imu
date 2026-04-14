@@ -109,15 +109,17 @@ merge_continuous_acc <- function(x, acc_ids = NULL, drop = TRUE) {
 }
 
 #' Split an `acc` object at regular intervals
-#' 
+#'
 #' Split the bursts in an `acc` object into bursts of a given time duration.
+#' The result is a list of `acc` vectors of the same length as the input.
 #'
 #' @inheritParams merge_continuous_acc
 #' @param interval Numeric or units object defining the time intervals at which
 #'   `x` will be split. If no units are provided, the interval is assumed to
 #'   be in period units of `x` (i.e., 1 divided by the frequency units).
 #'
-#' @returns An `acc` vector
+#' @returns A list of `acc` vectors, the same length as `x`. Each element
+#'   contains the split pieces of the corresponding input burst.
 #' @export
 #'
 #' @examples
@@ -126,18 +128,38 @@ merge_continuous_acc <- function(x, acc_ids = NULL, drop = TRUE) {
 #'   frequency = c(units::set_units(20, "Hz"), units::set_units(40, "Hz")),
 #'   start = as.POSIXct(c(0, 10), tz = "UTC")
 #' )
-#' 
+#'
 #' x <- split_continuous_acc(a, units::set_units(1, "s"))
 #' x
+#'
+#' # Flatten to a single acc vector
+#' flat <- purrr::reduce(x, c)
+#' flat
 #' 
-#' # Start times handled automatically 
-#' starts(x)
+#' # Start times are updated to match the start of each split component
+#' starts(flat)
 #' 
-#' # Records are not guaranteed to have same duration depending on interval
-#' # and burst size:
-#' x <- split_continuous_acc(a, 0.7)
+#' # Use merge_continuous_acc() on flat
+#' identical(merge_continuous_acc(flat), a)
+#'
+#' \dontrun{
+#' # In a dataframe, split and unnest to retain index matching
+#' library(dplyr)
+#' library(tidyr)
 #' 
-#' burst_dur(x)
+#' tbl <- tibble::tibble(id = c("a", "b"), burst = a)
+#'
+#' tbl <- tbl |>
+#'   mutate(burst = split_continuous_acc(burst, units::set_units(1, "s"))) |>
+#'   unnest(burst) |>
+#'   mutate(timestamp = starts(burst))
+#'   
+#' tbl
+#'   
+#' # Use merge_continuous_acc() to recover original bursts
+#' tbl |> 
+#'   mutate(burst = merge_continuous_acc(burst, acc_ids = id, drop = FALSE))
+#' }
 split_continuous_acc <- function(x, interval) {
   assertthat::assert_that(as.numeric(interval) > 0)
   
@@ -175,5 +197,5 @@ split_continuous_acc <- function(x, interval) {
     }
   )
   
-  purrr::reduce(x, function(x, y) c(x, y))
+  x
 }
