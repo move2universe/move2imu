@@ -135,7 +135,7 @@ as_acc_move2_ <- function(x, acc_cols, min_freq = 1, merge_continuous = TRUE, dr
   }
   
   if (merge_continuous) {
-    acc <- merge_continuous_acc(acc, acc_ids = move2::mt_track_id(x), drop = drop)
+    acc <- merge_acc(acc, acc_ids = move2::mt_track_id(x), drop = drop)
   }
   
   if (drop) {

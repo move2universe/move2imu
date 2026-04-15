@@ -25,8 +25,8 @@
 #'   start = as.POSIXct(c(0, 3, 5), tz = "UTC")
 #' )
 #' 
-#' merge_continuous_acc(a)
-merge_continuous_acc <- function(x, acc_ids = NULL, drop = TRUE) {
+#' merge_acc(a)
+merge_acc <- function(x, acc_ids = NULL, drop = TRUE) {
   n <- vec_size(x)
   
   # Work only with non-NA entries; track their original positions
@@ -113,7 +113,7 @@ merge_continuous_acc <- function(x, acc_ids = NULL, drop = TRUE) {
 #' Split the bursts in an `acc` object into bursts of a given time duration.
 #' The result is a list of `acc` vectors of the same length as the input.
 #'
-#' @inheritParams merge_continuous_acc
+#' @inheritParams merge_acc
 #' @param interval Numeric or units object defining the time intervals at which
 #'   `x` will be split. If no units are provided, the interval is assumed to
 #'   be in period units of `x` (i.e., 1 divided by the frequency units).
@@ -129,7 +129,7 @@ merge_continuous_acc <- function(x, acc_ids = NULL, drop = TRUE) {
 #'   start = as.POSIXct(c(0, 10), tz = "UTC")
 #' )
 #'
-#' x <- split_continuous_acc(a, units::set_units(1, "s"))
+#' x <- split_acc(a, units::set_units(1, "s"))
 #' x
 #'
 #' # Flatten to a single acc vector
@@ -139,8 +139,8 @@ merge_continuous_acc <- function(x, acc_ids = NULL, drop = TRUE) {
 #' # Start times are updated to match the start of each split component
 #' starts(flat)
 #' 
-#' # Use merge_continuous_acc() on flat
-#' identical(merge_continuous_acc(flat), a)
+#' # Use merge_acc() on flat
+#' identical(merge_acc(flat), a)
 #'
 #' \dontrun{
 #' # In a dataframe, split and unnest to retain index matching
@@ -150,17 +150,17 @@ merge_continuous_acc <- function(x, acc_ids = NULL, drop = TRUE) {
 #' tbl <- tibble::tibble(id = c("a", "b"), burst = a)
 #'
 #' tbl <- tbl |>
-#'   mutate(burst = split_continuous_acc(burst, units::set_units(1, "s"))) |>
+#'   mutate(burst = split_acc(burst, units::set_units(1, "s"))) |>
 #'   unnest(burst) |>
 #'   mutate(timestamp = starts(burst))
 #'   
 #' tbl
 #'   
-#' # Use merge_continuous_acc() to recover original bursts
+#' # Use merge_acc() to recover original bursts
 #' tbl |> 
-#'   mutate(burst = merge_continuous_acc(burst, acc_ids = id, drop = FALSE))
+#'   mutate(burst = merge_acc(burst, acc_ids = id, drop = FALSE))
 #' }
-split_continuous_acc <- function(x, interval) {
+split_acc <- function(x, interval) {
   assertthat::assert_that(
     as.numeric(interval) > 0,
     msg = "`interval` must be a positive number"

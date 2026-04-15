@@ -12,7 +12,7 @@ move2::mt_time(d) <- seq(
 
 test_that("Can combine adjacent bursts into single burst", {
   a <- as_acc(d, merge_continuous = FALSE)
-  a2 <- merge_continuous_acc(a)
+  a2 <- merge_acc(a)
   
   expect_true(is_acc(a2))
   expect_length(a2, 9)
@@ -55,7 +55,7 @@ test_that("Can merge with drop = FALSE", {
 test_that("Same merged result if drop = TRUE regardless of NAs", {
   a1 <- as_acc(d, merge_continuous = FALSE)
   a2 <- as_acc(d, merge_continuous = FALSE, drop = FALSE)
-  expect_identical(merge_continuous_acc(a1), merge_continuous_acc(a2))
+  expect_identical(merge_acc(a1), merge_acc(a2))
 })
 
 test_that("Can combine adjacent bursts with embedded NA", {
@@ -73,7 +73,7 @@ test_that("Can combine adjacent bursts with embedded NA", {
   move2::mt_time(d2) <- times
   
   a <- as_acc(d2, merge_continuous = FALSE, drop = FALSE)
-  a2 <- merge_continuous_acc(a)
+  a2 <- merge_acc(a)
   
   expect_true(is_acc(a2))
   expect_length(a2, 8)
@@ -136,7 +136,7 @@ test_that("Partial merge with drop = FALSE respects ID boundaries", {
     start = as.POSIXct(c(0, 3, 6, 9), tz = "UTC")
   )
 
-  merged <- merge_continuous_acc(a, acc_ids = c("a", "a", "b", "b"), drop = FALSE)
+  merged <- merge_acc(a, acc_ids = c("a", "a", "b", "b"), drop = FALSE)
   
   expect_length(merged, 4)                                
   expect_identical(which(!is.na(merged)), c(1L, 3L))
@@ -242,31 +242,31 @@ test_that("Don't combine bursts without start time", {
     frequency = units::set_units(1, "Hz")
   )
   
-  expect_identical(a, merge_continuous_acc(a))
+  expect_identical(a, merge_acc(a))
 })
 
 test_that("Handle empty acc vectors when binding", {
-  expect_identical(merge_continuous_acc(acc()), acc())
-  expect_identical(merge_continuous_acc(c(acc(), acc())), acc())
+  expect_identical(merge_acc(acc()), acc())
+  expect_identical(merge_acc(c(acc(), acc())), acc())
 })
 
-test_that("split_continuous_acc() on empty acc returns empty list", {
-  expect_identical(split_continuous_acc(acc(), 1), list())
+test_that("split_acc() on empty acc returns empty list", {
+  expect_identical(split_acc(acc(), 1), list())
 })
 
-test_that("split_continuous_acc() on single-element acc returns length-1 list", {
+test_that("split_acc() on single-element acc returns length-1 list", {
   a <- acc(
     acc_burst_example(1:20),
     frequency = units::set_units(10, "Hz"),
     start = as.POSIXct(0, tz = "UTC")
   )
 
-  sp <- split_continuous_acc(a, 0.5)
+  sp <- split_acc(a, 0.5)
 
   expect_length(sp, 1)
   expect_true(is_acc(sp[[1]]))
   expect_length(sp[[1]], 4)
-  expect_identical(merge_continuous_acc(purrr::reduce(sp, c)), a)
+  expect_identical(merge_acc(purrr::reduce(sp, c)), a)
 })
 
 test_that("Can split acc at a given interval", {
@@ -277,7 +277,7 @@ test_that("Can split acc at a given interval", {
   )
 
   interval <- 0.5
-  split <- split_continuous_acc(a, interval = interval)
+  split <- split_acc(a, interval = interval)
 
   # Returns a list the same length as the input
   expect_length(split, length(a))
@@ -327,7 +327,7 @@ test_that("Correctly split when burst length not divisible by interval", {
   )
 
   interval <- 0.7
-  split <- split_continuous_acc(a, interval = interval)
+  split <- split_acc(a, interval = interval)
   flat <- purrr::reduce(split, c)
   dur <- burst_dur(a)
 
@@ -344,14 +344,14 @@ test_that("Correctly split when burst length not divisible by interval", {
   )
 })
 
-test_that("split_continuous_acc() retains NA", {
+test_that("split_acc() retains NA", {
   a <- acc(
     c(acc_burst_example(1:60, 1:60), new_acc_list(list(NULL)), acc_burst_example(101:140)),
     frequency = c(units::set_units(20, "Hz"), units::set_units(NA, "Hz"), units::set_units(40, "Hz")),
     start = as.POSIXct(c(0, 10, 10), tz = "UTC")
   )
 
-  sp <- split_continuous_acc(a, 0.5)
+  sp <- split_acc(a, 0.5)
 
   expect_length(sp, length(a))
 
@@ -361,7 +361,7 @@ test_that("split_continuous_acc() retains NA", {
 
   # Flattened non-NA results match splitting only the non-NA input
   flat <- purrr::reduce(sp, c)
-  flat_no_na <- purrr::reduce(split_continuous_acc(a[!is.na(a)], 0.5), c)
+  flat_no_na <- purrr::reduce(split_acc(a[!is.na(a)], 0.5), c)
   expect_identical(flat[!is.na(flat)], flat_no_na)
 })
 
@@ -372,8 +372,8 @@ test_that("Can recover split continuous data by merging", {
     start = as.POSIXct(c(0, 10), tz = "UTC")
   )
 
-  flat <- purrr::reduce(split_continuous_acc(a, interval = 0.5), c)
-  expect_identical(merge_continuous_acc(flat), a)
+  flat <- purrr::reduce(split_acc(a, interval = 0.5), c)
+  expect_identical(merge_acc(flat), a)
 })
 
 test_that("Can recover split continuous data by merging with NA", {
@@ -383,18 +383,18 @@ test_that("Can recover split continuous data by merging with NA", {
     start = as.POSIXct(c(0, 10, 10), tz = "UTC")
   )
 
-  flat <- purrr::reduce(split_continuous_acc(a, interval = 0.5), c)
-  expect_identical(merge_continuous_acc(flat), a[!is.na(a)])
+  flat <- purrr::reduce(split_acc(a, interval = 0.5), c)
+  expect_identical(merge_acc(flat), a[!is.na(a)])
 })
 
-test_that("split_continuous_acc() preserves 1-sample bursts", {
+test_that("split_acc() preserves 1-sample bursts", {
   a <- acc(
     c(acc_burst_example(42, 43), acc_burst_example(1:20, 1:20)),
     frequency = units::set_units(10, "Hz"),
     start = as.POSIXct(c(0, 5), tz = "UTC")
   )
 
-  sp <- split_continuous_acc(a, 0.5)
+  sp <- split_acc(a, 0.5)
 
   # 1-sample burst should pass through unchanged
   expect_length(sp[[1]], 1)
@@ -406,7 +406,7 @@ test_that("split_continuous_acc() preserves 1-sample bursts", {
 
   # Round-trip preserves the 1-sample burst
   flat <- purrr::reduce(sp, c)
-  expect_identical(merge_continuous_acc(flat), a)
+  expect_identical(merge_acc(flat), a)
 })
 
 test_that("Long intervals do not modify input acc", {
@@ -416,7 +416,7 @@ test_that("Long intervals do not modify input acc", {
     start = as.POSIXct(c(0, 10), tz = "UTC")
   )
 
-  split <- split_continuous_acc(a, interval = max(burst_dur(a)))
+  split <- split_acc(a, interval = max(burst_dur(a)))
   expect_identical(purrr::reduce(split, c), a)
 })
 
@@ -427,30 +427,30 @@ test_that("Can standardize interval units when splitting", {
     start = as.POSIXct(c(0, 10), tz = "UTC")
   )
 
-  split <- split_continuous_acc(a, interval = 0.5)
+  split <- split_acc(a, interval = 0.5)
   flat <- purrr::reduce(split, c)
 
   # Default should be in 1/freq units
   expect_length(flat, 8)
   expect_identical(
     split,
-    split_continuous_acc(a, interval = units::set_units(0.5 / 1000, "s"))
+    split_acc(a, interval = units::set_units(0.5 / 1000, "s"))
   )
 })
 
-test_that("split_continuous_acc() errors on invalid interval", {
+test_that("split_acc() errors on invalid interval", {
   a <- acc(
     acc_burst_example(1:20),
     frequency = units::set_units(10, "Hz"),
     start = as.POSIXct(0, tz = "UTC")
   )
 
-  expect_error(split_continuous_acc(a, 0), "`interval` must be a positive")
-  expect_error(split_continuous_acc(a, -1), "`interval` must be a positive")
+  expect_error(split_acc(a, 0), "`interval` must be a positive")
+  expect_error(split_acc(a, -1), "`interval` must be a positive")
   
 })
 
-test_that("split_continuous_acc() round-trip in dataframe workflow", {
+test_that("split_acc() round-trip in dataframe workflow", {
   skip_if_not_installed("dplyr")
   skip_if_not_installed("tidyr")
   
@@ -479,9 +479,9 @@ test_that("split_continuous_acc() round-trip in dataframe workflow", {
 
   # Split, unnest, re-merge with row_id to prevent cross-row merging, filter
   result <- tbl |>
-    dplyr::mutate(a = split_continuous_acc(a, units::set_units(1, "s"))) |>
+    dplyr::mutate(a = split_acc(a, units::set_units(1, "s"))) |>
     tidyr::unnest(a) |>
-    dplyr::mutate(a2 = merge_continuous_acc(a, acc_ids = row_id, drop = FALSE)) |>
+    dplyr::mutate(a2 = merge_acc(a, acc_ids = row_id, drop = FALSE)) |>
     dplyr::filter(!is.na(a2))
 
   # NA row drops after filter, all others recover
