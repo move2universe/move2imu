@@ -438,6 +438,18 @@ test_that("Can standardize interval units when splitting", {
   )
 })
 
+test_that("split_continuous_acc() errors on invalid interval", {
+  a <- acc(
+    acc_burst_example(1:20),
+    frequency = units::set_units(10, "Hz"),
+    start = as.POSIXct(0, tz = "UTC")
+  )
+
+  expect_error(split_continuous_acc(a, 0), "`interval` must be a positive")
+  expect_error(split_continuous_acc(a, -1), "`interval` must be a positive")
+  
+})
+
 test_that("split_continuous_acc() round-trip in dataframe workflow", {
   skip_if_not_installed("dplyr")
   skip_if_not_installed("tidyr")

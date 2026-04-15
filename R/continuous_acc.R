@@ -161,7 +161,10 @@ merge_continuous_acc <- function(x, acc_ids = NULL, drop = TRUE) {
 #'   mutate(burst = merge_continuous_acc(burst, acc_ids = id, drop = FALSE))
 #' }
 split_continuous_acc <- function(x, interval) {
-  assertthat::assert_that(as.numeric(interval) > 0)
+  assertthat::assert_that(
+    as.numeric(interval) > 0,
+    msg = "`interval` must be a positive number"
+  )
   
   x <- map_acc(
     x,
