@@ -155,6 +155,24 @@ test_that("c() handles different frequency units", {
   )
 })
 
+test_that("c() preserves non-UTC timezone", {
+  tz <- "America/New_York"
+  a1 <- acc(
+    acc_burst_example(1:10),
+    frequency = units::set_units(10, "Hz"),
+    start = as.POSIXct(1730610000, tz = tz)
+  )
+  a2 <- acc(
+    acc_burst_example(11:20),
+    frequency = units::set_units(10, "Hz"),
+    start = as.POSIXct(1730610010, tz = tz)
+  )
+
+  a <- c(a1, a2)
+  expect_identical(attr(starts(a), "tzone"), tz)
+  expect_identical(starts(a), c(starts(a1), starts(a2)))
+})
+
 test_that("duration is correctly calculated", {
   a <- acc(
     c(

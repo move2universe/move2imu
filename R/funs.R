@@ -165,11 +165,12 @@ static_acc <- function(x) {
 #' @export
 vec_ptype2.acc.acc <- function(x, y, ...) {
   freq_common <- vctrs::vec_ptype2(freqs(x), freqs(y))
-  
+  start_common <- vctrs::vec_ptype2(starts(x), starts(y))
+
   new_acc(
     bursts = new_acc_list(list()),
     frequency = freq_common,
-    start = as.POSIXct(double(), tz = "UTC")
+    start = start_common
   )
 }
 
