@@ -1,7 +1,7 @@
 d <- albatrosses()
 
 # Force same ID for a simpler expected merge output for this test
-d[[move2::mt_track_id_column(d)]] <- "tmp"
+d <- move2::mt_set_track_id(d, rep("tmp", nrow(d)))
 
 # Simulate bursts that start at the end point of the previous burst
 move2::mt_time(d) <- seq(
