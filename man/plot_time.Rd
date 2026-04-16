@@ -2,17 +2,36 @@
 % Please edit documentation in R/plot_time.R
 \name{plot_time}
 \alias{plot_time}
-\title{Ploting the acceleration bursts over time}
+\title{Plot acceleration bursts over time}
 \usage{
-plot_time(x, time, ylab = "Acceleration")
+plot_time(x, ylab = "Acceleration")
 }
 \arguments{
 \item{x}{an acc vector}
 
-\item{time}{a \code{POSIXct} with the start time of acc bursts}
-
 \item{ylab}{A character with the y axis label}
 }
 \description{
-Ploting the acceleration bursts over time
+Plot the trace of acceleration values from an \code{acc()} with time on the
+x-axis.
+}
+\details{
+If the bursts in the input \code{acc()} come from multiple sources, traces may
+be combined incorrectly. See examples.
+}
+\examples{
+\dontshow{if (rlang::is_installed(c("dygraphs", "move2"))) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+plot_time(acc_example())
+
+# If acceleration comes from multiple sources (in this case,
+# deployments), then lines from different bursts may be incorrectly
+# connected:
+alb <- albatrosses()
+a <- as_acc(alb, drop = FALSE)
+
+plot_time(a)
+
+# To avoid this issue, plot only a single deployment's values:
+plot_time(a[move2::mt_track_id(alb) == "4261-2228"])
+\dontshow{\}) # examplesIf}
 }
