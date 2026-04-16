@@ -38,9 +38,9 @@ All three of these columns must be present for a burst-format column set
 to be considered active in a \code{move2} object.
 
 Standard long-format column sets for data from
-Movebank include \code{\link[=acc_raw_xyz_cols]{acc_raw_xyz_cols()}} and \code{\link[=acc_xyz_cols]{acc_xyz_cols()}}. Standard
-burst-format column sets for data from Movebank include \code{\link[=acc_eobs_cols]{acc_eobs_cols()}}
-and \code{\link[=acc_burst_cols]{acc_burst_cols()}}.
+Movebank include \code{\link[=acc_colset_raw_xyz]{acc_colset_raw_xyz()}} and \code{\link[=acc_colset_xyz]{acc_colset_xyz()}}. Standard
+burst-format column sets for data from Movebank include \code{\link[=acc_colset_eobs]{acc_colset_eobs()}}
+and \code{\link[=acc_colset_burst]{acc_colset_burst()}}.
 
 If your input data use different column names for these columns, use this
 function to specify the column names that correspond to each of the

@@ -143,9 +143,9 @@ print.acc_colset <- function(x, ...) {
 #' to be considered active in a `move2` object.
 #' 
 #' Standard long-format column sets for data from
-#' Movebank include [acc_raw_xyz_cols()] and [acc_xyz_cols()]. Standard
-#' burst-format column sets for data from Movebank include [acc_eobs_cols()]
-#' and [acc_burst_cols()].
+#' Movebank include [acc_colset_raw_xyz()] and [acc_colset_xyz()]. Standard
+#' burst-format column sets for data from Movebank include [acc_colset_eobs()]
+#' and [acc_colset_burst()].
 #' 
 #' If your input data use different column names for these columns, use this
 #' function to specify the column names that correspond to each of the
@@ -236,12 +236,12 @@ active_acc_colsets <- function(x) {
 #' where more than one acceleration column set contains data. `as_acc()` 
 #' refuses to build `acc` objects for rows where multiple input sources exist. 
 #' These rows can be modified to remove data from additional column sets. 
-#' Alternatively, specific columns can be passed to the `acc_cols` argument 
+#' Alternatively, specific columns can be passed to the `colset` argument
 #' of `as_acc()` to avoid processing duplicated records.
 #'
 #' @inheritParams as_acc
-#' @param acc_cols Vector or list of column sets to check for overlap. Defaults
-#'   to the column sets detected by [active_acc_colsets()].
+#' @param colset List of `acc_colset` objects to check for 
+#'   overlap. Defaults to the column sets detected by [active_acc_colsets()].
 #'
 #' @returns An integer vector of row indices with duplicated acceleration data
 #'   across column sets.
@@ -251,8 +251,8 @@ active_acc_colsets <- function(x) {
 #'   - [as_acc()] to generate an `acc` vector from a `move2` object.
 #'
 #' @export
-duplicated_acc_rows <- function(x, acc_cols = NULL) {
-  colsets <- acc_cols %||% active_acc_colsets(x)
+duplicated_acc_rows <- function(x, colset = NULL) {
+  colsets <- colset %||% active_acc_colsets(x)
   
   # Standardize case where user supplied a single colset as a vector
   if (!rlang::is_list(colsets)) {
@@ -262,7 +262,7 @@ duplicated_acc_rows <- function(x, acc_cols = NULL) {
   acc_rows <- unlist(
     purrr::map(
       colsets, 
-      function(cols) which_acc_vals(x, acc_cols = cols)
+      function(cols) which_acc_vals(x, colset = cols)
     )
   )
   
@@ -277,17 +277,17 @@ duplicated_acc_rows <- function(x, acc_cols = NULL) {
 #' bursts contained in a `move2` object. A `move2` object must contain one
 #' of these column sets to be processed by `as_acc()`.
 #' 
-#' - `acc_eobs_cols()` and `acc_burst_cols()` must be present in their entirety
+#' - `acc_colset_eobs()` and `acc_colset_burst()` must be present in their entirety
 #' within a data source to be used when parsing acceleration data.
-#' - For `acc_xyz_cols()` and `acc_raw_xyz_cols()`, any
+#' - For `acc_colset_xyz()` and `acc_colset_raw_xyz()`, any
 #' subset of the set's columns can be used to parse acceleration
 #' data.
 #' 
 #' To determine the default columns that will be used by `as_acc()` for a given
 #' `move2` object, see [active_acc_colsets()].
 #'
-#' @returns For `valid_acc_colsets()`, a list of vectors of valid column sets.
-#'   Otherwise, a character vector containing the names of the 
+#' @returns For `valid_acc_colsets()`, a list of `acc_colset` objects
+#'   containing valid column sets. Otherwise, an `acc_colset` object.
 #' 
 #' @export
 #' 
@@ -299,7 +299,7 @@ valid_acc_colsets <- function() {
 
 #' @export
 #' @rdname valid_acc_colsets
-acc_eobs_cols <- function() {
+acc_colset_eobs <- function() {
   new_acc_colset(
     cols = c(
       axes = "eobs_acceleration_axes", 
@@ -312,7 +312,7 @@ acc_eobs_cols <- function() {
 
 #' @export
 #' @rdname valid_acc_colsets
-acc_burst_cols <- function() {
+acc_colset_burst <- function() {
   new_acc_colset(
     cols = c(
       axes = "acceleration_axes", 
@@ -325,7 +325,7 @@ acc_burst_cols <- function() {
 
 #' @export
 #' @rdname valid_acc_colsets
-acc_xyz_cols <- function() {
+acc_colset_xyz <- function() {
   new_acc_colset(
     cols = c(
       X = "acceleration_x", 
@@ -338,7 +338,7 @@ acc_xyz_cols <- function() {
 
 #' @export
 #' @rdname valid_acc_colsets
-acc_raw_xyz_cols <- function() {
+acc_colset_raw_xyz <- function() {
   new_acc_colset(
     cols = c(
       X = "acceleration_raw_x", 
@@ -359,24 +359,24 @@ acc_raw_xyz_cols <- function() {
 acc_colset_config <- function() {
   list(
     eobs = list(
-      cols = acc_eobs_cols(), 
-      is_ = function(x) is_acc_eobs_cols(x),
-      is_in_ = function(x) all(acc_eobs_cols() %in% colnames(x))
+      cols = acc_colset_eobs(), 
+      is_ = function(x) is_acc_colset_eobs(x),
+      is_in_ = function(x) all(acc_colset_eobs() %in% colnames(x))
     ),
     burst = list(
-      cols = acc_burst_cols(), 
-      is_ = function(x) is_acc_burst_cols(x),
-      is_in_ = function(x) all(acc_burst_cols() %in% colnames(x))
+      cols = acc_colset_burst(), 
+      is_ = function(x) is_acc_colset_burst(x),
+      is_in_ = function(x) all(acc_colset_burst() %in% colnames(x))
     ),
     xyz = list(
-      cols = acc_xyz_cols(), 
-      is_ = function(x) is_acc_xyz_cols(x),
-      is_in_ = function(x) any(acc_xyz_cols() %in% colnames(x))
+      cols = acc_colset_xyz(), 
+      is_ = function(x) is_acc_colset_xyz(x),
+      is_in_ = function(x) any(acc_colset_xyz() %in% colnames(x))
     ),
     raw_xyz = list(
-      cols = acc_raw_xyz_cols(), 
-      is_ = function(x) is_acc_raw_xyz_cols(x),
-      is_in_ = function(x) any(acc_raw_xyz_cols() %in% colnames(x))
+      cols = acc_colset_raw_xyz(), 
+      is_ = function(x) is_acc_colset_raw_xyz(x),
+      is_in_ = function(x) any(acc_colset_raw_xyz() %in% colnames(x))
     )
   )
 }
@@ -387,20 +387,20 @@ is_valid_acc_colset <- function(cols) {
 
 # is_* functions designed to check whether a vector represents a given colset
 # while accounting for fact that subsets are allowed for certain colsets
-is_acc_eobs_cols <- function(x) {
-  setequal(x, acc_eobs_cols()) && length(x) == length(acc_eobs_cols())
+is_acc_colset_eobs <- function(x) {
+  setequal(x, acc_colset_eobs()) && length(x) == length(acc_colset_eobs())
 }
 
-is_acc_burst_cols <- function(x) {
-  setequal(x, acc_burst_cols()) && length(x) == length(acc_burst_cols())
+is_acc_colset_burst <- function(x) {
+  setequal(x, acc_colset_burst()) && length(x) == length(acc_colset_burst())
 }
 
-is_acc_raw_xyz_cols <- function(x) {
-  is_unique_named_subset(x, acc_raw_xyz_cols())
+is_acc_colset_raw_xyz <- function(x) {
+  is_unique_named_subset(x, acc_colset_raw_xyz())
 }
 
-is_acc_xyz_cols <- function(x) {
-  is_unique_named_subset(x, acc_xyz_cols())
+is_acc_colset_xyz <- function(x) {
+  is_unique_named_subset(x, acc_colset_xyz())
 }
 
 # Check that `x` is a non-empty, non-duplicated, name-value subset of `target`

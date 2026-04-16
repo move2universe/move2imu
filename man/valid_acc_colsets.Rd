@@ -2,34 +2,34 @@
 % Please edit documentation in R/colsets.R
 \name{valid_acc_colsets}
 \alias{valid_acc_colsets}
-\alias{acc_eobs_cols}
-\alias{acc_burst_cols}
-\alias{acc_xyz_cols}
-\alias{acc_raw_xyz_cols}
+\alias{acc_colset_eobs}
+\alias{acc_colset_burst}
+\alias{acc_colset_xyz}
+\alias{acc_colset_raw_xyz}
 \title{Valid acceleration data column sets}
 \usage{
 valid_acc_colsets()
 
-acc_eobs_cols()
+acc_colset_eobs()
 
-acc_burst_cols()
+acc_colset_burst()
 
-acc_xyz_cols()
+acc_colset_xyz()
 
-acc_raw_xyz_cols()
+acc_colset_raw_xyz()
 }
 \value{
-For \code{valid_acc_colsets()}, a list of vectors of valid column sets.
-Otherwise, a character vector containing the names of the
+For \code{valid_acc_colsets()}, a list of \code{acc_colset} objects
+containing valid column sets. Otherwise, an \code{acc_colset} object.
 }
 \description{
 These sets of columns can be used by \code{\link[=as_acc]{as_acc()}} when parsing acceleration
 bursts contained in a \code{move2} object. A \code{move2} object must contain one
 of these column sets to be processed by \code{as_acc()}.
 \itemize{
-\item \code{acc_eobs_cols()} and \code{acc_burst_cols()} must be present in their entirety
+\item \code{acc_colset_eobs()} and \code{acc_colset_burst()} must be present in their entirety
 within a data source to be used when parsing acceleration data.
-\item For \code{acc_xyz_cols()} and \code{acc_raw_xyz_cols()}, any
+\item For \code{acc_colset_xyz()} and \code{acc_colset_raw_xyz()}, any
 subset of the set's columns can be used to parse acceleration
 data.
 }

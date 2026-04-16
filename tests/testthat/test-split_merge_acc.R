@@ -107,8 +107,8 @@ test_that("drop = FALSE places merged bursts at correct indices", {
 
 test_that("Non-mergeable bursts ignore merge arg regardless of drop arg", {
   skip_if_not_installed("move2")
-  g1 <- as_acc(gulls(), drop = FALSE, acc_cols = acc_raw_xyz_cols())
-  g2 <- as_acc(gulls(), merge_continuous = FALSE, drop = FALSE, acc_cols = acc_raw_xyz_cols())
+  g1 <- as_acc(gulls(), drop = FALSE, colset = acc_colset_raw_xyz())
+  g2 <- as_acc(gulls(), merge_continuous = FALSE, drop = FALSE, colset = acc_colset_raw_xyz())
   expect_identical(g1, g2)
 })
 

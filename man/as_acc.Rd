@@ -12,7 +12,7 @@ as_acc(x, ...)
 
 \method{as_acc}{move2}(
   x,
-  acc_cols = NULL,
+  colset = NULL,
   min_freq = 1,
   merge_continuous = TRUE,
   drop = TRUE,
@@ -27,13 +27,13 @@ either loaded from disk using \link[move2:mt_read]{move2::mt_read} or downloaded
 
 \item{...}{currently not used}
 
-\item{acc_cols}{Vector or list of column sets specifying the columns of \code{x}
-that contain acceleration data. By default, constructs bursts for all
-column sets that are detected in \code{x} that also contain data
-(see \code{\link[=active_acc_colsets]{active_acc_colsets()}}).
+\item{colset}{An \code{acc_colset} object or list of \code{acc_colset} objects
+specifying the columns of \code{x} that contain acceleration data. By default,
+constructs bursts for all column sets that are detected in \code{x} that also
+contain data (see \code{\link[=active_acc_colsets]{active_acc_colsets()}}).
 
-Use \code{\link[=acc_colset]{acc_colset()}} to specify a custom set
-of columns to use when identifying acceleration data in \code{x}.}
+Several common colsets are listed under \code{\link[=valid_acc_colsets]{valid_acc_colsets()}}. To
+specify a custom set of columns, use \code{\link[=acc_colset]{acc_colset()}}.}
 
 \item{min_freq}{Numeric value indicating the
 minimum allowable within-burst data collection frequency when identifying

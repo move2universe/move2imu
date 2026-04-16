@@ -7,13 +7,13 @@
 #'   Ornitela, or similar tracking devices. Most of the time this will be 
 #'   either loaded from disk using [move2::mt_read] or downloaded using 
 #'   [move2::movebank_download_study].
-#' @param acc_cols Vector or list of column sets specifying the columns of `x` 
-#'   that contain acceleration data. By default, constructs bursts for all 
-#'   column sets that are detected in `x` that also contain data 
-#'   (see [active_acc_colsets()]). 
-#'   
-#'   Use [acc_colset()] to specify a custom set
-#'   of columns to use when identifying acceleration data in `x`.
+#' @param colset An `acc_colset` object or list of `acc_colset` objects
+#'   specifying the columns of `x` that contain acceleration data. By default,
+#'   constructs bursts for all column sets that are detected in `x` that also
+#'   contain data (see [active_acc_colsets()]). 
+#'
+#'   Several common colsets are listed under [valid_acc_colsets()]. To
+#'   specify a custom set of columns, use [acc_colset()].
 #' @param min_freq Numeric value indicating the
 #'   minimum allowable within-burst data collection frequency when identifying
 #'   bursts in long-format acceleration data. Any two adjacent timestamps
@@ -53,19 +53,19 @@ as_acc.default <- function(x, ...) {
 
 #' @rdname as_acc
 #' @export
-as_acc.move2 <- function(x, acc_cols = NULL, min_freq = 1, merge_continuous = TRUE, drop = TRUE, ...) {
+as_acc.move2 <- function(x, colset = NULL, min_freq = 1, merge_continuous = TRUE, drop = TRUE, ...) {
   assertthat::assert_that(move2::mt_is_track_id_cleaved(x))
   assertthat::assert_that(move2::mt_is_time_ordered(x))
-  
-  if (!rlang::is_null(acc_cols)) {
-    if (is_acc_colset(acc_cols)) {
-      colsets <- acc_cols
-    } else if (rlang::is_list(acc_cols) && all(purrr::map_lgl(acc_cols, is_acc_colset))) {
-      colsets <- acc_cols
+
+  if (!rlang::is_null(colset)) {
+    if (is_acc_colset(colset)) {
+      colsets <- colset
+    } else if (rlang::is_list(colset) && all(purrr::map_lgl(colset, is_acc_colset))) {
+      colsets <- colset
     } else {
       rlang::abort(
         c(
-          "`acc_cols` must be an `acc_colset` object or a list of such objects.", 
+          "`colset` must be an `acc_colset` object or a list of such objects.",
           i = "Use `acc_colset()` to create an `acc_colset` object.")
       )
     }
@@ -82,7 +82,7 @@ as_acc.move2 <- function(x, acc_cols = NULL, min_freq = 1, merge_continuous = TR
     colsets <- list(colsets)
   }
   
-  dup <- duplicated_acc_rows(x, acc_cols = colsets)
+  dup <- duplicated_acc_rows(x, colset = colsets)
   
   if (length(dup) > 0) {
     rlang::abort(c(
@@ -96,7 +96,7 @@ as_acc.move2 <- function(x, acc_cols = NULL, min_freq = 1, merge_continuous = TR
     function(cols) {
       as_acc_move2_(
         x,
-        acc_cols = cols,
+        colset = cols,
         min_freq = min_freq,
         merge_continuous = merge_continuous,
         drop = FALSE,
@@ -114,20 +114,20 @@ as_acc.move2 <- function(x, acc_cols = NULL, min_freq = 1, merge_continuous = TR
   acc
 }
 
-as_acc_move2_ <- function(x, acc_cols, min_freq = 1, merge_continuous = TRUE, drop = TRUE, force_int = NULL, ...) {
-  check_acc_cols(x, acc_cols)
-  
-  acc_type <- attr(acc_cols, "type")
-  
+as_acc_move2_ <- function(x, colset, min_freq = 1, merge_continuous = TRUE, drop = TRUE, force_int = NULL, ...) {
+  check_colset(x, colset)
+
+  acc_type <- attr(colset, "type")
+
   if (acc_type == "long") {
-    acc <- as_acc_move2_long(x, acc_cols = acc_cols, min_freq = min_freq, ...)
+    acc <- as_acc_move2_long(x, colset = colset, min_freq = min_freq, ...)
   } else if (acc_type == "burst") {
     acc <- as_acc_burst(
-      x[[acc_cols[["bursts"]]]],
-      x[[acc_cols[["axes"]]]],
-      x[[acc_cols[["frequency"]]]],
+      x[[colset[["bursts"]]]],
+      x[[colset[["axes"]]]],
+      x[[colset[["frequency"]]]],
       timestamp = move2::mt_time(x),
-      force_int = force_int %||% is_acc_eobs_cols(acc_cols),
+      force_int = force_int %||% is_acc_colset_eobs(colset),
       ...
     )
   } else {
@@ -188,26 +188,26 @@ as_acc_burst <- function(x, axes, freq, timestamp, force_int = FALSE) {
 # TODO: this should maybe be refactored to be analogous to `as_acc_burst` which doesn't
 # take input move2 `x`, just takes the data cols.
 as_acc_move2_long <- function(x,
-                              acc_cols,
+                              colset,
                               min_freq = 1,
                               timestamp = move2::mt_time(x),
                               freq_digits = 4,
                               ...) {
-  col_names <- as.character(acc_cols)
+  col_names <- as.character(colset)
   m <- as.matrix(data.frame(x)[, col_names])
-  
-  colnames(m) <- names(acc_cols)
-  
+
+  colnames(m) <- names(colset)
+
   # TODO: may want a safer way to handle units. Some acc will have units, others not
-  if (inherits(x[[acc_cols[[1]]]], "units")) {
-    m <- m * units::as_units(units::deparse_unit(x[[acc_cols[[1]]]]))
+  if (inherits(x[[colset[[1]]]], "units")) {
+    m <- m * units::as_units(units::deparse_unit(x[[colset[[1]]]]))
   }
-  
+
   # Generate vector of ids for each distinct burst based on sequential
   # timestamps collected at a minimum frequency
-  ts_grps <- parse_bursts(x, acc_cols = acc_cols, min_freq = min_freq)
-  
-  acc_i <- which_acc_vals(x, acc_cols = acc_cols)
+  ts_grps <- parse_bursts(x, colset = colset, min_freq = min_freq)
+
+  acc_i <- which_acc_vals(x, colset = colset)
   
   # Split all rows with acc data into burst groups based on timestamp groups
   idx <- unname(split(acc_i, ts_grps))
@@ -250,18 +250,18 @@ as_acc_move2_long <- function(x,
   acc
 }
 
-which_acc_vals <- function(x, acc_cols) {
-  assert_all_cols_present(x, acc_cols)
-  
+which_acc_vals <- function(x, colset) {
+  assert_all_cols_present(x, colset)
+
   x <- as.data.frame(x) # Drop sticky move2 columns
-  
-  type <- attr(acc_cols, "type")
-  
+
+  type <- attr(colset, "type")
+
   # Long-format columns only need at least one column to have data
   if (type == "long") {
-    has_vals <- which(rowSums(!is.na(x[acc_cols])) > 0)
+    has_vals <- which(rowSums(!is.na(x[colset])) > 0)
   } else {
-    has_vals <- which(rowSums(!is.na(x[acc_cols])) == length(acc_cols))
+    has_vals <- which(rowSums(!is.na(x[colset])) == length(colset))
   }
   
   has_vals
@@ -303,7 +303,7 @@ which_acc_vals <- function(x, acc_cols) {
 #'
 #' @returns Integer vector of IDs identifying burst groups
 #' @noRd
-parse_bursts <- function(x, acc_cols, min_freq = 1, freq_tol = 1e-6) {
+parse_bursts <- function(x, colset, min_freq = 1, freq_tol = 1e-6) {
   assertthat::assert_that(min_freq >= 0)
 
   if (!inherits(min_freq, "units")) {
@@ -312,7 +312,7 @@ parse_bursts <- function(x, acc_cols, min_freq = 1, freq_tol = 1e-6) {
 
   burst_gap_thresh <- units::set_units(1 / min_freq, "s")
   
-  acc_i <- which_acc_vals(x, acc_cols = acc_cols)
+  acc_i <- which_acc_vals(x, colset = colset)
   idx <- split(acc_i, as.character(move2::mt_track_id(x[acc_i, ])))
   
   grps <- lapply(
@@ -403,14 +403,14 @@ new_freq_regime <- function(n, n_next = 0, prev_run = FALSE) {
   c(start, rep(FALSE, n - 1))
 }
 
-check_acc_cols <- function(x, acc_cols, call = rlang::caller_env()) {
-  assert_all_cols_present(x, acc_cols, call = call)
-  
-  if (attr(acc_cols, "type") == "burst") {
-    assert_burst_col_types(x, acc_cols, call = call)
+check_colset <- function(x, colset, call = rlang::caller_env()) {
+  assert_all_cols_present(x, colset, call = call)
+
+  if (attr(colset, "type") == "burst") {
+    assert_burst_col_types(x, colset, call = call)
   } else {
-    assert_matched_acc_units(x, acc_cols, call = call)
-    assert_acc_cols_numeric(x, acc_cols, call = call)
+    assert_matched_acc_units(x, colset, call = call)
+    assert_colset_numeric(x, colset, call = call)
   }
 }
 
@@ -439,15 +439,15 @@ assert_matched_acc_units <- function(x, cols, call = rlang::caller_env()) {
   }
 }
 
-assert_acc_cols_numeric <- function(x, acc_cols, call = rlang::caller_env()) {
-  cols_num <- purrr::map_lgl(acc_cols, function(col) is.numeric(x[[col]]))
-  
+assert_colset_numeric <- function(x, colset, call = rlang::caller_env()) {
+  cols_num <- purrr::map_lgl(colset, function(col) is.numeric(x[[col]]))
+
   if (any(!cols_num)) {
     rlang::abort(
       c(
         paste0(
-          "Detected non-numeric columns: \"", 
-          paste0(acc_cols[!cols_num], collapse = "\", \""), "\""
+          "Detected non-numeric columns: \"",
+          paste0(colset[!cols_num], collapse = "\", \""), "\""
         ),
         i = "Acceleration columns must contain numeric data."
       ),
@@ -456,10 +456,10 @@ assert_acc_cols_numeric <- function(x, acc_cols, call = rlang::caller_env()) {
   }
 }
 
-assert_burst_col_types <- function(x, acc_cols, call = rlang::caller_env()) {
-  bursts_col <- acc_cols[["bursts"]]
-  axes_col <- acc_cols[["axes"]]
-  freq_col <- acc_cols[["frequency"]]
+assert_burst_col_types <- function(x, colset, call = rlang::caller_env()) {
+  bursts_col <- colset[["bursts"]]
+  axes_col <- colset[["axes"]]
+  freq_col <- colset[["frequency"]]
   
   if (!is.character(x[[bursts_col]]) && !is.factor(x[[bursts_col]])) {
     rlang::abort(c(

@@ -1,26 +1,26 @@
 test_that("Can validate colsets", {
-  expect_true(is_valid_acc_colset(acc_eobs_cols()))
-  expect_true(is_valid_acc_colset(acc_burst_cols()))
-  expect_true(is_valid_acc_colset(acc_xyz_cols()))
-  expect_true(is_valid_acc_colset(acc_raw_xyz_cols()))
+  expect_true(is_valid_acc_colset(acc_colset_eobs()))
+  expect_true(is_valid_acc_colset(acc_colset_burst()))
+  expect_true(is_valid_acc_colset(acc_colset_xyz()))
+  expect_true(is_valid_acc_colset(acc_colset_raw_xyz()))
   
   # Burst-format acc cols must contain all listed cols
-  expect_false(is_valid_acc_colset(acc_eobs_cols()[1:2]))
-  expect_false(is_valid_acc_colset(acc_burst_cols()[1]))
+  expect_false(is_valid_acc_colset(acc_colset_eobs()[1:2]))
+  expect_false(is_valid_acc_colset(acc_colset_burst()[1]))
   
   # Long-format acc cols can consist of a subset of allowable cols
-  expect_true(is_valid_acc_colset(acc_xyz_cols()[1:2]))
-  expect_true(is_valid_acc_colset(acc_raw_xyz_cols()[3]))
+  expect_true(is_valid_acc_colset(acc_colset_xyz()[1:2]))
+  expect_true(is_valid_acc_colset(acc_colset_raw_xyz()[3]))
   
   # Duplicates excluded
-  expect_false(is_valid_acc_colset(c(acc_raw_xyz_cols(), acc_xyz_cols())))
-  expect_false(is_valid_acc_colset(c(acc_xyz_cols(), acc_xyz_cols())))
+  expect_false(is_valid_acc_colset(c(acc_colset_raw_xyz(), acc_colset_xyz())))
+  expect_false(is_valid_acc_colset(c(acc_colset_xyz(), acc_colset_xyz())))
 })
 
 test_that("Can find active colsets in move2 object", {
   skip_if_not_installed("move2")
-  expect_identical(active_acc_colsets(albatrosses()), list(eobs = acc_eobs_cols()))
-  expect_identical(active_acc_colsets(gulls()), list(raw_xyz = acc_raw_xyz_cols()))
+  expect_identical(active_acc_colsets(albatrosses()), list(eobs = acc_colset_eobs()))
+  expect_identical(active_acc_colsets(gulls()), list(raw_xyz = acc_colset_raw_xyz()))
 })
 
 test_that("Correctly subset active colsets for long-format acc cols", {
@@ -41,7 +41,7 @@ test_that("Can find active colsets in move2 object with multiple colsets", {
   cols <- active_acc_colsets(move2::mt_stack(albatrosses(), gulls()))
   expect_identical(
     cols, 
-    list(eobs = acc_eobs_cols(), raw_xyz = acc_raw_xyz_cols())
+    list(eobs = acc_colset_eobs(), raw_xyz = acc_colset_raw_xyz())
   )
 })
 
@@ -66,16 +66,16 @@ test_that("Use data values to determine active colset if multiple present", {
   m[["acceleration_raw_x"]] <- NA
   m[["acceleration_raw_y"]] <- NA
   
-  acc_cols <- active_acc_colsets(m)
+  colsets <- active_acc_colsets(m)
   expect_identical(
-    acc_cols$raw_xyz,
+    colsets$raw_xyz,
     new_acc_colset("acceleration_raw_z", type = "long")
   )
   
   # If all cols in a set are missing, then the next colset will be used
   m[["acceleration_raw_z"]] <- NA
   
-  expect_identical(active_acc_colsets(m), list(eobs = acc_eobs_cols()))
+  expect_identical(active_acc_colsets(m), list(eobs = acc_colset_eobs()))
   
   # Unless neither have data, in which case first is used
   m[["eobs_acceleration_axes"]] <- NA
@@ -102,16 +102,16 @@ test_that("Currently supported colsets", {
   expect_identical(
     valid_acc_colsets(),
     list(
-      eobs = acc_eobs_cols(),
-      burst = acc_burst_cols(),
-      xyz = acc_xyz_cols(),
-      raw_xyz = acc_raw_xyz_cols()
+      eobs = acc_colset_eobs(),
+      burst = acc_colset_burst(),
+      xyz = acc_colset_xyz(),
+      raw_xyz = acc_colset_raw_xyz()
     )
   )
 })
 
 test_that("is_unique_named_subset correctly identifies subsets", {
-  tgt <- acc_raw_xyz_cols()
+  tgt <- acc_colset_raw_xyz()
 
   # Exact match
   expect_true(is_unique_named_subset(tgt, tgt))
@@ -121,7 +121,7 @@ test_that("is_unique_named_subset correctly identifies subsets", {
   expect_true(is_unique_named_subset(tgt["Y"], tgt))
 
   # Superset (concatenated colsets)
-  expect_false(is_unique_named_subset(c(acc_raw_xyz_cols(), acc_xyz_cols()), tgt))
+  expect_false(is_unique_named_subset(c(acc_colset_raw_xyz(), acc_colset_xyz()), tgt))
 
   # Wrong name-value mapping (Y mapped to X's column)
   expect_false(is_unique_named_subset(
@@ -159,8 +159,8 @@ test_that("acc_colset() errors on invalid specifications", {
 })
 
 test_that("Can get colset type from colset", {
-  expect_equal(attr(acc_eobs_cols(), "type"), "burst")
-  expect_equal(attr(acc_burst_cols(), "type"), "burst")
-  expect_equal(attr(acc_xyz_cols(), "type"), "long")
-  expect_equal(attr(acc_raw_xyz_cols(), "type"), "long")
+  expect_equal(attr(acc_colset_eobs(), "type"), "burst")
+  expect_equal(attr(acc_colset_burst(), "type"), "burst")
+  expect_equal(attr(acc_colset_xyz(), "type"), "long")
+  expect_equal(attr(acc_colset_raw_xyz(), "type"), "long")
 })

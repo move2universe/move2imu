@@ -4,7 +4,7 @@
 \alias{duplicated_acc_rows}
 \title{Identify rows with acceleration data from multiple column sets}
 \usage{
-duplicated_acc_rows(x, acc_cols = NULL)
+duplicated_acc_rows(x, colset = NULL)
 }
 \arguments{
 \item{x}{A \code{move2} containing acceleration data as collected by EOBS,
@@ -12,8 +12,8 @@ Ornitela, or similar tracking devices. Most of the time this will be
 either loaded from disk using \link[move2:mt_read]{move2::mt_read} or downloaded using
 \link[move2:movebank_download_study]{move2::movebank_download_study}.}
 
-\item{acc_cols}{Vector or list of column sets to check for overlap. Defaults
-to the column sets detected by \code{\link[=active_acc_colsets]{active_acc_colsets()}}.}
+\item{colset}{List of \code{acc_colset} objects to check for
+overlap. Defaults to the column sets detected by \code{\link[=active_acc_colsets]{active_acc_colsets()}}.}
 }
 \value{
 An integer vector of row indices with duplicated acceleration data
@@ -24,7 +24,7 @@ This function returns the row indices of a \code{move2} object
 where more than one acceleration column set contains data. \code{as_acc()}
 refuses to build \code{acc} objects for rows where multiple input sources exist.
 These rows can be modified to remove data from additional column sets.
-Alternatively, specific columns can be passed to the \code{acc_cols} argument
+Alternatively, specific columns can be passed to the \code{colset} argument
 of \code{as_acc()} to avoid processing duplicated records.
 }
 \seealso{
