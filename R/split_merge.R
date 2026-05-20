@@ -84,12 +84,8 @@ merge_imu <- function(x, ids = NULL, drop = FALSE) {
   # rbind burst matrices
   idx <- unname(split(seq_along(to_bind), cumsum(!to_bind)))
 
-  bursts_comb <- purrr::map(
-    idx,
-    function(i) {
-      purrr::reduce(bursts(xv)[i], function(x, y) rbind(x, y))
-    }
-  )
+  bv <- bursts(xv)
+  bursts_comb <- lapply(idx, function(i) do.call(rbind, bv[i]))
 
   # Get first entry in each group. This defines the burst freq and start time.
   merged_i <- purrr::map_int(idx, function(x) x[1])
