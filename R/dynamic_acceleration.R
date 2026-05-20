@@ -65,19 +65,19 @@ odba_ <- function(b, ...) {
 
 # Handle NA value logic. Process only non-NA entries, then reassign.
 # For speed considerations, as accumulation of NA values can add meaningful
-# processing time in map_imu()
+# processing time when iterating.
 dba_ <- function(x, .f) {
   if (length(x) == 0) {
     return(NULL)
   }
-  
+
   x_na <- is.na(x)
-  
+
   if (all(x_na)) {
     return(rep(NA_real_, length(x)))
   }
-  
-  dba_non_na <- map_imu(x[!x_na], function(.br) .f(.br), simplify = TRUE)
+
+  dba_non_na <- purrr::list_simplify(purrr::map(bursts(x[!x_na]), .f))
   
   if (all(!x_na)) {
     return(dba_non_na)

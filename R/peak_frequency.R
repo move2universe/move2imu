@@ -50,9 +50,14 @@ peak_frequency <- function(x, resolution = NA) {
     return(as.list(rep(NA_real_, length(x))))
   }
 
-  peak_freq_non_na <- map_imu(
-    x[!x_na],
-    function(.br, .fq) peak_freq_(.br, .fq, resolution = resolution)
+  x_keep <- x[!x_na]
+  
+  peak_freq_non_na <- purrr::map2(
+    bursts(x_keep),
+    freqs(x_keep),
+    function(b, fq) {
+      peak_freq_(b, fq, resolution = resolution)
+    }
   )
 
   if (all(!x_na)) {

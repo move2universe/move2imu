@@ -102,12 +102,11 @@ n_samples <- function(x) {
 #' @export
 #' @rdname explore-functions
 imu_units <- function(x) {
-  map_imu(
-    x,
-    function(.br) {
-      tryCatch(as.character(units(.br)), error = function(cnd) NA_character_)
-    },
-    simplify = TRUE
+  purrr::map_chr(
+    bursts(x), 
+    function(b) {
+      tryCatch(as.character(units(b)), error = function(cnd) NA_character_)
+    }
   )
 }
 

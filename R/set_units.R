@@ -73,31 +73,31 @@ set_units.gyro <- function(x, value, ...) {
 
 set_imu_units_ <- function(x, value, reference, sensor) {
   assertthat::assert_that(is.character(value), length(value) == 1)
-
+  
   can_convert <- units::ud_are_convertible(reference, value)
-
+  
   if (!can_convert) {
     rlang::abort(c(
       paste0(value, " units not valid for `", sensor, "` vector."),
       i = paste0("Units must be convertible to ", reference)
     ))
   }
-
-  bursts_converted <- map_imu(
-    x,
-    function(.br) {
-      if (is.null(.br)) {
+  
+  bursts_converted <- purrr::map(
+    bursts(x), 
+    function(b) {
+      if (is.null(b)) {
         return(NULL)
       }
-
-      nms <- colnames(.br)
-      .br <- units::set_units(.br, value, mode = "standard")
-      colnames(.br) <- nms
-      .br
+      
+      nms <- colnames(b)
+      b <- units::set_units(b, value, mode = "standard")
+      colnames(b) <- nms
+      b
     }
   )
-
+  
   bursts(x) <- new_burst_list(bursts_converted, sensor = sensor)
-
+  
   x
 }

@@ -170,13 +170,11 @@ split_imu <- function(x, interval) {
 
   sensor <- class(x)[1]
 
-  x <- map_imu(
-    x,
+  x <- purrr::pmap(
+    list(bursts(x), freqs(x), starts(x)),
     function(.br, .fq, .st) {
       if (rlang::is_empty(.br) || nrow(.br) < 1) {
-        return(
-          imu(sensor, list(NULL), .fq, .st)
-        )
+        return(imu(sensor, list(NULL), .fq, .st))
       }
 
       # coerce user interval into units of (1 / frequency) which is what
@@ -196,7 +194,7 @@ split_imu <- function(x, interval) {
       idx <- unname(split(seq_len(nrow(.br)), ceiling(seq_len(nrow(.br)) / i)))
       b_split <- lapply(idx, function(j) .br[j, , drop = FALSE])
 
-      a <- imu(
+      imu(
         sensor = sensor,
         bursts = b_split,
         frequency = .fq,

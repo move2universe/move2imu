@@ -81,15 +81,15 @@ test_that("Can manually specify acc columns to use for parsing", {
   i <- which_imu_vals(gulls(), colset = cols)
   
   expect_equal(
-    unlist(map_imu(a, ~ .br[, 1])),
+    unlist(lapply(bursts(a), function(b) b[, 1])),
     gulls()[[cols[[1]]]][i]
   )
   expect_equal(
-    unlist(map_imu(a, ~ .br[, 2])),
+    unlist(lapply(bursts(a), function(b) b[, 2])),
     gulls()[[cols[[2]]]][i]
   )
   expect_equal(
-    unlist(map_imu(a, ~ .br[, 3])),
+    unlist(lapply(bursts(a), function(b) b[, 3])),
     gulls()[[cols[[3]]]][i]
   )
 })
@@ -100,7 +100,7 @@ test_that("Can manually specify a subset of long-format cols", {
   a <- as_acc(gulls(), colset = col)
   i <- which_imu_vals(gulls(), colset = col)
   
-  expect_equal(unlist(map_imu(a, ~ .br[, 1])), gulls()[[as.character(col)]][i])
+  expect_equal(unlist(lapply(bursts(a), function(b) b[, 1])), gulls()[[as.character(col)]][i])
 })
 
 test_that("Can manually specify acc columns in mixed acc type data", {
