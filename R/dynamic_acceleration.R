@@ -24,12 +24,18 @@
 #' vedba(a)
 #' odba(a)
 vedba <- function(x) {
+  if (!is_acc(x)) {
+    rlang::abort("`x` must be an `acc` vector.")
+  }
   dba_(x, .f = function(.br) vedba_(.br))
 }
 
 #' @rdname dba
 #' @export
 odba <- function(x) {
+  if (!is_acc(x)) {
+    rlang::abort("`x` must be an `acc` vector.")
+  }
   dba_(x, .f = function(.br) odba_(.br))
 }
 
