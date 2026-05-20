@@ -7,7 +7,7 @@ format.imu <- function(x, ...) {
     if (is.null(x)) {
       return(NA_character_)
     }
-    m <- round(apply(x, 2, mean), 2)
+    m <- round(colMeans(x), 2)
 
     if (inherits(x, "units")) {
       u <- (units(x))
@@ -23,7 +23,23 @@ format.imu <- function(x, ...) {
 
 #' @export
 obj_print_data.imu <- function(x, ...) {
-  if (length(x) != 0) {
+  total <- length(x)
+  if (total == 0) return(invisible(x))
+
+  # Only format the bursts that will actually be displayed
+  show_n <- min(total, getOption("max.print", 99999L))
+
+  if (show_n < total) {
+    print(format(x[seq_len(show_n)]), quote = FALSE)
+    
+    msg <- paste0(
+      " [ reached `getOption(\"max.print\")` -- omitted ",
+      format(total - show_n, big.mark = ",", trim = TRUE),
+      " entries ]"
+    )
+    
+    cat(pillar::style_subtle(msg), "\n", sep = "")
+  } else {
     print(format(x), quote = FALSE)
   }
 }
