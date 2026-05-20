@@ -51,13 +51,38 @@ peak_frequency <- function(x, resolution = NA) {
 
   x_keep <- x[!x_na]
 
+  # Operate on scalars and reattach units. Processing units per step
+  # is time intensive.
+  fqs <- freqs(x_keep)
+  fq_unit <- if (inherits(fqs, "units")) units(fqs) else NULL
+  fqs_num <- as.numeric(fqs)
+
+  res_num <- if (!is.na(resolution)) {
+    if (!is.null(fq_unit)) {
+      as.numeric(units::set_units(resolution, fq_unit, mode = "standard"))
+    } else {
+      as.numeric(resolution)
+    }
+  } else {
+    NA_real_
+  }
+
   peak_freq_non_na <- purrr::map2(
     bursts(x_keep),
-    freqs(x_keep),
+    fqs_num,
     function(b, fq) {
-      peak_freq_(b, fq, resolution = resolution)
+      peak_freq_(b, fq, resolution = res_num)
     }
   )
+
+  if (!is.null(fq_unit)) {
+    peak_freq_non_na <- lapply(
+      peak_freq_non_na,
+      function(v) {
+        units::set_units(v, fq_unit, mode = "standard")
+      }
+    )
+  }
 
   if (all(!x_na)) {
     return(peak_freq_non_na)
@@ -69,24 +94,29 @@ peak_frequency <- function(x, resolution = NA) {
   peak_freq
 }
 
-# Peak frequency for a single burst and freq
-peak_freq_ <- function(burst, freq, resolution = NA) {
+# Peak frequency for a single burst. `freq` and `resolution` are plain numeric
+peak_freq_ <- function(burst, freq, resolution = NA_real_) {
   if (inherits(burst, "units")) {
     burst <- units::drop_units(burst)
   }
 
-  b_centered <- t(burst) - colMeans(burst)
+  b_centered <- sweep(burst, 2, colMeans(burst), FUN = "-")
 
   if (!is.na(resolution)) {
-    # force both units to Hz so the ratio is truly dimensionless
-    to_pad <- units::drop_units(
-      units::set_units(freq, "Hz") / units::set_units(resolution, "Hz")
-    ) - nrow(burst)
-    b_centered <- cbind(b_centered, matrix(0, ncol = to_pad, nrow = nrow(b_centered)))
+    to_pad <- freq / resolution - nrow(burst)
+    b_centered <- rbind(
+      b_centered,
+      matrix(0, nrow = to_pad, ncol = ncol(b_centered))
+    )
   }
 
-  b_mod <- do.call(rbind, lapply(apply(b_centered, 1, stats::fft, simplify = F), Mod))[, 1:ceiling(ncol(b_centered) / 2), drop = FALSE]
-  peak <- apply(b_mod, 1, which.max)
+  b_mod <- Mod(stats::mvfft(b_centered))
 
-  (peak - 1) * (freq / ncol(b_mod) / 2)
+  # Keep positive frequencies only.
+  half <- ceiling(nrow(b_mod) / 2)
+  b_mod <- b_mod[seq_len(half), , drop = FALSE]
+
+  peak <- apply(b_mod, 2, which.max)
+
+  (peak - 1) * (freq / nrow(b_mod) / 2)
 }
