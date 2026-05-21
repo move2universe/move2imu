@@ -43,9 +43,11 @@ merge_imu <- function(x, ids = NULL, drop = FALSE) {
   sv <- burst_starts[valid]
   nv <- length(valid)
 
-  # Collapsible bursts must end at the start time of the subsequent burst
+  # Collapsible bursts must end at the start time of the subsequent burst.
+  # Normalize to seconds so `as_difftime()` accepts the
+  # result regardless of what time unit `burst_dur()` returns.
   # TODO: add a tolerance parameter here to account for small deviations?
-  timediff <- sv + units::as_difftime(burst_dur(xv))
+  timediff <- sv + units::as_difftime(units::set_units(burst_dur(xv), "s"))
   is_adjacent_burst <- sv[-1] == timediff[-nv]
 
   # If no adjacent bursts, no need to proceed

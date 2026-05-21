@@ -28,7 +28,12 @@ plot_time <- function(x, ylab = "Value") {
   time <- starts(x)
 
   dt <- mapply(
-    function(x, n) c(units::drop_units((c(0, seq_len(n))) / x)),
+    # Convert to seconds before stripping units — otherwise non-Hz
+    # frequencies (e.g. stored as "1/min") would yield offsets in minutes
+    # that POSIXct silently treats as seconds.
+    function(x, n) c(units::drop_units(
+      units::set_units((c(0, seq_len(n))) / x, "s")
+    )),
     x = freqs(x)[!is.na(x)],
     n = n_samples(x)[!is.na(x)],
     SIMPLIFY = F

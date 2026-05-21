@@ -79,7 +79,10 @@ peak_freq_ <- function(burst, freq, resolution = NA) {
   b_centered <- t(burst) - colMeans(burst)
   
   if(!is.na(resolution)){
-    to_pad <- units::drop_units(freq / resolution) - nrow(burst)
+    # force both units to Hz so the ratio is truly dimensionless
+    to_pad <- units::drop_units(
+      units::set_units(freq, "Hz") / units::set_units(resolution, "Hz")
+    ) - nrow(burst)
     b_centered <- cbind(b_centered, matrix(0, ncol = to_pad, nrow = nrow(b_centered)))
   }
   

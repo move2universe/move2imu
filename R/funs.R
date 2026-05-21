@@ -90,7 +90,7 @@ starts <- function(x) {
 #' @export
 #' @rdname explore-functions
 burst_dur <- function(x) {
-  units::set_units(as.numeric(n_samples(x) / freqs(x)), "s")
+  units::set_units(n_samples(x) / freqs(x), "s")
 }
 
 #' @export

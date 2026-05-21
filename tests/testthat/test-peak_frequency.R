@@ -130,16 +130,41 @@ test_that("peak_frequency returns NA for NA elements", {
 
 test_that("works with and without units", {
   acc_l <- acc_burst_example(c(1:5, 5:1, 1:5), rep(c(4, 3, 4), 5))
-  
+
   a <- acc(
-    acc_l, 
+    acc_l,
     units::set_units(23, "Hz")
   )
-  
+
   b <- acc(
     list(units::set_units(acc_l[[1]], "m/s")),
     units::set_units(23, "Hz")
   )
-  
+
   expect_equal(peak_frequency(a), peak_frequency(b))
+})
+
+test_that("peak_frequency is unit-equivalent across convertible frequency units", {
+  # Same physical signal at 200 Hz vs 12000/min
+  m <- acc_burst_example(sin(1:200 / (100 / (pi * 2))))
+
+  a_hz  <- acc(m, units::set_units(200,   "Hz"))
+  a_min <- acc(m, units::set_units(12000, "1/min"))
+
+  # Without resolution
+  p_hz  <- peak_frequency(a_hz)[[1]]
+  p_min <- peak_frequency(a_min)[[1]]
+  expect_equal(
+    units::set_units(p_min, "Hz", mode = "standard"),
+    p_hz
+  )
+
+  # With resolution
+  res <- units::set_units(0.5, "Hz")
+  p_hz_r  <- peak_frequency(a_hz,  resolution = res)[[1]]
+  p_min_r <- peak_frequency(a_min, resolution = res)[[1]]
+  expect_equal(
+    units::set_units(p_min_r, "Hz", mode = "standard"),
+    p_hz_r
+  )
 })

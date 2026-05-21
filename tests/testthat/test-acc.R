@@ -195,6 +195,15 @@ test_that("duration is correctly calculated", {
   expect_true(is.na(burst_dur(acc(acc_burst_example(1, 1), NA))))
 })
 
+test_that("burst_dur converts non-Hz frequencies to seconds", {
+  # 30 samples at 60/min (= 1 Hz)
+  a <- acc(
+    acc_burst_example(1:30),
+    frequency = units::set_units(60, "1/min")
+  )
+  expect_equal(burst_dur(a), units::set_units(30, "s"))
+})
+
 test_that("imu_units are safely extracted", {
   a <- acc_example()
 
