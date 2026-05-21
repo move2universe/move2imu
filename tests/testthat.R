@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(move2Acc)
+library(move2imu)
 
-test_check("move2Acc")
+test_check("move2imu")

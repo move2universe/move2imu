@@ -4,7 +4,7 @@
 \alias{example_data}
 \alias{albatrosses}
 \alias{gulls}
-\title{move2Acc example datasets}
+\title{move2imu example datasets}
 \usage{
 albatrosses()
 
@@ -14,7 +14,7 @@ gulls()
 \code{move2} object with GPS and acceleration data columns
 }
 \description{
-move2Acc provides two example datasets for working with acceleration data.
+move2imu provides two example datasets for working with acceleration data.
 These data are publicly available and downloaded from
 \href{https://www.movebank.org/cms/movebank-main}{Movebank}.
 

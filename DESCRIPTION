@@ -1,4 +1,4 @@
-Package: move2Acc
+Package: move2imu
 Type: Package
 Title: Handling bursted acceleration data 
 Version: 0.1.0
@@ -34,7 +34,7 @@ Config/testthat/edition: 3
 RoxygenNote: 7.3.3
 Roxygen: list(markdown = TRUE)
 VignetteBuilder: knitr
-URL: https://github.com/bart1/move2Acc, https://bart1.github.io/move2Acc/
-BugReports: https://github.com/bart1/move2Acc/issues
+URL: https://github.com/robe2037/move2imu, https://robe2037.github.io/move2imu/
+BugReports: https://github.com/robe2037/move2imu/issues
 Depends: 
     R (>= 3.5)
