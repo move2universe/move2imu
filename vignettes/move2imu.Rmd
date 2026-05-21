@@ -1,8 +1,8 @@
 ---
-title: "Introduction to move2Acc"
+title: "Introduction to move2imu"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Introduction to move2Acc}
+  %\VignetteIndexEntry{Introduction to move2imu}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -24,7 +24,7 @@ Sys.setlocale("LC_TIME", "en_US.utf8")
 ```
 
 ```{r load}
-library(move2Acc)
+library(move2imu)
 ```
 The goal of the package is to create a vector representation of acceleration bursts in R. Acceleration bursts are a frequently collected by animal tracking devices and consist of measurements of the acceleration in one till three axis. These measurements are recorded with a fixed frequency for a few seconds. These burst are frequently considered one "instantaneous" sample of the activity or behavior of an animal.
 
