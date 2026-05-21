@@ -1,7 +1,8 @@
 #' move2imu example datasets
 #'
 #' @description
-#' move2imu provides two example datasets for working with acceleration data.
+#' Two example datasets containing acceleration bursts from animal tracking
+#' studies, used throughout move2imu examples and tests.
 #' These data are publicly available and downloaded from 
 #' [Movebank](https://www.movebank.org/cms/movebank-main).
 #' 

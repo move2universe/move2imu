@@ -14,7 +14,8 @@ gulls()
 \code{move2} object with GPS and acceleration data columns
 }
 \description{
-move2imu provides two example datasets for working with acceleration data.
+Two example datasets containing acceleration bursts from animal tracking
+studies, used throughout move2imu examples and tests.
 These data are publicly available and downloaded from
 \href{https://www.movebank.org/cms/movebank-main}{Movebank}.
 

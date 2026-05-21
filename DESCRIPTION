@@ -1,11 +1,15 @@
 Package: move2imu
 Type: Package
-Title: Handling bursted acceleration data 
+Title: Handling Bursted IMU Data
 Version: 0.1.0
 Authors@R: c(
     person("Bart", "Kranstauber", email = "b.kranstauber@uva.nl", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0001-8303-780X")))
-Description: This package is developed to handel bursted acceleration data. It allows for quick visualizations and convient manipulation.
+Description: Standardized vector representation of bursted
+    inertial measurement unit (IMU) data collected by animal tracking
+    devices, including accelerometer, gyroscope, and magnetometer sensors.
+    Extract and manipulate IMU data from move2 objects and tracking data stored
+    in Movebank.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true

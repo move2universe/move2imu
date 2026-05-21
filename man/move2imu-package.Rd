@@ -4,9 +4,9 @@
 \name{move2imu-package}
 \alias{move2imu}
 \alias{move2imu-package}
-\title{move2imu: Handling bursted acceleration data}
+\title{move2imu: Handling Bursted IMU Data}
 \description{
-This package is developed to handel bursted acceleration data. It allows for quick visualizations and convient manipulation.
+Standardized vector representation of bursted inertial measurement unit (IMU) data collected by animal tracking devices, including accelerometer, gyroscope, and magnetometer sensors. Extract and manipulate IMU data from move2 objects and tracking data stored in Movebank.
 }
 \seealso{
 Useful links:
