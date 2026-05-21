@@ -3,8 +3,10 @@ Type: Package
 Title: Handling Bursted IMU Data
 Version: 0.1.0
 Authors@R: c(
-    person("Bart", "Kranstauber", email = "b.kranstauber@uva.nl", role = c("aut", "cre"),
-           comment = c(ORCID = "0000-0001-8303-780X")))
+    person("Bart", "Kranstauber", , "b.kranstauber@uva.nl", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0001-8303-780X")),
+    person("Finn", "Roberts", , "froberts@ab.mpg.de", role = "aut")
+  )
 Description: Standardized vector representation of bursted
     inertial measurement unit (IMU) data collected by animal tracking
     devices, including accelerometer, gyroscope, and magnetometer sensors.
