@@ -103,7 +103,7 @@ peak_freq_ <- function(burst, freq, resolution = NA_real_) {
   b_centered <- sweep(burst, 2, colMeans(burst), FUN = "-")
 
   if (!is.na(resolution)) {
-    to_pad <- freq / resolution - nrow(burst)
+    to_pad <- ceiling(freq / resolution) - nrow(burst)
     b_centered <- rbind(
       b_centered,
       matrix(0, nrow = to_pad, ncol = ncol(b_centered))

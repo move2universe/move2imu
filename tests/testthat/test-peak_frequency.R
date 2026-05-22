@@ -111,6 +111,21 @@ test_that("Resolution alows to identify partial frequencies", {
   expect_equal((((p / .025) + .5) %% 1) - .5, rep(0, 3))
 })
 
+test_that("non-integer fs/resolution rounds up rather than truncating", {
+  # When freq / resolution is not round, we want to give a slightly finer
+  # grid than requested.
+  N <- 200
+  fs <- 200
+  m <- cbind(X = sin(2 * pi * seq_len(N) / 16))
+  a <- acc(list(m), units::set_units(fs, "Hz"))
+
+  # A 12.5 Hz tone lands closest to bin 42 of the 667-point FFT.
+  expect_equal(
+    peak_frequency(a, resolution = units::set_units(0.3, "Hz")),
+    list(units::set_units(c(X = 42 * fs / 667), "Hz"))
+  )
+})
+
 test_that("peak_frequency returns NA for NA elements", {
   a <- acc_example()
   a_na <- c(a[1], acc(list(NULL), units::set_units(NA, "Hz")), a[2])
