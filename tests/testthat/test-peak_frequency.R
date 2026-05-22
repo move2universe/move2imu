@@ -126,6 +126,23 @@ test_that("non-integer fs/resolution rounds up rather than truncating", {
   )
 })
 
+test_that("Use natural frequency when resolution too coarse", {
+  fs <- 200
+  m_short <- cbind(X = sin(2 * pi * seq_len(100) / 20)) # natural = 2 Hz
+  m_long <- cbind(X = sin(2 * pi * seq_len(400) / 20)) # natural = 0.5 Hz
+  a <- acc(list(m_short, m_long), units::set_units(fs, "Hz"))
+
+  # Request 1 Hz: short burst (natural 2 Hz) gets padded; long burst
+  # (natural 0.5 Hz) is already finer than requested and falls back.
+  expect_warning(
+    out <- peak_frequency(a, resolution = units::set_units(1, "Hz")),
+    "1 of 2"
+  )
+  expect_length(out, 2)
+  # Long-burst peak matches the no-resolution result on its natural grid.
+  expect_equal(out[[2]], peak_frequency(a)[[2]])
+})
+
 test_that("peak_frequency returns NA for NA elements", {
   a <- acc_example()
   a_na <- c(a[1], acc(list(NULL), units::set_units(NA, "Hz")), a[2])

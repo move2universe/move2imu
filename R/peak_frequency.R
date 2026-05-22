@@ -67,6 +67,19 @@ peak_frequency <- function(x, resolution = NA) {
     NA_real_
   }
 
+  if (!is.na(res_num)) {
+    n_have <- vapply(bursts(x_keep), nrow, integer(1))
+    n_need <- ceiling(fqs_num / res_num)
+    n_fallback <- sum(n_have > n_need)
+    if (n_fallback > 0) {
+      rlang::warn(paste0(
+        n_fallback, " of ", length(n_have),
+        " burst(s) already have a finer natural resolution than requested; ",
+        "their peaks are reported on the natural grid (freq / nrow)."
+      ))
+    }
+  }
+
   peak_freq_non_na <- purrr::map2(
     bursts(x_keep),
     fqs_num,
@@ -104,10 +117,12 @@ peak_freq_ <- function(burst, freq, resolution = NA_real_) {
 
   if (!is.na(resolution)) {
     to_pad <- ceiling(freq / resolution) - nrow(burst)
-    b_centered <- rbind(
-      b_centered,
-      matrix(0, nrow = to_pad, ncol = ncol(b_centered))
-    )
+    if (to_pad > 0) {
+      b_centered <- rbind(
+        b_centered,
+        matrix(0, nrow = to_pad, ncol = ncol(b_centered))
+      )
+    }
   }
 
   b_mod <- Mod(stats::mvfft(b_centered))
