@@ -27,6 +27,23 @@ plot_time <- function(x, ylab = "Value") {
 
   time <- starts(x)
 
+  # Only plot bursts that have both data and a start timestamp
+  keep <- !is.na(x) & !is.na(time)
+
+  if (!any(keep)) {
+    rlang::abort(c(
+      "`plot_time()` requires burst start timestamps in `x`",
+      i = "Use `starts(x) <- ...` to assign timestamps."
+    ))
+  }
+
+  n_no_start <- sum(!is.na(x) & is.na(time))
+  if (n_no_start > 0) {
+    rlang::warn(paste0(
+      "Omitting ", n_no_start, " burst(s) with no start timestamp."
+    ))
+  }
+
   dt <- mapply(
     # Convert to seconds before stripping units — otherwise non-Hz
     # frequencies (e.g. stored as "1/min") would yield offsets in minutes
@@ -34,15 +51,15 @@ plot_time <- function(x, ylab = "Value") {
     function(x, n) c(units::drop_units(
       units::set_units((c(0, seq_len(n))) / x, "s")
     )),
-    x = freqs(x)[!is.na(x)],
-    n = n_samples(x)[!is.na(x)],
+    x = freqs(x)[keep],
+    n = n_samples(x)[keep],
     SIMPLIFY = F
   )
 
   df <- dplyr::bind_cols(
-    time = do.call("c", mapply("+", time[!is.na(x)], dt, SIMPLIFY = F)),
+    time = do.call("c", mapply("+", time[keep], dt, SIMPLIFY = F)),
     dplyr::bind_rows(
-      lapply(bursts(x)[!is.na(x)], function(x) rbind(data.frame(x), NA))
+      lapply(bursts(x)[keep], function(x) rbind(data.frame(x), NA))
     )
   )
 

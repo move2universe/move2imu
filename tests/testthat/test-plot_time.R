@@ -1,8 +1,23 @@
 test_that("plot_time", {
   expect_silent(
-    graph <- plot_time(acc_example(), Sys.time() + c(0,10))
+    graph <- plot_time(acc_example())
   )
   expect_s3_class(graph, "dygraphs")
+})
+
+test_that("plot_time handles missing start times", {
+  a <- acc_example()
+  starts(a) <- as.POSIXct(c(1, NA), tz = "UTC")
+
+  expect_warning(
+    g <- plot_time(a),
+    "Omitting 1 burst.* no start timestamp"
+  )
+  expect_s3_class(g, "dygraphs")
+
+  # All starts NA: errors.
+  starts(a) <- as.POSIXct(c(NA, NA), tz = "UTC")
+  expect_error(plot_time(a), "requires burst start timestamps")
 })
 
 test_that("plot_time uses seconds regardless of frequency unit", {
