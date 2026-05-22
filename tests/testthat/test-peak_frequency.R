@@ -32,29 +32,23 @@ test_that("Multiple axis peak freq and changing freq", {
   )
 })
 
-test_that("length does not influnce result", {
-  x <- sin(1:199 / (5 / (pi * 2)))
-  z <- cos(1:199 / (100 / (pi * 2)))
-
+test_that("when N does not contain a whole number of cycles, the reported peak is the nearest FFT bin", {
+  # Period-5 and period-100 sinusoids over N=199 samples. N is not a
+  # multiple of either period, so no FFT bin lands exactly on the true
+  # frequency. The reported peak should be the nearest available bin:
+  # bin * fs / N, where bin is round(N/period).
+  N <- 199
+  x <- sin(seq_len(N) / (5 / (pi * 2)))
+  z <- cos(seq_len(N) / (100 / (pi * 2)))
   acc_l <- acc_burst_example(x = x, z = z)
 
-  a <- acc(acc_l, units::set_units(100, "Hz"))
-  expect_equal(
-    peak_frequency(a),
-    list(units::set_units(c(X = 20, Z = 1), "Hz"))
-  )
-
-  a <- acc(acc_l, units::set_units(200, "Hz"))
-  expect_equal(
-    peak_frequency(a),
-    list(units::set_units(c(X = 40, Z = 2), "Hz"))
-  )
-
-  a <- acc(acc_l, units::set_units(400, "Hz"))
-  expect_equal(
-    peak_frequency(a),
-    list(units::set_units(c(X = 80, Z = 4), "Hz"))
-  )
+  for (fs in c(100, 200, 400)) {
+    a <- acc(acc_l, units::set_units(fs, "Hz"))
+    expect_equal(
+      peak_frequency(a),
+      list(units::set_units(c(X = 40, Z = 2) * fs / N, "Hz"))
+    )
+  }
 })
 
 test_that("Multiple axis peak freq intercept does not matter", {

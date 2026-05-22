@@ -118,5 +118,5 @@ peak_freq_ <- function(burst, freq, resolution = NA_real_) {
 
   peak <- apply(b_mod, 2, which.max)
 
-  (peak - 1) * (freq / nrow(b_mod) / 2)
+  (peak - 1) * (freq / nrow(b_centered))
 }
