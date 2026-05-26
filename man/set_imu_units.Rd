@@ -27,8 +27,8 @@ that the target unit is dimensionally compatible with its IMU class:
 \item \code{gyro}: angular velocity units (e.g., \code{"rad/s"}, \code{"degree/s"})
 }
 
-To calibrate raw accelerometer values rather than simply attaching or
-converting units, use \code{\link[=acc_calibrate]{acc_calibrate()}}.
+To transform raw values to physical units rather than simply attaching or
+converting units, use \code{\link[=transform_imu]{transform_imu()}}.
 }
 \examples{
 a <- acc_example()
@@ -44,5 +44,5 @@ set_imu_units(a_ms2, "standard_free_fall")
 try(set_imu_units(a, "kg"))
 }
 \seealso{
-\code{\link[=acc_calibrate]{acc_calibrate()}} to calibrate raw acceleration values.
+\code{\link[=transform_imu]{transform_imu()}} to transform raw IMU values
 }

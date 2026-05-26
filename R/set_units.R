@@ -9,8 +9,8 @@
 #' - `mag`: magnetic flux density units (e.g., `"tesla"`, `"uT"`, `"gauss"`)
 #' - `gyro`: angular velocity units (e.g., `"rad/s"`, `"degree/s"`)
 #'
-#' To calibrate raw accelerometer values rather than simply attaching or
-#' converting units, use [acc_calibrate()].
+#' To transform raw values to physical units rather than simply attaching or
+#' converting units, use [transform_imu()].
 #'
 #' @param x An `acc`, `mag`, or `gyro` vector.
 #' @param value Character specifying the target units (e.g., `"m/s^2"`). For
@@ -19,7 +19,7 @@
 #'
 #' @returns The input vector with units attached to each burst matrix.
 #'
-#' @seealso [acc_calibrate()] to calibrate raw acceleration values.
+#' @seealso [transform_imu()] to transform raw IMU values
 #'
 #' @export
 #'

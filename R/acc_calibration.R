@@ -1,85 +1,33 @@
-#' Convert raw acceleration values to physical units in an `acc` vector
-#'
-#' @description
-#' Applies calibration function(s) to bursts of raw acceleration ADC values
-#' in an `acc` vector. Specify a set of calibration functions 
-#' with [acc_calibration()].
-#'
-#' @param x An `acc` vector.
-#' @param calibration An `acc_calibration` object containing the calibration
-#'   function(s) to apply to each burst in `x`. See [acc_calibration()] to
-#'   specify calibration functions.
-#'
-#' @return An `acc` vector of the same length as the input with calibrated
-#'   burst matrices.
-#'
-#' @seealso [acc_calibration()] and [as_acc_calibration()] to
-#'   construct calibrations for use with `acc_calibrate()`.
-#'
-#' @export
-#'
-#' @examples
-#' a <- acc_example()
-#' 
-#' acc_calibrate(a, acc_calibration("ornitela"))
-#' 
-#' acc_calibrate(a, acc_calibration("eobs", tag_id = 1000))
-#' 
-#' acc_calibrate(a, acc_calibration(offset = 2048, slope = 0.001))
-#' 
-#' # Specify different calibration parameters for each burst.
-#' # Calibrations will be mapped to the input `acc` object by index.
-#' acc_calibrate(
-#'   a, 
-#'   acc_calibration(offset = c(2048, 2046), slope = c(0.001, 0.002))
-#' )
-acc_calibrate <- function(x, calibration) {
-  if (!inherits(calibration, "acc_calibration")) {
-    rlang::abort(c(
-      "`calibration` must be an `acc_calibration` object.",
-      i = "Use `acc_calibration()` or `as_acc_calibration()` to create one."
-    ))
-  }
-
-  calibration <- vctrs::vec_recycle(calibration, length(x))
-
-  bursts(x) <- new_burst_list(
-    purrr::map2(
-      bursts(x),
-      calibration,
-      function(.br, .calibrate) {
-        .calibrate(.br)
-      }
-    ),
-    sensor = "acc"
-  )
-
-  x
-}
-
 #' Create calibration functions for raw acceleration values
 #'
 #' @description
-#' Generate an `acc_calibration` object containing a list of functions 
-#' with various calibration parameters to be used in [acc_calibrate()].
+#' Generate an `acc_calibration` object containing a list of functions
+#' with various calibration parameters to be used in [transform_imu()].
 #'
-#' Use `acc_calibration()` to specify calibration parameters manually.
-#' Arguments are vectorized and matched by index.
-#'
-#' Use `as_acc_calibration()` to convert a data.frame containing row-wise
-#' burst calibration parameters to an `acc_calibration` object.
+#'   - Use `acc_calibration()` to specify calibration parameters manually.
+#'     Arguments are vectorized and matched by index.
+#'   - Use `as_acc_calibration()` to convert a data.frame containing row-wise
+#'     burst calibration parameters to an `acc_calibration` object.
 #'
 #' This allows you to specify burst-specific calibration functions to
 #' flexibly convert raw acceleration values to physical units in `acc` vectors
 #' that contain data from heterogeneous sources.
 #'
+#' @details
+#' Tags from e-obs have default calibration functions that vary depending on the
+#' tag's generation. Use [eobs_default_specs()] for a summary table showing the
+#' default offset, slope, and orientation parameters used for each e-obs
+#' tag ID. The tag ID defines the tag generation. Note that tags from generation
+#' 1 could be set either to low or high sensitivity, each with their own
+#' default calibration parameters.
+#' 
 #' @param manufacturer Manufacturer of the tag. Currently, `"eobs"` and
 #'   `"ornitela"` are supported. For other manufacturers, leave `NULL` and
 #'   manually specify the calibration parameters below.
-#' @param tag_id If `manufacturer = "eobs"`, the e-obs tag ID for the tag.
+#' @param tag_id If `manufacturer = "eobs"`, the e-obs tag ID for the tag. See
+#'   details.
 #' @param sensitivity If `manufacturer = "eobs"`, the sensitivity of the tag.
-#'   Defaults to `"low"` if none provided. Note that only e-obs generation 1 
-#'   tags have a sensitivity setting.
+#'   Defaults to `"low"` if none provided. See details.
 #' @param offset,offset_x,offset_y,offset_z Custom offset to use when
 #'   calibrating. To specify axis-specific offsets, use `offset_x`,
 #'   `offset_y`, and/or `offset_z`.
@@ -104,8 +52,8 @@ acc_calibrate <- function(x, calibration) {
 #'
 #' @returns An `acc_calibration` object.
 #' @export
-#' 
-#' @seealso [acc_calibrate()] to apply calibration functions to the entries
+#'
+#' @seealso [transform_imu()] to apply calibration functions to the entries
 #'   in an `acc` vector.
 #'
 #' @examples
@@ -134,8 +82,8 @@ acc_calibrate <- function(x, calibration) {
 #'   orientation_y = -1 # Flip y axis orientation
 #' )
 #' 
-#' # Apply calibration with acc_calibrate()
-#' acc_calibrate(acc_example(), cal)
+#' # Apply calibration with transform_imu()
+#' transform_imu(acc_example(), cal)
 acc_calibration <- function(manufacturer = NULL,
                             tag_id = NULL,
                             sensitivity = NULL,
@@ -182,7 +130,7 @@ acc_calibration <- function(manufacturer = NULL,
     }
   )
   
-  new_acc_calibration(purrr::pmap(args, acc_calibration_))
+  new_imu_calibration(purrr::pmap(args, acc_calibration_), sensor = "acc")
 }
 
 #' @param df data.frame containing columns corresponding to the available
@@ -283,19 +231,7 @@ acc_calibration_ <- function(manufacturer = NULL,
   
   scale <- slope * orientation
   
-  # calibration function for burst matrix `x` with resolved parameters
-  function(x) {
-    if (rlang::is_empty(x) || rlang::is_na(x)) {
-      return(x)
-    }
-    
-    if (inherits(x, "units")) {
-      rlang::warn(
-        "Cannot calibrate values that already contain units. Returning input."
-      )
-      return(x)
-    }
-    
+  cal <- function(x) {
     # Resolve axes against what's actually in the data
     active_axes <- intersect(axes, colnames(x))
     
@@ -322,10 +258,10 @@ acc_calibration_ <- function(manufacturer = NULL,
     }
     
     colnames(xt) <- active_axes
-    xt <- units::set_units(xt, units, mode = "standard")
-    
-    xt
+    units::set_units(xt, units, mode = "standard")
   }
+  
+  imu_calibration_fn(cal)
 }
 
 #' Default e-obs tag configuration table
@@ -338,7 +274,7 @@ acc_calibration_ <- function(manufacturer = NULL,
 #'   `offset`, and `slope`.
 #'
 #' @seealso [acc_calibration()] to set up tag-specific calibration specifications
-#'   and [acc_calibrate()] to calibrate eobs acceleration values.
+#'   and [transform_imu()] to apply them to eobs acceleration values.
 #'
 #' @export
 eobs_default_specs <- function() {
@@ -542,16 +478,6 @@ validate_calibration_df <- function(df, call = rlang::caller_env()) {
   }
   
   df
-}
-
-new_acc_calibration <- function(x) {
-  structure(x, class = c("acc_calibration", class(x)))
-}
-
-#' @export
-print.acc_calibration <- function(x, ...) {
-  cat(paste0("<acc_calibration[", length(x), "]>\n"))
-  invisible(x)
 }
 
 GRAV_CONST <- 9.80665

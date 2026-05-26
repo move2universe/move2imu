@@ -5,8 +5,14 @@ b <- bursts(acc_example())[[1]]
 test_that("acc_calibration() returns an acc_calibration object", {
   tf <- acc_calibration(offset = 2048, slope = 0.001)
   expect_s3_class(tf, "acc_calibration")
+  expect_s3_class(tf, "imu_calibration")
   expect_true(is.list(tf))
   expect_true(all(purrr::map_lgl(tf, is.function)))
+})
+
+test_that("acc_calibration() prints with its sensor-specific class", {
+  tf <- acc_calibration(offset = 2048, slope = 0.001)
+  expect_output(print(tf), "<acc_calibration\\[1\\]>")
 })
 
 test_that("as_acc_calibration() returns an acc_calibration object", {
@@ -369,101 +375,6 @@ test_that("as_acc_calibration() NA tag_ids not flagged as duplicates", {
   df <- data.frame(tag_id = c(NA, NA), manufacturer = "ornitela")
   tf <- as_acc_calibration(df)
   expect_length(tf, 2)
-})
-
-# --- acc_calibrate() ----------------------------------------------------------
-
-test_that("acc_calibrate() returns an acc object", {
-  a <- acc_example()
-  result <- acc_calibrate(a, acc_calibration(offset = 2048, slope = 0.001))
-  expect_true(is_acc(result))
-  expect_length(result, length(a))
-  expect_true(inherits(bursts(a), "acc_list"))
-})
-
-test_that("acc_calibrate() applies correct calibration per burst", {
-  a <- acc_example()
-  tf <- acc_calibration(manufacturer = "eobs", tag_id = c(1000, 4000))
-  result <- acc_calibrate(a, tf)
-
-  sp1 <- eobs_specs(1000)
-  sp2 <- eobs_specs(4000)
-  
-  manual_1 <- acc_calibration(
-    offset = sp1$offset, 
-    slope = sp1$slope,
-    orientation_x = sp1$orientation_x, 
-    orientation_y = sp1$orientation_y, 
-    orientation_z = sp1$orientation_z
-  )[[1]]
-  
-  manual_2 <- acc_calibration(
-    offset = sp2$offset, 
-    slope = sp2$slope,
-    orientation_x = sp2$orientation_x, 
-    orientation_y = sp2$orientation_y, 
-    orientation_z = sp2$orientation_z
-  )[[1]]
-  
-  manual_1 <- manual_1(bursts(a)[[1]])
-  manual_2 <- manual_2(bursts(a)[[2]])
-  
-  expect_identical(bursts(result)[[1]], manual_1)
-  expect_identical(bursts(result)[[2]], manual_2)
-})
-
-test_that("acc_calibrate() recycles length-1 .f", {
-  a <- acc_example()
-  tf <- acc_calibration(offset = 2048, slope = 0.001)
-  expect_length(tf, 1)
-  result <- acc_calibrate(a, tf)
-  expect_true(is_acc(result))
-  expect_true(inherits(bursts(result)[[1]], "units"))
-  expect_true(inherits(bursts(result)[[2]], "units"))
-})
-
-test_that("acc_calibrate() errors on non-acc_calibration input", {
-  a <- acc_example()
-  expect_error(acc_calibrate(a, "not a calibration"), "acc_calibration")
-  expect_error(acc_calibrate(a, list(1, 2)), "acc_calibration")
-})
-
-test_that("acc_calibrate() errors on incompatible .f length", {
-  a <- acc_example()
-  tf <- acc_calibration(offset = c(1, 2, 3), slope = 0.001)
-  expect_error(acc_calibrate(a, tf))
-})
-
-test_that("acc_calibrate() preserves NA bursts", {
-  a <- acc_example()
-  # Insert an NA by subsetting with drop = FALSE style (vec_rep NA pattern)
-  a_with_na <- c(a, acc(list(NULL), units::set_units(NA, "Hz")))
-  tf <- acc_calibration(offset = 2048, slope = 0.001)
-  result <- acc_calibrate(a_with_na, tf)
-  expect_length(result, 3)
-  # First two calibrated, third stays NA
-  expect_true(inherits(bursts(result)[[1]], "units"))
-  expect_true(inherits(bursts(result)[[2]], "units"))
-  expect_true(is.na(result[3]))
-})
-
-test_that("acc_calibrate() warns on already-calibrated data", {
-  a <- acc_example()
-  tf <- acc_calibration(offset = 2048, slope = 0.001)
-  calibrated <- acc_calibrate(a, tf)
-  # Warns once per burst; capture all warnings
-  expect_warning(acc_calibrate(calibrated[1], tf), "already contain units")
-})
-
-test_that("acc_calibrate() units argument passes through", {
-  a <- acc_example()
-  result_g <- acc_calibrate(a, acc_calibration(offset = 100, slope = 0.5, units = "standard_free_fall"))
-  result_ms2 <- acc_calibrate(a, acc_calibration(offset = 100, slope = 0.5, units = "m/s^2"))
-
-  expect_equal(
-    as.numeric(bursts(result_ms2)[[1]]),
-    as.numeric(bursts(result_g)[[1]]) * GRAV_CONST
-  )
 })
 
 # --- eobs_specs() -------------------------------------------------------------
