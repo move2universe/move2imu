@@ -305,6 +305,8 @@ active_colsets_ <- function(x, sensor) {
 #'   column sets.
 #'
 #' @name duplicated_rows
+#' 
+#' @keywords internal
 #'
 #' @seealso [active_acc_colsets()], [active_mag_colsets()],
 #'   [active_gyro_colsets()] to identify available column sets in a `move2`

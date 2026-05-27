@@ -1,0 +1,464 @@
+---
+title: "Programming with IMU bursts"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Programming with IMU bursts}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4,
+  fig.align = "center"
+)
+Sys.setlocale("LC_TIME", "en_US.utf8")
+```
+
+```{css, echo = FALSE}
+.html-widget {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  width: 80% !important;
+}
+```
+
+After extracting IMU data into a vector of bursts, we typically will want
+to summarize the individual burst samples into a more interpretable
+measure of activity. This vignette shows how to extract simple activity
+metrics from `acc` bursts and reattach these metrics to corresponding location
+data collected with GPS.
+
+```{r load, message = FALSE}
+library(move2imu)
+library(move2)
+library(dplyr)
+library(units)
+```
+
+We'll use the move2imu gulls data for this demo:
+
+```{r data}
+gul <- gulls()
+```
+
+As it turns out, only one gull has acceleration data in this case, so we'll
+filter our data for simplicity:
+
+```{r}
+gul <- gul[mt_track_id(gul) == "5508292", ]
+```
+
+And then extract our acceleration bursts:
+
+```{r}
+gul$acceleration <- as_acc(gul)
+
+gul$acceleration[1:10]
+```
+
+## Dynamic body acceleration
+
+As a simple example, imagine if we wanted to compute the vectorial dynamic body acceleration (VeDBA) for these bursts, and link each of those VeDBA values to the closest GPS location record.
+
+VeDBA is computed by:
+
+1. subtracting the per-axis mean of a burst (the static, gravity-driven
+component) from each sample, leaving the dynamic component, and
+2. taking the mean Euclidean norm of the dynamic component across
+samples.
+
+First, we need to convert our raw acceleration values into
+physical units. (This is covered in depth in the
+[calibration vignette](calibration.html).) We will use the standard
+transformation for Ornitela tags here (TODO: what tags are used here?)
+
+```{r}
+gul$acceleration <- transform_imu(
+  gul$acceleration,
+  acc_calibration("ornitela", units = "standard_free_fall")
+)
+```
+
+Then, we extract the VeDBA values:
+
+```{r}
+gul_v <- gul |> 
+  mutate(vedba = vedba(acceleration)) |> 
+  filter(!is.na(vedba)) |> 
+  select(vedba)
+```
+
+```{r vedba_plot}
+library(ggplot2)
+
+ggplot() +
+  geom_line(data = gul_v, aes(x = mt_time(gul_v), y = vedba)) +
+  labs(x = "", y = "VeDBA") +
+  scale_x_datetime(expand = expansion(mult = 0.1))
+```
+
+If we're interested in how these changes are expressed in space, we need to
+reattach the computed VeDBA to the recorded GPS locations for our gull. However,
+the acceleration data is not directly linked with
+a particular location. We can see that these records are associated with
+`POINT EMPTY` geometries:
+
+```{r}
+gul_v$geometry
+```
+
+The tag did record locations, though---it's simply that these records are 
+stored in the GPS rows of the input move2 object, not the acceleration rows. 
+So, we need to relink our VeDBA values with
+the corresponding GPS location at the same timestamp. First, we'll drop the
+empty geometry column from our VeDBA data and restrict our location data just
+to those records with spatial information:
+
+```{r}
+# Drop geometry column, which is empty for our acc records:
+gul_v <- sf::st_drop_geometry(gul_v)
+
+# Extract location records
+gul_gps <- gul[!sf::st_is_empty(gul), ]
+```
+
+Then, we can use `dplyr::left_join()` to reattach the two, linking by 
+the track ID and the timestamp. (We use the move2 helpers `mt_track_id_column()`
+and `mt_time_column()` to ensure the correct metadata columns are used for the
+join, as the precise names of these columns can differ across data sources.)
+
+```{r}
+# Specify that the track ID columns and timestamp columns should match,
+# regardless of the exact column names:
+join <- setNames(
+  c(mt_track_id_column(gul_v), mt_time_column(gul_v)),
+  c(mt_track_id_column(gul_gps), mt_time_column(gul_gps))
+)
+
+join
+
+gul_joined <- left_join(gul_gps, gul_v, by = join)
+```
+
+Now we have our VeDBA values associated with their corresponding GPS location:
+
+```{r}
+library(leaflet)
+
+pal <- colorNumeric("viridis", as.numeric(gul_joined$vedba))
+
+leaflet() |> 
+  addProviderTiles("CartoDB.Positron") |> 
+  addPolylines(
+    data = mt_track_lines(gul_joined),
+    color = "gray", 
+    weight = 0.5
+  ) |> 
+  addCircles(
+    data = gul_joined,
+    color = ~ pal(as.numeric(vedba)), 
+    opacity = 1, 
+    radius = 3
+  ) |> 
+  addLegend(
+    title = "VeDBA (g)",
+    pal = pal,
+    values = as.numeric(gul_joined$vedba)
+  )
+```
+
+Note that in many cases the timestamps from the acceleration records and GPS
+records will differ. In these cases, you won't be able to match by exact
+track ID and timestamp. Rather, you'll need to interpolate spatial locations to
+the times of the acceleration data (see `move2::mt_interpolate()`) or 
+link acceleration records to a nearby timestamp instead. We walk through the
+latter option later in this vignette.
+
+## Detecting prolonged inactivity
+
+A single burst's VeDBA tells us how active the animal was during
+that brief burst window, but often we're interested in longer periods of
+inactivity; for instance, to determine whether a tag has stopped working, if
+an animal has died, and so on. In these cases, we want to ignore brief periods
+of low acceleration, which likely just indicate a period of rest.
+
+We can accomplish this by applying a time-aware rolling average to our 
+computed VeDBA values. This will show us the mean VeDBA for the most
+recent time interval.
+
+We'll use the [slider](https://slider.r-lib.org/) package to apply this 
+technique, computing the mean VeDBA for the prior 5 hours at each time point.
+
+```{r}
+library(slider)
+
+gul_v <- gul_v |> 
+  group_by(mt_track_id(gul_v)) |> 
+  mutate(
+    vedba_smooth = slide_index_dbl(
+      as.numeric(vedba),
+      mt_time(gul_v),
+      mean,
+      .before = lubridate::hours(5)
+    ),
+    vedba_smooth = set_units(vedba_smooth, "standard_free_fall")
+)
+```
+
+```{r}
+ggplot(gul_v) +
+  geom_line(aes(x = mt_time(gul_v), y = vedba), color = "gray") +
+  geom_line(aes(x = mt_time(gul_v), y = vedba_smooth), color = "navy") +
+  labs(x = "", y = "VeDBA") +
+  scale_x_datetime(expand = expansion(mult = 0.1))
+```
+
+We can use this rolling average to identify when the tag has become inactive
+or the animal has died. The decision of what temporal and VeDBA threshold to use
+to make this determination will depend on the species and tags in question.
+For this example, we use a threshold of 0.05*g*. If the tag remains below this
+for 5 hours, we consider the tag to be inactive.
+
+Since this is a contrived example, this gull doesn't have a true mortality 
+event. The periods of reduced activity are likely a result of overnight roosting.
+
+```{r inactive_plot}
+threshold <- set_units(0.05, "standard_free_fall")
+
+ggplot(gul_v) +
+  geom_line(aes(x = mt_time(gul_v), y = vedba), color = "gray") +
+  geom_line(aes(x = mt_time(gul_v), y = vedba_smooth), color = "black") +
+  geom_hline(yintercept = threshold, color = "red") +
+  labs(x = "", y = "VeDBA") +
+  scale_x_datetime(expand = expansion(mult = 0.1))
+```
+
+<!-- ### A cruder summary: per-burst SD -->
+
+<!-- VeDBA is one way to reduce a burst to a single activity -->
+<!-- number, but not the only one. A simpler alternative is the -->
+<!-- mean per-axis standard deviation: for a stationary tag this -->
+<!-- approaches zero on every axis, with no decomposition step -->
+<!-- needed. -->
+
+<!-- ```{r} -->
+<!-- gul_sd <- gul |>  -->
+<!--   filter(!is.na(acceleration)) |>  -->
+<!--   mutate( -->
+<!--     burst_sd = purrr::map_dbl( -->
+<!--       bursts(a), -->
+<!--       function(b) { -->
+<!--         if (is.null(b)) return(NA) -->
+<!--         mean(apply(b, 2, var)) -->
+<!--       } -->
+<!--     ), -->
+<!--     burst_sd_smooth = slide_index_dbl( -->
+<!--       burst_sd, -->
+<!--       timestamp, -->
+<!--       mean, -->
+<!--       .before = lubridate::hours(5) -->
+<!--     ) -->
+<!--   ) -->
+<!-- ``` -->
+
+<!-- Fed into the same rolling-window-and-threshold pipeline, -->
+<!-- `burst_sd` produces a classifier with very similar behaviour -->
+<!-- on this data. The difference is mostly interpretive: VeDBA has -->
+<!-- units of acceleration and a long literature behind it, while -->
+<!-- per-burst SD is cheaper to compute and easier to explain. The -->
+<!-- broader point is that the per-burst summary and the temporal -->
+<!-- classifier are independent choices — you can swap one without -->
+<!-- touching the other. -->
+
+## Custom acceleration computations
+
+Treating a burst-level calculation as a snapshot of activity at a given
+time is reasonable when acceleration data are collected in short bursts.
+When sampling takes place over a longer time, it may be necessary to apply
+moving window functions across an individual burst.
+
+To illustrate, we'll switch to the `albatrosses()` dataset, which has slightly
+longer bursts than the gulls above:
+
+```{r}
+alb <- albatrosses()
+
+alb <- alb |>
+  mutate(a = as_acc(alb))
+
+burst_dur(alb$a)
+
+n_samples(alb$a)
+```
+
+These bursts were collected with e-obs tags. For simplicity, we'll calibrate
+using the third-generation e-obs tag manufacturer defaults. See the
+[calibration vignette](calibration.html) for a more detailed discussion of
+tag calibration.
+
+```{r}
+alb <- alb |>
+  mutate(a = transform_imu(a, acc_calibration("eobs", 4200)))
+
+alb$a
+```
+
+### Within-burst computations
+
+As a first custom computation, we'll compute VeDBA across a sliding
+window *within* a single burst, rather than collapsing the whole burst
+to one number. This shows us how acceleration varies moment-to-moment
+during the burst.
+
+We first extract the burst matrix along with the sampling frequency and start
+time of the burst. These are necessary to reconstruct the timestamps of each
+sample within the burst.
+
+Then, we use `slider_index_dbl()` to calculate VeDBA for each 1-second
+section of the burst.
+
+```{r}
+# Sample burst
+b <- bursts(alb$a)[[2]]
+fq <- freqs(alb$a)[[2]]
+t0 <- starts(alb$a)[[2]]
+
+# Get timestamp of each sample within the burst
+samp_t <- t0 + (seq_len(nrow(b)) - 1) / as.numeric(fq)
+
+vedba_roll <- slide_index_dbl(
+  seq_len(nrow(b)),
+  samp_t,
+  function(idx) {
+    sub <- b[idx, , drop = FALSE]
+    sub <- t(t(sub) - set_units(colMeans(sub), units(sub), mode = "standard"))
+    mean(sqrt(rowSums(sub^2)))
+  },
+  .before = lubridate::seconds(1)
+)
+
+vedba_roll
+```
+
+```{r}
+ggplot() +
+  geom_line(aes(x = samp_t[2:length(samp_t)], y = vedba_roll[2:length(vedba_roll)])) +
+  geom_hline(aes(yintercept = drop_units(vedba(alb$a[[2]]))), linetype = "dashed") +
+  labs(x = "Sample", y = "VeDBA")
+```
+
+The horizontal line shows the full-burst VeDBA produced by `vedba()`.
+As you can see, the dynamic body acceleration varies quite a bit from this
+value across the burst.
+
+### Scaling up
+
+We can apply this computation to every burst in the dataset easily. First we
+define an explicit function containing the computation from above:
+
+```{r}
+rolling_vedba <- function(acc, window = lubridate::seconds(1)) {
+  if (is.na(acc)) {
+    return(NA_real_)
+  }
+
+  b <- bursts(acc)[[1]]
+  fq <- freqs(acc)[[1]]
+  t0 <- starts(acc)[[1]]
+
+  samp_t <- t0 + (seq_len(nrow(b)) - 1) / as.numeric(fq)
+
+  slide_index_dbl(
+    seq_len(nrow(b)),
+    samp_t,
+    function(idx) {
+      sub <- b[idx, , drop = FALSE]
+      sub <- t(t(sub) - set_units(colMeans(sub), units(sub), mode = "standard"))
+      mean(sqrt(rowSums(sub^2)))
+    },
+    .before = window
+  )
+}
+```
+
+And then we iterate over the `acc` bursts for all
+the albatrosses in the study, applying our `rolling_vedba()` function:
+
+```{r}
+alb <- alb |>
+  mutate(v = purrr::map(a, rolling_vedba))
+```
+
+This leaves us with a vector of values for each burst. We can summarize the
+variability in VeDBA within each burst by taking the standard deviation of the
+rolling values:
+
+```{r}
+alb <- alb |> 
+  mutate(v_sd = purrr::map_dbl(v, sd))
+
+alb$v_sd
+```
+
+### Linking acceleration to GPS by nearest timestamp
+
+Once again, we need to link these values to their associated GPS locations if
+we are to answer any questions about how activity varies over space.
+
+First, we split our location records from our acceleration records.
+
+```{r}
+# Select GPS records and remove acceleration info (will be reattached)
+alb_gps <- alb[!sf::st_is_empty(alb), ] |>
+  select(-a, -v_sd)
+
+# Select only acceleration records
+alb_acc <- alb |> 
+  select(a, v_sd) |> 
+  sf::st_drop_geometry() |> 
+  filter(!is.na(a))
+```
+
+With the gulls data, we were able to join by exact timestamp match because
+acceleration records and GPS records were recorded simultaneously.
+For the albatross data, the GPS records are typically recorded just after
+the start of the acceleration data. This means that a simple `left_join()` 
+doesn't manage to match GPS and acceleration records:
+
+```{r}
+# Doesn't attach--timestamps don't align in all cases
+left_join(alb_gps, alb_acc) |> 
+  select(a, v_sd)
+```
+
+Instead, we need to link the acceleration values to the preceding GPS timestamp.
+We can use `dplyr::join_by()` to specify a rolling join using the `closest()`
+helper. This matches each GPS record to the most recent acceleration burst that
+preceded it (using `timestamp <= timestamp`). We also match on
+the animal ID to ensure that records aren't linked across individuals.
+
+```{r}
+alb_joined <- left_join(
+  alb_gps,
+  alb_acc,
+  by = join_by(
+    individual_local_identifier == individual_local_identifier,
+    closest(timestamp <= timestamp)
+  ),
+  suffix = c("", ".y") # Ensure that move2 metadata columns in alb_gps are not renamed
+)
+```
+
+Each GPS row now carries the acceleration burst (and our `v_sd`
+summary) from the most recent preceding burst, allowing the acceleration
+summaries to be explored across space:
+
+```{r}
+alb_joined |>
+  select(a, v_sd)
+```
+

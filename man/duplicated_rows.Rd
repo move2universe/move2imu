@@ -45,3 +45,4 @@ object.
 \code{\link[=as_acc]{as_acc()}}, \code{\link[=as_mag]{as_mag()}}, \code{\link[=as_gyro]{as_gyro()}} to extract IMU data from a
 \code{move2} object.
 }
+\keyword{internal}

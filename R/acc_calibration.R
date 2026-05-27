@@ -286,6 +286,9 @@ acc_calibration_ <- function(manufacturer = NULL,
 #'   and [transform_imu()] to apply them to eobs acceleration values.
 #'
 #' @export
+#' 
+#' @examples
+#' eobs_default_specs()
 eobs_default_specs <- function() {
   data.frame(
     tag_gen = c(1, 1, 2, 3),

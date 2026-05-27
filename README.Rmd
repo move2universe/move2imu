@@ -22,30 +22,51 @@ knitr::opts_chunk$set(
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-## Design
-
-* Keep frequency and axes per element or for the vector? -> per element as it changes within study
-* Allow NA's? -> yes in vector , not in burst?
-* Are start time part of vector? -> probably not as move2 already keeps it
-* Calibrated (in G) or Uncalibrated -> might be covered by storing units
-* We assume constant sampling freq in a burst
-
+move2imu aims to standardize the storage and analysis of biologging 
+inertial measurement unit (IMU) data, including accelerometer, magnetometer,
+and gyroscope records. The package integrates with [move2](https://bartk.gitlab.io/move2/), enabling
+standardized analysis workflows and allowing IMU data to be analyzed alongside
+other observations, including location records.
 
 ## Installation
 
-You can install the development version of move2imu like so:
+`move2imu` does not yet exist on CRAN. Instead, you can install the development
+version directly:
 
-``` r
-# install.packages("remotes")
+```{r, eval = FALSE}
+# install.packages("pak")
+pak::pak("robe2037/move2imu")
+
+# Or, if remotes is already installed:
 remotes::install_github("robe2037/move2imu")
 ```
 
-## Example
+## Usage
 
-This is a basic example which shows you how to solve a common problem:
-
-```{r example}
+```{r}
 library(move2imu)
-## basic example code
+library(move2)
+
+# Extract acceleration data from gulls data
+acceleration <- as_acc(gulls())
+
+acceleration <- acceleration[!is.na(acceleration)]
+
+head(acceleration)
 ```
 
+<!-- ```{r plot_time, eval=FALSE} -->
+<!-- plot_time(acceleration[21]) -->
+<!-- ``` -->
+
+<!-- ![](man/figures/plot_time_readme_screenshot.png) -->
+
+```{r}
+# Compute values on acceleration bursts
+vedba(acceleration)
+```
+
+## Getting help + Contributing
+
+We welcome feedback and contributions. If you encounter a bug or have 
+specific feature requests, please create an issue on [GitHub](https://github.com/robe2037/move2imu).

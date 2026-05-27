@@ -2,13 +2,7 @@
 # lives in R/imu.R; this file only holds the gyro-specific constructor,
 # predicate, and S3 dispatch wrappers.
 
-#' Create a `gyro` vector
-#'
-#' @inheritParams acc
-#' @param frequency The frequency of the gyroscope recordings. Either the
-#'   same length of `bursts` or it will be recycled. If no units are specified,
-#'   the frequency is assumed to be in Hz.
-#'
+#' @rdname imu_constructors
 #' @export
 gyro <- function(bursts = list(),
                  frequency = units::set_units(double(), "Hz"),

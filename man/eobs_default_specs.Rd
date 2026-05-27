@@ -15,6 +15,9 @@ A data.frame with columns \code{tag_gen}, \code{min_tag_id}, \code{max_tag_id},
 Returns a data.frame of known e-obs tag generations with their tag ID
 ranges and default calibration parameters.
 }
+\examples{
+eobs_default_specs()
+}
 \seealso{
 \code{\link[=acc_calibration]{acc_calibration()}} to set up tag-specific calibration specifications
 and \code{\link[=transform_imu]{transform_imu()}} to apply them to eobs acceleration values.

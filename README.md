@@ -14,31 +14,69 @@ status](https://www.r-pkg.org/badges/version/move2imu)](https://CRAN.R-project.o
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-## Design
-
-- Keep frequency and axes per element or for the vector? -\> per element
-  as it changes within study
-- Allow NA’s? -\> yes in vector , not in burst?
-- Are start time part of vector? -\> probably not as move2 already keeps
-  it
-- Calibrated (in G) or Uncalibrated -\> might be covered by storing
-  units
-- We assume constant sampling freq in a burst
+move2imu aims to standardize the storage and analysis of biologging
+inertial measurement unit (IMU) data, including accelerometer,
+magnetometer, and gyroscope records. The package integrates with
+[move2](https://bartk.gitlab.io/move2/), enabling standardized analysis
+workflows and allowing IMU data to be analyzed alongside other
+observations, including location records.
 
 ## Installation
 
-You can install the development version of move2imu like so:
+`move2imu` does not yet exist on CRAN. Instead, you can install the
+development version directly:
 
 ``` r
-# install.packages("remotes")
+# install.packages("pak")
+pak::pak("robe2037/move2imu")
+
+# Or, if remotes is already installed:
 remotes::install_github("robe2037/move2imu")
 ```
 
-## Example
-
-This is a basic example which shows you how to solve a common problem:
+## Usage
 
 ``` r
 library(move2imu)
-## basic example code
+library(move2)
+
+# Extract acceleration data from gulls data
+acceleration <- as_acc(gulls())
+
+acceleration <- acceleration[!is.na(acceleration)]
+
+head(acceleration)
+#> <acceleration[6]>
+#> [1] (-97.75 323.55 1963.95) (-95 267.65 1914.25)    (7.1 301.85 1990.9)    
+#> [4] (77.65 372.95 1824.75)  (46.9 349.8 1989)       (-29.15 251.05 2046.6) 
+#> # frequency: 20 [Hz]
 ```
+
+<!-- ```{r plot_time, eval=FALSE} -->
+
+<!-- plot_time(acceleration[21]) -->
+
+<!-- ``` -->
+
+<!-- ![](man/figures/plot_time_readme_screenshot.png) -->
+
+``` r
+# Compute values on acceleration bursts
+vedba(acceleration)
+#>  [1]  184.32546  217.03563  169.67963  159.70308  139.13675   93.78337
+#>  [7]   70.52255   47.88465  103.18600  120.17322  180.73977  272.24915
+#> [13] 1205.98655  906.47609 1297.89387 1370.41230 1010.59239 1155.86132
+#> [19] 1207.07769  348.04025 1359.16413 1271.36056 1320.84767  292.35113
+#> [25]  330.88228 1255.16058 1236.19487  162.21664 1570.35847 1167.40129
+#> [31]  130.55415  439.56821 1286.00234  148.70816  103.99947  116.59106
+#> [37]   76.41446  807.40152  115.69910  428.93748  250.49735  135.25885
+#> [43]   94.72192  250.57432  104.08138  323.06970  142.13018  252.64078
+#> [49]  161.30022  139.36594  203.29928  172.87414  188.60353  312.24183
+#> [55]  225.97108  341.48917  147.20475  279.21028  309.20153
+```
+
+## Getting help + Contributing
+
+We welcome feedback and contributions. If you encounter a bug or have
+specific feature requests, please create an issue on
+[GitHub](https://github.com/robe2037/move2imu).

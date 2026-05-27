@@ -22,16 +22,20 @@ Imports:
     rlang,
     units,
     vctrs
-Suggests: 
+Suggests:
     curl,
     dplyr,
     dygraphs,
+    ggplot2,
     keyring,
     knitr,
     leaflet,
     leafpop,
+    lubridate,
     move2,
     rmarkdown,
+    sf,
+    slider,
     testthat (>= 3.0.0),
     tibble,
     tidyr,

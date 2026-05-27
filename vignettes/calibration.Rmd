@@ -1,0 +1,300 @@
+---
+title: "Calibrating acceleration bursts"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Calibrating acceleration bursts}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+  
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4,
+  fig.align = "center",
+  out.width = "80%"
+)
+
+Sys.setlocale("LC_TIME", "en_US.utf8")
+```
+
+Many accelerometer tags store their measurements as raw integers produced by
+the analog-to-digital converter (ADC). By themselves, these values have no
+physical units. To convert the raw ADC values to interpretable acceleration
+units (e.g., m/s²), we need to define the transformation that maps each
+ADC value to its corresponding value in the target unit.
+
+For acceleration, this is a simple linear transformation, requiring:
+
+1. An **offset**, which is the ADC value that corresponds to 0 acceleration;
+2. A **slope**, which defines the output unit increment that corresponds to
+  a one-unit ADC increment.
+
+Further, different tag manufacturers and generations may define the axis
+space differently. That is, one tag manufacturer may define the y-axis to
+point in the opposite direction of another manufacturer. To account for this,
+a transformation function also takes an **orientation** indicator, which 
+identifies the direction that each axis points. This allows you to ensure
+that all tags being considered together use the same axis orientation
+definitions.
+
+For a set of acceleration bursts that all come from the same tag manufacturer
+and tag generation, the transformation from ADC to physical units is likely
+to be essentially identical. However, for a more complex dataset with 
+long-running deployments and/or multiple tag manufacturers, each tag will
+need its own transformation.
+
+move2imu facilitates this transformation process with two functions:
+
+- `acc_calibration()` specifies the parameters for a set of transformation
+functions
+- `transform_imu()` applies that specification to an `acc` vector,
+yielding a vector with proper physical units.
+
+We'll work through this with the example `albatrosses()` dataset,
+which contains raw data collected with e-obs tags.
+
+```{r load, message=FALSE}
+library(move2imu)
+library(move2)
+library(dplyr)
+```
+
+First, we'll load the data and extract the acceleration burst data. 
+This sample dataset is shipped with move2imu:
+
+```{r raw}
+alb <- albatrosses()
+
+alb <- alb |>
+  mutate(acceleration = as_acc(alb))
+
+head(alb$acceleration)
+```
+
+From the summary, we can see that no units have yet been attached to the
+values:
+
+```{r}
+summary(alb$acceleration)
+```
+
+Note as well that the raw acc values are in the thousands, which would be 
+unreasonable were these values already in m/s² or *g*.
+
+We can confirm with `imu_units()`:
+
+```{r raw_units}
+imu_units(alb$acceleration)
+```
+
+Before we can truly understand these data, we'll need to convert
+them to physical units.
+
+## Tag manufacturer calibration
+
+The easiest way to convert ADC values is with the tag manufacturer
+default transformation settings.
+
+move2imu currently has built-in support for two tag manufacturers:
+[e-obs](https://e-obs.de/) and [Ornitela](https://www.ornitela.com/).
+
+These sample data were collected with e-obs tags.
+The default calibration suggested by e-obs differs by tag generation. Thus,
+to build a calibration, we need to specify both the tag manufacturer and the 
+tag ID, which identifies the tag generation. In this case, imagine that these
+data were collected with the latest generation of e-obs tags (tags with IDs
+greater than 4117):
+
+```{r single}
+cal <- acc_calibration(manufacturer = "eobs", tag_id = 4266)
+cal
+```
+
+Then, we simply use `imu_transform()` to apply this transformation to
+the albatross acceleration bursts:
+
+```{r}
+alb$acc_cal <- transform_imu(alb$acceleration, calibration = cal)
+
+head(alb$acc_cal)
+```
+
+Now that values have been transformed, computations on the acceleration bursts
+will respect the attached units:
+
+```{r}
+vedba(alb$acc_cal)
+```
+
+By default, `acc_calibration()` converts to m/s². If you
+instead want your data in *g*, you can convert with `set_imu_units()`:
+
+```{r}
+set_imu_units(alb$acc_cal, "standard_free_fall")
+```
+
+Alternatively, we could have also specified the units in the calibration itself:
+
+```{r}
+acc_calibration(
+  manufacturer = "eobs", 
+  tag_id = 4266, 
+  units = "standard_free_fall"
+)
+```
+
+Note the difference between these two approaches: `set_imu_units()` 
+converts *between* compatible units (e.g.,
+m/s² to *g*) or *assigns* new units, whereas `transform_imu()`
+*transforms* raw values to their physical counterpart. 
+
+Thus, if you have raw
+values in your data, you must first use `transform_imu()` to convert the raw
+ADC values to meaningful units using the provided calibration. Otherwise,
+you will end up simply assigning units to raw values without changing the 
+values themselves.
+
+## Vectorized calibration
+
+The problem with the above approach is that it assumes that *all* tags used
+in the study had ID `4266` (generation 3). If all the albatrosses tagged in the study used generation 3 e-obs tags, then this wouldn't be a problem.
+
+However, e-obs has revised the default calibration over time, so earlier 
+generations of tags don't necessarily have the same transformation function.
+(You can see the default calibration specifications for e-obs tags with 
+`eobs_default_specs()`.)
+
+In these cases, you can provide a set of per-burst calibrations.
+
+For instance, imagine that the e-obs tag IDs were stored in the original `move2` object like so:
+
+```{r}
+# Example IDs that span e-obs generations
+fake_ids <- c(1000, 2000, 2500, 2501, 2502, 4200, 4201, 4202, 4203)
+
+# Set example IDs in albatross track data
+alb <- mt_set_track_data(
+  alb,
+  mutate(mt_track_data(alb), tag_id = fake_ids)
+)
+
+# Expand tag IDs to per-row event data
+alb <- mt_as_event_attribute(alb, tag_id)
+
+head(alb[, "tag_id"])
+```
+
+We could use this per-row metadata to build a vectorized set of calibration
+functions based on the tag ID:
+
+```{r}
+cal <- acc_calibration("eobs", tag_id = alb$tag_id)
+cal
+```
+
+Then, when we transform, calibration functions will be mapped by index to the
+corresponding bursts:
+
+```{r}
+transform_imu(alb$acceleration, cal)
+```
+
+## Custom calibration
+
+For tags that come from manufacturers without built-in move2imu support, you can
+build your own calibration function by manually specifying the offset and slope
+for the transformation function:
+
+```{r}
+acc_calibration(offset = 2048, slope = 0.001)
+```
+
+If the calibration differs by axis, you can specify per-axis parameters:
+
+```{r}
+acc_calibration(offset_x = 2048, offset_y = 2040, slope = 0.001, orientation_y = -1)
+```
+
+You can also specify individual arguments to override a manufacturer 
+default---for instance, if you have detailed information about some
+calibration parameters but not others.
+
+This can also be useful to standardize different tags that have defined their 
+axes in different directions. For instance, you may want to redefine the y-axis 
+orientation for Ornitela tags to match other tags used in the study if those
+tags define the y-axis in the opposite direction:
+
+```{r override}
+cal1 <- acc_calibration("ornitela")
+cal2 <- acc_calibration("ornitela", orientation_y = -1)
+
+transform_imu(alb$acceleration[2], cal1)
+
+transform_imu(alb$acceleration[2], cal2)
+```
+
+User-supplied values always take precedence over the manufacturer
+defaults.
+
+## External calibration specification
+
+For studies with many tags, manually specifying detailed per-axis offset, slope, and orientation values quickly becomes tedious. Instead, these
+values can be generated once by a calibration procedure and
+saved to an external file for later reuse.
+
+move2imu supports the conversion of a `data.frame` that contains these calibration
+parameters to an `acc_calibration` vector on a per-row basis. 
+Any columns in the `data.frame` that
+correspond to the available arguments to `acc_calibration()` will be used
+to build calibration functions.
+
+```{r cal_table_setup, include = FALSE}
+cal_table <- tibble::tribble(
+  ~tag_id, ~offset_x, ~offset_y, ~offset_z, ~slope_x,  ~slope_y,  ~slope_z,  ~orientation_y,
+  1000,    2049,      2047,      2050,      0.00271,   0.00269,   0.00270,    1,
+  2000,    2048,      2050,      2046,      0.00270,   0.00271,   0.00269,    1,
+  2500,    2050,      2047,      2052,      0.00221,   0.00220,   0.00219,   -1,
+  2501,    2047,      2049,      2048,      0.00220,   0.00219,   0.00220,   -1,
+  2502,    2049,      2046,      2051,      0.00219,   0.00221,   0.00220,   -1,
+  4200,    2048,      2049,      2047,      0.00195,   0.00196,   0.00196,   -1,
+  4201,    2050,      2047,      2049,      0.00196,   0.00195,   0.00195,   -1,
+  4202,    2046,      2051,      2048,      0.00196,   0.00196,   0.00197,   -1,
+  4203,    2049,      2048,      2050,      0.00195,   0.00197,   0.00196,   -1
+)
+```
+
+```{r cal_table_read, eval = FALSE}
+cal_table <- read.csv("calibration.csv")
+```
+
+```{r cal_table_print}
+cal_table
+```
+
+The calibration table records records per tag, but each tag in our data records
+multiple bursts. Thus, we need to associate each burst with its corresponding
+tag calibration parameters. We can join the calibration table with the albatross
+data on `tag_id` to link each burst to the calibration of the tag that
+recorded it:
+
+```{r cal_join}
+alb_w_cal <- left_join(alb, cal_table, by = "tag_id")
+```
+
+Now every row of `alb_w_cal` carries the calibration parameters for
+its tag. `as_acc_calibration()` reads those columns directly and
+returns one calibration function per row. This can then be passed to 
+`transform_imu()`:
+
+```{r cal_apply_external}
+cal <- as_acc_calibration(alb_w_cal)
+cal
+
+transform_imu(alb_w_cal$acceleration, cal)
+```
+
+Now, each burst has been transformed specifically with the detailed calibration
+specifications for the tag that produced it.

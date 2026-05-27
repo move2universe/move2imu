@@ -1,7 +1,4 @@
-#'  Create a `mag` vector
-#'
-#' @inheritParams acc
-#'
+#' @rdname imu_constructors
 #' @export
 mag <- function(bursts = list(),
                 frequency = units::set_units(double(), "Hz"),

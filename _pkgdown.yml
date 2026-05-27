@@ -2,3 +2,51 @@ url: https://robe2037.github.io/move2imu/
 template:
   bootstrap: 5
 
+reference:
+- title: IMU vectors
+  desc: >
+    Build and explore IMU data vectors
+  contents:
+  - imu_constructors
+  - explore-functions
+  - imu_summary
+  - plot_time
+
+- title: Extracting IMU data from move2 / Movebank
+  desc: >
+    Identify IMU data in a `move2` object and extract into an IMU vector.
+  contents:
+  - as_acc
+  - as_gyro
+  - as_mag
+  - imu_colset
+  - active_colsets
+  - movebank_colsets
+
+- title: Combining and splitting
+  desc: Join continuous bursts together or split an IMU vector into pieces.
+  contents:
+  - merge_imu
+  - split_imu
+
+- title: Calibration and units
+  desc: >
+    Transform raw ADC counts to physical units, override per-axis
+    orientation, and look up tag manufacturer calibration defaults.
+  contents:
+  - acc_calibration
+  - transform_imu
+  - eobs_default_specs
+  - set_imu_units
+
+- title: Burst computations
+  desc: Get the dynamic body acceleration and/or peak frequency of a burst
+  contents:
+  - vedba
+  - peak_frequency
+
+- title: Example data
+  desc: Bundled datasets used throughout examples and vignettes.
+  contents:
+  - example_data
+  - acc_example
