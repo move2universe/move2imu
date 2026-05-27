@@ -292,9 +292,9 @@ test_that("as_acc_calibration() NA orientation falls back to manufacturer defaul
   expect_identical(tf[[1]](b), tf_default[[1]](b))
 })
 
-test_that("as_acc_calibration() warns on unrecognized columns", {
+test_that("as_acc_calibration() silently ignores unrecognized columns", {
   df <- data.frame(tag_id = 1, offset = 2048, slope = 0.001, notes = "test")
-  expect_warning(as_acc_calibration(df), "notes")
+  expect_silent(as_acc_calibration(df))
 })
 
 test_that("as_acc_calibration() errors on unrecognized manufacturer", {
@@ -307,7 +307,7 @@ test_that("as_acc_calibration() errors on unrecognized manufacturer", {
 test_that("as_acc_calibration() errors when custom rows lack offset/slope", {
   expect_error(
     as_acc_calibration(data.frame(tag_id = 1)),
-    "offset.*slope|slope.*offset"
+    "offset.*required|slope.*required"
   )
 })
 
@@ -351,30 +351,25 @@ test_that("as_acc_calibration() works with no manufacturer column", {
   expect_identical(r2, units::set_units(((b - 100) * 0.5) * GRAV_CONST, "m/s^2"))
 })
 
-test_that("as_acc_calibration() allows duplicate tag_ids across manufacturers", {
-  df <- data.frame(tag_id = c(1000, 1000), manufacturer = c("eobs", "ornitela"))
-  tf <- as_acc_calibration(df)
-  expect_length(tf, 2)
-})
-
-test_that("as_acc_calibration() errors on duplicate tag_ids within manufacturer", {
-  expect_error(
-    as_acc_calibration(
-      data.frame(tag_id = c(1000, 1000), manufacturer = "eobs")
-    ),
-    "Duplicate"
-  )  
-  expect_silent(
-    as_acc_calibration(
-      data.frame(tag_id = c(1000, 1000), manufacturer = c("eobs", "ornitela"))
+test_that("as_acc_calibration() does 1:1 row-to-calibration conversion", {
+  tf <- as_acc_calibration(
+    data.frame(
+      tag_id = c(1000, 1000), 
+      manufacturer = "eobs",
+      offset = c(2048, 2100), 
+      slope = 0.001
     )
   )
-})
-
-test_that("as_acc_calibration() NA tag_ids not flagged as duplicates", {
-  df <- data.frame(tag_id = c(NA, NA), manufacturer = "ornitela")
-  tf <- as_acc_calibration(df)
+  
   expect_length(tf, 2)
+  expect_identical(
+    tf[[1]](b),
+    acc_calibration("eobs", tag_id = 1000, offset = 2048, slope = 0.001)[[1]](b)
+  )
+  expect_identical(
+    tf[[2]](b),
+    acc_calibration("eobs", tag_id = 1000, offset = 2100, slope = 0.001)[[1]](b)
+  )
 })
 
 # --- eobs_specs() -------------------------------------------------------------

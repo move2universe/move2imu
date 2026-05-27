@@ -137,8 +137,8 @@ acc_calibration <- function(manufacturer = NULL,
 #'   arguments in `acc_calibration()`
 #' @rdname acc_calibration
 as_acc_calibration <- function(df) {
-  df <- validate_calibration_df(df)
-  
+  assertthat::assert_that(is.data.frame(df))
+
   args <- list(
     tag_id = df[["tag_id"]],
     manufacturer = df[["manufacturer"]],
@@ -380,104 +380,6 @@ resolve_axis_col <- function(df, col, axis) {
   } else {
     v_axis %||% v_scalar
   }
-}
-
-validate_calibration_df <- function(df, call = rlang::caller_env()) {
-  assertthat::assert_that(is.data.frame(df))
-  
-  expected_cols <- c(
-    "manufacturer",
-    "tag_id",
-    "sensitivity",
-    "offset",
-    "offset_x",
-    "offset_y",
-    "offset_z",
-    "slope",
-    "slope_x",
-    "slope_y",
-    "slope_z",
-    "orientation", 
-    "orientation_x",
-    "orientation_y",
-    "orientation_z",
-    "units",
-    "axes"
-  )
-  
-  if (any(!colnames(df) %in% expected_cols)) {
-    rlang::warn(
-      paste0(
-        "Ignoring unrecognized colnames in `df`: \"",
-        paste0(setdiff(colnames(df), expected_cols), collapse = "\", \""),
-        "\""
-      ),
-      call = call
-    )
-  }
-  
-  # No duplicate tag_ids within the same manufacturer
-  if ("tag_id" %in% colnames(df) && "manufacturer" %in% colnames(df)) {
-    complete <- !is.na(df[["tag_id"]]) & !is.na(df[["manufacturer"]])
-    keys <- paste(df[["manufacturer"]][complete], df[["tag_id"]][complete], sep = ":")
-    dupes <- keys[duplicated(keys)]
-    
-    if (length(dupes) > 0) {
-      rlang::abort(
-        c(
-          "Duplicate `tag_id` values within the same manufacturer in `df`",
-          i = paste0("Duplicated: ", paste0(unique(dupes), collapse = ", "))
-        ),
-        call = call
-      )
-    }
-  }
-  
-  # Validate manufacturer values
-  valid_manufacturers <- c("eobs", "ornitela")
-  mfr <- df[["manufacturer"]] %||% rep(NA_character_, nrow(df))
-  has_manufacturer <- !is.na(mfr)
-  
-  invalid <- mfr[has_manufacturer & !mfr %in% valid_manufacturers]
-  
-  if (length(invalid) > 0) {
-    rlang::abort(
-      c(
-        paste0(
-          "Unrecognized manufacturer in `df`: ",
-          paste0("\"", unique(invalid), "\"", collapse = ", ")
-        ),
-        i = "If provided, `manufacturer` must be \"eobs\" or \"ornitela\""
-      ),
-      call = call
-    )
-  }
-  
-  is_eobs <- has_manufacturer & mfr == "eobs"
-  
-  # Validate eobs rows have non-NA tag_id
-  if (any(is_eobs & is.na(df[["tag_id"]]))) {
-    rlang::abort(
-      "All rows in `df` with `manufacturer = \"eobs\"` must have an associated `tag_id`",
-      call = call
-    )
-  }
-  
-  # Validate custom rows have at least one offset and one slope value.
-  # Not all axes need to be specified — bursts may not have all axes, and
-  # missing per-axis values are handled at calibration time.
-  col_na <- function(col) is.na(df[[col]] %||% NA)
-  has_no_offset <- col_na("offset") & col_na("offset_x") & col_na("offset_y") & col_na("offset_z")
-  has_no_slope <- col_na("slope") & col_na("slope_x") & col_na("slope_y") & col_na("slope_z")
-  
-  if (any(!has_manufacturer & (has_no_offset | has_no_slope))) {
-    rlang::abort(
-      "Tags without a manufacturer must have offset and slope values.",
-      call = call
-    )
-  }
-  
-  df
 }
 
 GRAV_CONST <- 9.80665
