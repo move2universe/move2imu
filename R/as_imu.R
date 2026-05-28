@@ -191,7 +191,7 @@ as_imu_move2_long <- function(x,
 
 # Resolve user-supplied `colset` into a list of validated IMU colsets.
 # Falls back to colsets detected in `x` when `colset` is NULL.
-parse_colsets <- function(x, colset, sensor) {
+parse_colsets <- function(x, colset, sensor, quiet = FALSE) {
   if (!rlang::is_null(colset)) {
     if (is_imu_colset(colset)) {
       colsets <- colset
@@ -206,7 +206,7 @@ parse_colsets <- function(x, colset, sensor) {
   } else {
     colsets <- active_colsets_(x, sensor = sensor)
 
-    if (length(colsets) > 1) {
+    if (!quiet && length(colsets) > 1) {
       rlang::warn(paste0(
         "Detected multiple valid ", sensor, " column sets."
       ))

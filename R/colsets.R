@@ -564,6 +564,7 @@ abort_missing_colset <- function(sensor, call = rlang::caller_env()) {
         "Use `movebank_", sensor, "_colsets()` to see supported ", sensor, " column sets."
       )
     ),
+    class = "move2imu_no_active_colset",
     call = call
   )
 }

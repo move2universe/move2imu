@@ -24,6 +24,7 @@ reference:
   - imu_colset
   - active_colsets
   - movebank_colsets
+  - has_imu
 
 - title: Combining and splitting
   desc: Join continuous bursts together or split an IMU vector into pieces.
