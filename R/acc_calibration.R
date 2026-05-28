@@ -84,6 +84,12 @@
 #' 
 #' # Apply calibration with transform_imu()
 #' transform_imu(acc_example(), cal)
+#'
+#' # Convert a data.frame of calibration specs into a calibration vector
+#' # (Useful if specifications are stored as metadata alongside acc bursts)
+#' cal <- as_acc_calibration(
+#'   data.frame(manufacturer = "eobs", tag_id = c(1000, 4000))
+#' )
 acc_calibration <- function(manufacturer = NULL,
                             tag_id = NULL,
                             sensitivity = NULL,
@@ -135,6 +141,9 @@ acc_calibration <- function(manufacturer = NULL,
 
 #' @param df data.frame containing columns corresponding to the available
 #'   arguments in `acc_calibration()`
+#' 
+#' @export
+#'
 #' @rdname acc_calibration
 as_acc_calibration <- function(df) {
   assertthat::assert_that(is.data.frame(df))

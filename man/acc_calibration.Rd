@@ -120,6 +120,12 @@ cal <- acc_calibration(
 
 # Apply calibration with transform_imu()
 transform_imu(acc_example(), cal)
+
+# Convert a data.frame of calibration specs into a calibration vector
+# (Useful if specifications are stored as metadata alongside acc bursts)
+cal <- as_acc_calibration(
+  data.frame(manufacturer = "eobs", tag_id = c(1000, 4000))
+)
 }
 \seealso{
 \code{\link[=transform_imu]{transform_imu()}} to apply calibration functions to the entries

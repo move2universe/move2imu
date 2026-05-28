@@ -40,12 +40,14 @@ n_axis <- function(x) {
 #' @importFrom stats na.omit
 #' @rdname explore-functions
 is_uniform<-function(x){
-  # TODO check units are same?
+  unit_str <- function(b) {
+    if (inherits(b, "units")) units::deparse_unit(b) else NA_character_
+  }
   all(duplicated(na.omit(n_samples(x)))[-1])&&
     all(duplicated(na.omit(n_axis(x)))[-1]) &&
     all(duplicated(na.omit(freqs(x)))[-1]) &&
     all(duplicated(purrr::map(bursts(x[!is.na(x)]), colnames))[-1]) &&
-    all(duplicated(purrr::map_lgl(bursts(x[!is.na(x)]), inherits, "units"))[-1])
+    all(duplicated(purrr::map_chr(bursts(x[!is.na(x)]), unit_str))[-1])
 }
 
 #' @export

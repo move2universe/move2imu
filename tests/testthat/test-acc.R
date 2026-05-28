@@ -44,7 +44,34 @@ test_that("properties are correctly calculated",{
   expect_identical(n_samples(x2), c(NA,30L,20L))
   expect_false(is_uniform(x2))
   expect_true(is_uniform(x2[c(1,3)]))
-  
+
+})
+
+test_that("is_uniform checks burst units strictly", {
+  burst_unit <- function(vals, unit) {
+    new_burst_list(
+      list(units::set_units(cbind(X = vals), unit, mode = "standard")),
+      "acc"
+    )
+  }
+
+  same_units <- acc(
+    c(burst_unit(1:5, "m/s^2"), burst_unit(6:10, "m/s^2")),
+    frequency = units::as_units(c(10, 10), "Hz")
+  )
+  expect_true(is_uniform(same_units))
+
+  mixed_units <- acc(
+    c(burst_unit(1:5, "m/s^2"), burst_unit(6:10, "g")),
+    frequency = units::as_units(c(10, 10), "Hz")
+  )
+  expect_false(is_uniform(mixed_units))
+
+  mixed_class <- acc(
+    c(burst_unit(1:5, "m/s^2"), acc_burst_example(6:10)),
+    frequency = units::as_units(c(10, 10), "Hz")
+  )
+  expect_false(is_uniform(mixed_class))
 })
 
 test_that("constructor replaces metadata with NA when bursts are missing", {
