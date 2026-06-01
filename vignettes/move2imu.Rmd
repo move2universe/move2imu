@@ -255,7 +255,7 @@ You can also pass a single burst (or a subset) for a focused view —
 here, the wing beats are clearly visible on the Z axis:
 
 ```{r plot_one, fig.width=6}
-plot_time(a[482])
+plot_time(a[422])
 ```
 
 <!-- ## A single burst in 3D -->

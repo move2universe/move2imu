@@ -11,6 +11,7 @@ d2 <- as.Date("2021-03-03")
 gulls <- move2::movebank_download_study(
   985143423,
   sensor_type_id = c("gps", "acceleration"),
+  individual_local_identifier = 5508292,
   timestamp_start = as.POSIXct(d2),
   timestamp_end = as.POSIXct(d2 + 1)
 )

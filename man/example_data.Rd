@@ -46,8 +46,10 @@ Acceleration data are provided in long format from
 trackers developed by the University of Amsterdam Bird Tracking
 System (\href{http://www.uva-bits.nl}{UvA-BiTS}).
 
-\emph{Format:} A \code{move2} with 5 tracks and 1499 features lasting from
-2021-03-03 00:00:00 UTC to 2021-03-04 00:00:00 UTC.
+Only individual 5508292 is included.
+
+\emph{Format:} A \code{move2} with 1 track and 1239 features lasting from
+2021-03-03 00:57:06 UTC to 2021-03-03 23:44:55 UTC.
 
 \emph{Source:} \url{https://www.movebank.org/cms/webapp?gwt_fragment=page=studies,path=study985143423}
 }

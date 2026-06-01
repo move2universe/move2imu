@@ -45,13 +45,6 @@ We'll use the move2imu gulls data for this demo:
 gul <- gulls()
 ```
 
-As it turns out, only one gull has acceleration data in this case, so we'll
-filter our data for simplicity:
-
-```{r}
-gul <- gul[mt_track_id(gul) == "5508292", ]
-```
-
 And then extract our acceleration bursts:
 
 ```{r}
