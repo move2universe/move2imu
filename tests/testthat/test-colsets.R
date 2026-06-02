@@ -35,7 +35,7 @@ test_that("Correctly subset active colsets for long-format acc cols", {
   expect_identical(
     active_acc_colsets(gulls_sub),
     list(raw_xyz = new_imu_colset(
-      c("acceleration_raw_x", "acceleration_raw_z"),
+      c(X = "acceleration_raw_x", Z = "acceleration_raw_z"),
       type = "long"
     ))
   )
@@ -74,7 +74,7 @@ test_that("Use data values to determine active colset if multiple present", {
   colsets <- active_acc_colsets(m)
   expect_identical(
     colsets$raw_xyz,
-    new_imu_colset("acceleration_raw_z", type = "long")
+    new_imu_colset(c(Z = "acceleration_raw_z"), type = "long")
   )
   
   # If all cols in a set are missing, then the next colset will be used

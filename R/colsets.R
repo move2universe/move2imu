@@ -91,13 +91,13 @@ imu_colset <- function(x = NULL,
 #' @export
 print.imu_colset <- function(x, ...) {
   type <- attr(x, "type")
-  
+
   cat(paste0(
     type, "-format [",
-    paste0(names(x), "=", unclass(x), collapse = ", "),
+    paste0(names(x), "=\"", unclass(x), "\"", collapse = ", "),
     "]\n"
   ))
-  
+
   invisible(x)
 }
 
@@ -238,6 +238,7 @@ active_gyro_colsets <- function(x) {
 # Apply active colset logic in a move2 for a given IMU class. Active colsets
 # are fully present (if burst-format) and contain data.
 active_colsets_ <- function(x, sensor) {
+  force(x)
   config <- switch(
     sensor,
     acc = acc_colset_config(),
@@ -257,19 +258,19 @@ active_colsets_ <- function(x, sensor) {
       poss_colsets,
       function(colset_config) {
         colset <- colset_config$cols
-        cols_in_x <- intersect(colset, colnames(x))
+        cols_in_x <- colset[colset %in% colnames(x)]
         cols_present <- cols_in_x[!cols_empty(x, cols_in_x)]
-        
-        if (!identical(cols_present, as.character(colset))) {
+
+        if (!setequal(cols_present, colset)) {
           if (attr(colset, "type") == "burst") {
             # Remove entire colset for types that require all cols present
             return(NULL)
           }
-          
+
           # Rebuild long-format colset with only present columns
           return(new_imu_colset(cols = cols_present, type = attr(colset, "type")))
         }
-        
+
         colset
       }
     )
