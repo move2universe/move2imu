@@ -7,7 +7,7 @@
 set_imu_units(x, value, ...)
 }
 \arguments{
-\item{x}{An \code{acc}, \code{mag}, or \code{gyro} vector.}
+\item{x}{An IMU vector (\code{acc}, \code{mag}, or \code{gyro})}
 
 \item{value}{Character specifying the target units (e.g., \code{"m/s^2"}). For
 units in terms of gravitational acceleration, use \code{"standard_free_fall"}.}
@@ -40,7 +40,7 @@ set_imu_units(a, "m/s^2")
 a_ms2 <- set_imu_units(a, "m/s^2")
 set_imu_units(a_ms2, "standard_free_fall")
 
-# Dimensionally incompatible units error
+# Units must be appropriate for the sensor type of the input
 try(set_imu_units(a, "kg"))
 }
 \seealso{

@@ -1,12 +1,48 @@
+#' Check sensor type of an IMU vector
+#' 
+#' Determine if an IMU vector inherits from a particular class. These functions
+#' return `TRUE` for `imu` vectors of the given subclass and `FALSE` for all
+#' other objects.
+#'
+#' @param x An object
+#' 
+#' @return `TRUE` if the object inherits from the indicated subclass. `FALSE`
+#'   otherwise.
+#' 
+#' @name imu-predicates
+#' 
+#' @examples
+#' x <- acc(
+#'   bursts = list(cbind(X = 1:5, Y = 1:5, Z = 1:5)),
+#'   frequency = units::as_units(20, "Hz")
+#' )
+#' 
+#' is_acc(x)
+#'
+#' is_mag(x)
+#'
+#' is_gyro(x)
+NULL
 
-#' Functions to explore an IMU vector
+#' Burst properties of an IMU vector
 #'
-#' @param x An IMU vector (e.g. `acc`, `mag`, `gyro`).
-#' @param value Replacement value.
+#' @description
+#' These functions describe characteristics of the bursts in an IMU vector.
+#' 
+#' - `n_axis()` — number of axes (columns) in each burst
+#' - `n_samples()` — number of samples (rows) in each burst.
+#' - `burst_dur()` — duration of each burst, in seconds.
+#' - `imu_units()` — units for each burst's data values
+#' - `is_uniform()` — logical indicating whether every burst in a vector shares
+#'   a consistent structure (axes, frequency, sample count, and units)
 #'
-#' @rdname explore-functions
-#' @aliases explore-functions
-#' @export
+#' @param x An IMU vector (`acc`, `mag`, or `gyro`)
+#' 
+#' @return `is_uniform()` returns a length-1 logical. All others return a
+#'   vector of `length(x)`
+#' 
+#' @name imu-properties
+#' 
 #' @examples
 #' x <- acc(
 #'   bursts = list(
@@ -15,21 +51,57 @@
 #'   ),
 #'   frequency = units::as_units(c(20, 30), "Hz")
 #' )
-#' x <- c(x, NA)
+#' 
+#' # Number of axes for which data was collected
 #' n_axis(x)
+#' 
+#' # Number of samples in the burst
 #' n_samples(x)
+#' 
+#' # Time duration of the burst
+#' burst_dur(x)
+#' 
+#' # Units for the burst data
+#' imu_units(x)
+#' 
+#' # Check if all bursts have uniform structure
 #' is_uniform(x)
-#' length(x)
-#' is.na(x)
-#' na.omit(x)
-#'  y <- acc(
+NULL
+
+#' Access and modify fields of an IMU vector
+#'
+#' Access or update the underlying burst matrices, sampling frequencies, or 
+#' start times for each burst in an IMU vector. 
+#'
+#' @param x An IMU vector (`acc`, `mag`, or `gyro`)
+#' @param value Replacement value.
+#' 
+#' @return For accessors, the corresponding field of `x`. For setters, `x` 
+#'   with the updated value in the indicated field.
+#' 
+#' @name imu-fields
+#' 
+#' @examples
+#' x <- acc(
 #'   bursts = list(
-#'     cbind(X = sin(1:20 / 10), Y = cos(1:20 / 10)),
-#'     cbind(X = sin(1:20 / 10 + 2), Y = cos(1:20 / 10 + 3))
+#'     cbind(X = sin(1:20 / 10), Y = cos(1:20 / 10), Z = 1)
 #'   ),
-#'   frequency = units::as_units(c(20, 20), "Hz")
+#'   frequency = units::as_units(20, "Hz"),
+#'   start = as.POSIXct("2020-01-01 00:00:00", tz = "UTC")
 #' )
-#' is_uniform(y)
+#' 
+#' bursts(x)
+#' 
+#' freqs(x)
+#' 
+#' starts(x)
+#' 
+#' freqs(x) <- units::as_units(25, "Hz")
+#' freqs(x)
+NULL
+
+#' @export
+#' @rdname imu-properties
 n_axis <- function(x) {
   r <- rep(NA_integer_, vec_size(x))
   r[!is.na(x)] <- purrr::map_int(bursts(x[!is.na(x)]), ncol)
@@ -37,13 +109,36 @@ n_axis <- function(x) {
 }
 
 #' @export
+#' @rdname imu-properties
+n_samples <- function(x) {
+  purrr::map_int(bursts(x), function(b) nrow(b) %||% NA_integer_)
+}
+
+#' @export
+#' @rdname imu-properties
+burst_dur <- function(x) {
+  units::set_units(n_samples(x) / freqs(x), "s")
+}
+
+#' @export
+#' @rdname imu-properties
+imu_units <- function(x) {
+  purrr::map_chr(
+    bursts(x),
+    function(b) {
+      tryCatch(as.character(units(b)), error = function(cnd) NA_character_)
+    }
+  )
+}
+
+#' @export
 #' @importFrom stats na.omit
-#' @rdname explore-functions
-is_uniform<-function(x){
+#' @rdname imu-properties
+is_uniform <- function(x) {
   unit_str <- function(b) {
     if (inherits(b, "units")) units::deparse_unit(b) else NA_character_
   }
-  all(duplicated(na.omit(n_samples(x)))[-1])&&
+  all(duplicated(na.omit(n_samples(x)))[-1]) &&
     all(duplicated(na.omit(n_axis(x)))[-1]) &&
     all(duplicated(na.omit(freqs(x)))[-1]) &&
     all(duplicated(purrr::map(bursts(x[!is.na(x)]), colnames))[-1]) &&
@@ -51,12 +146,12 @@ is_uniform<-function(x){
 }
 
 #' @export
-#' @rdname explore-functions
+#' @rdname imu-fields
 bursts <- function(x) {
   field(x, "bursts")
 }
 
-#' @rdname explore-functions
+#' @rdname imu-fields
 #' @export
 `bursts<-` <- function(x, value) {
   field(x, "bursts") <- value
@@ -64,12 +159,12 @@ bursts <- function(x) {
 }
 
 #' @export
-#' @rdname explore-functions
+#' @rdname imu-fields
 freqs <- function(x) {
   field(x, "frequency")
 }
 
-#' @rdname explore-functions
+#' @rdname imu-fields
 #' @export
 `freqs<-` <- function(x, value) {
   field(x, "frequency") <- value
@@ -77,39 +172,16 @@ freqs <- function(x) {
 }
 
 #' @export
-#' @rdname explore-functions
+#' @rdname imu-fields
 starts <- function(x) {
   field(x, "start")
 }
 
-#' @rdname explore-functions
+#' @rdname imu-fields
 #' @export
 `starts<-` <- function(x, value) {
   field(x, "start") <- value
   x
-}
-
-#' @export
-#' @rdname explore-functions
-burst_dur <- function(x) {
-  units::set_units(n_samples(x) / freqs(x), "s")
-}
-
-#' @export
-#' @rdname explore-functions
-n_samples <- function(x) {
-  purrr::map_int(bursts(x), function(b) nrow(b) %||% NA_integer_)
-}
-
-#' @export
-#' @rdname explore-functions
-imu_units <- function(x) {
-  purrr::map_chr(
-    bursts(x), 
-    function(b) {
-      tryCatch(as.character(units(b)), error = function(cnd) NA_character_)
-    }
-  )
 }
 
 # TODO finish function and export?
@@ -118,4 +190,3 @@ static_acc <- function(x) {
   # TODO fix NA
   lapply(bursts(x)[!is.na(x)], colMeans)
 }
-

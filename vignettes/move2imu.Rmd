@@ -123,11 +123,12 @@ a
 
 Of course, in most cases you won't be building bursts from scratch, but will
 load these data from external sources. move2imu has been designed to work in
-tandem with [move2]() and [Movebank](https://www.movebank.org)
-and will automatically parse IMU data stored in one of Movebank's documented
-storage formats.
+tandem with [move2](https://bartk.gitlab.io/move2/) and 
+[Movebank](https://www.movebank.org) and will automatically parse IMU data 
+stored in one of Movebank's standard storage formats 
+(see `movebank_acc_colsets()`).
 
-For example, to extract acceleration data stored in a `move2` object:
+For example, we'll load a sample dataset of albatross tracks stored as a `move2`:
 
 ```{r}
 # Load sample Movebank data into a `move2`
@@ -136,14 +137,17 @@ alb <- albatrosses()
 alb
 ```
 
+Then, to extract the acceleration data from this object, we simply call `as_acc()`:
+
 ```{r}
 a <- as_acc(alb)
 
 a
 ```
 
-`as_acc()` automatically identified the relevant acceleration data in the
-albatross data and converted them into bursts.
+`as_acc()` automatically identifies the relevant acceleration data in the
+albatross data and converts them into bursts with associated frequencies and
+start timestamps.
 
 By default, rows in the `move2` with no acceleration data receive 
 missing (`NA`) `acc` bursts. This makes it easy to keep acceleration 
@@ -171,7 +175,8 @@ Even though the albatross and gulls data sources store their acceleration data
 differently, because each adheres to the Movebank data model, `as_acc()`
 seamlessly parses the data into a set of `acc` burst matrices.
 
-For more details about the ways Movebank stores acceleration data, see `movebank_acc_colsets()`.
+For more details about the ways Movebank stores acceleration data, see 
+`movebank_acc_colsets()`.
 
 ### Fine-tuning data import
 
@@ -190,7 +195,7 @@ a <- as_acc(x, colset = imu_colset(x = "acc_x", y = "acc_y"))
 
 For a quick summary of an IMU vector, use `summary()`. This shows the
 range of several key burst properties as well as the quantiles of the
-inter-burst intervals and the actual recorded burst values.
+inter-burst time intervals and the actual recorded burst values.
 
 ```{r}
 a <- as_acc(albatrosses())
@@ -251,6 +256,7 @@ a <- as_acc(gulls())
 
 plot_time(a)
 ```
+
 You can also pass a single burst (or a subset) for a focused view —
 here, the wing beats are clearly visible on the Z axis:
 

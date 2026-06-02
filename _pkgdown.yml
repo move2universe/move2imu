@@ -8,7 +8,9 @@ reference:
     Build and explore IMU data vectors
   contents:
   - imu_constructors
-  - explore-functions
+  - imu-predicates
+  - imu-properties
+  - imu-fields
   - imu_summary
   - plot_time
 

@@ -4,7 +4,7 @@
 \alias{as_gyro}
 \alias{as_gyro.default}
 \alias{as_gyro.move2}
-\title{Convert to gyro}
+\title{Convert an object to a \code{gyro} vector}
 \usage{
 as_gyro(x, ...)
 
@@ -57,12 +57,18 @@ bursts will be stored at the index location corresponding to the start time
 of the burst.}
 }
 \description{
-In many cases the \code{as_gyro} function will directly create a gyroscope
-vector from input data
+Extract \code{gyro} data from a \code{move2} or convert an object to a \code{gyro} vector.
+
+For a \code{move2}, \code{gyro} data are extracted from the object's
+\code{\link[=active_gyro_colsets]{active_gyro_colsets()}}.
 }
 \details{
 The resulting vector will be as long as the input. This means it
 can, for example, be added as a column to a \code{data.frame}. For some tags
 this means \code{NA} values are inserted when one burst is stored over multiple
 rows of a \code{data.frame}.
+}
+\seealso{
+\code{\link[=movebank_gyro_colsets]{movebank_gyro_colsets()}} for supported gyroscope column sets
+in Movebank.
 }

@@ -7,7 +7,7 @@
 peak_frequency(x, resolution = NA)
 }
 \arguments{
-\item{x}{An IMU vector (e.g. \code{acc}, \code{mag}, \code{gyro}).}
+\item{x}{An IMU vector (\code{acc}, \code{mag}, or \code{gyro})}
 
 \item{resolution}{A scalar with the \link[units:units]{units} Hertz}
 }
@@ -18,9 +18,10 @@ returns a list with the same length as \code{x} with the peak frequency per axis
 Calculate the peak frequency per axis for bursts
 }
 \details{
-To increase the resolution of the result zero padding can be used. This can be controlled using the resolution
-argument. Note that increasing resolution without increasing the number of samples in a burst has a
-limited ability to get closer to the true frequency.
+Use the \code{resolution} argument to increase the resolution of the result by
+padding the sample vector with zeros. Note that increasing resolution without
+increasing the number of samples in a burst has only a limited ability to
+more closely determine the true frequency.
 }
 \examples{
 a <- acc(

@@ -31,5 +31,6 @@ dynamic acceleration with:
 a <- acc_example()
 
 vedba(a)
+
 odba(a)
 }

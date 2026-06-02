@@ -4,7 +4,7 @@
 \alias{as_mag}
 \alias{as_mag.default}
 \alias{as_mag.move2}
-\title{Convert to mag}
+\title{Convert an object to a \code{mag} vector}
 \usage{
 as_mag(x, ...)
 
@@ -57,12 +57,18 @@ bursts will be stored at the index location corresponding to the start time
 of the burst.}
 }
 \description{
-In many cases the \code{as_mag} function will directly create a magnetometer
-vector from input data
+Extract \code{mag} data from a \code{move2} or convert an object to a \code{mag} vector.
+
+For a \code{move2}, \code{mag} data are extracted from the object's
+\code{\link[=active_mag_colsets]{active_mag_colsets()}}.
 }
 \details{
 The resulting vector will be as long as the input. This means it
 can, for example, be added as a column to a \code{data.frame}. For some tags
 this means \code{NA} values are inserted when one burst is stored over multiple
 rows of a \code{data.frame}.
+}
+\seealso{
+\code{\link[=movebank_mag_colsets]{movebank_mag_colsets()}} for supported magnetometer column sets
+in Movebank.
 }

@@ -25,12 +25,12 @@ knitr::opts_chunk$set(
 move2imu aims to standardize the storage and analysis of biologging 
 inertial measurement unit (IMU) data, including accelerometer, magnetometer,
 and gyroscope records. The package integrates with [move2](https://bartk.gitlab.io/move2/), enabling
-standardized analysis workflows and allowing IMU data to be analyzed alongside
+standardized data processing workflows and allowing IMU data to be analyzed alongside
 other observations, including location records.
 
 ## Installation
 
-`move2imu` does not yet exist on CRAN. Instead, you can install the development
+move2imu does not yet exist on CRAN. Instead, you can install the development
 version directly:
 
 ```{r, eval = FALSE}
@@ -53,15 +53,7 @@ acceleration <- as_acc(gulls())
 acceleration <- acceleration[!is.na(acceleration)]
 
 head(acceleration)
-```
 
-<!-- ```{r plot_time, eval=FALSE} -->
-<!-- plot_time(acceleration[21]) -->
-<!-- ``` -->
-
-<!-- ![](man/figures/plot_time_readme_screenshot.png) -->
-
-```{r}
 # Compute values on acceleration bursts
 vedba(acceleration)
 ```

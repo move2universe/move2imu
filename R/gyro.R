@@ -3,6 +3,7 @@
 # predicate, and S3 dispatch wrappers.
 
 #' @rdname imu_constructors
+#' @order 3
 #' @export
 gyro <- function(bursts = list(),
                  frequency = units::set_units(double(), "Hz"),
@@ -11,7 +12,8 @@ gyro <- function(bursts = list(),
 }
 
 #' @export
-#' @rdname explore-functions
+#' @rdname imu-predicates
+#' @order 3
 is_gyro <- function(x) {
   inherits(x, "gyro")
 }

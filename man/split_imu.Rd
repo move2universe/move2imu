@@ -7,7 +7,7 @@
 split_imu(x, interval)
 }
 \arguments{
-\item{x}{An IMU vector (e.g. \code{acc}, \code{mag}, \code{gyro}).}
+\item{x}{An IMU vector (\code{acc}, \code{mag}, or \code{gyro})}
 
 \item{interval}{Numeric or units object defining the time intervals at which
 \code{x} will be split. If no units are provided, the interval is assumed to
@@ -39,8 +39,11 @@ flat
 # Start times are updated to match the start of each split component
 starts(flat)
 
-# Use merge_imu() on flat
-identical(merge_imu(flat, drop = TRUE), a)
+# As the bursts immediately follow one another, they can be remerged:
+m <- merge_imu(flat, drop = TRUE)
+m
+
+identical(m, a)
 
 \dontrun{
 # In a dataframe, split and unnest to retain index matching

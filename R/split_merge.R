@@ -153,8 +153,11 @@ merge_imu <- function(x, ids = NULL, drop = FALSE) {
 #' # Start times are updated to match the start of each split component
 #' starts(flat)
 #'
-#' # Use merge_imu() on flat
-#' identical(merge_imu(flat, drop = TRUE), a)
+#' # As the bursts immediately follow one another, they can be remerged:
+#' m <- merge_imu(flat, drop = TRUE)
+#' m
+#' 
+#' identical(m, a)
 #'
 #' \dontrun{
 #' # In a dataframe, split and unnest to retain index matching

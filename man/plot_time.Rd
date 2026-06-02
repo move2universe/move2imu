@@ -7,7 +7,7 @@
 plot_time(x, ylab = "Value")
 }
 \arguments{
-\item{x}{An IMU vector (e.g. \code{acc}, \code{mag}, \code{gyro}).}
+\item{x}{An IMU vector (\code{acc}, \code{mag}, or \code{gyro})}
 
 \item{ylab}{A character with the y axis label}
 }

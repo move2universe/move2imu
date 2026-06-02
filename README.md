@@ -17,13 +17,13 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 move2imu aims to standardize the storage and analysis of biologging
 inertial measurement unit (IMU) data, including accelerometer,
 magnetometer, and gyroscope records. The package integrates with
-[move2](https://bartk.gitlab.io/move2/), enabling standardized analysis
-workflows and allowing IMU data to be analyzed alongside other
-observations, including location records.
+[move2](https://bartk.gitlab.io/move2/), enabling standardized data
+processing workflows and allowing IMU data to be analyzed alongside
+other observations, including location records.
 
 ## Installation
 
-`move2imu` does not yet exist on CRAN. Instead, you can install the
+move2imu does not yet exist on CRAN. Instead, you can install the
 development version directly:
 
 ``` r
@@ -50,17 +50,7 @@ head(acceleration)
 #> [1] (-97.75 323.55 1963.95) (-95 267.65 1914.25)    (7.1 301.85 1990.9)    
 #> [4] (77.65 372.95 1824.75)  (46.9 349.8 1989)       (-29.15 251.05 2046.6) 
 #> # frequency: 20 [Hz]
-```
 
-<!-- ```{r plot_time, eval=FALSE} -->
-
-<!-- plot_time(acceleration[21]) -->
-
-<!-- ``` -->
-
-<!-- ![](man/figures/plot_time_readme_screenshot.png) -->
-
-``` r
 # Compute values on acceleration bursts
 vedba(acceleration)
 #>  [1]  184.32546  217.03563  169.67963  159.70308  139.13675   93.78337

@@ -1,7 +1,10 @@
-#' Convert to acc
+#' Convert an object to an `acc` vector
 #'
-#' In many cases the `as_acc` function will directly create an acceleration
-#' vector from input data
+#' @description
+#' Extract `acc` data from a `move2` or convert an object to an `acc` vector.
+#' 
+#' For a `move2`, `acc` data are extracted from the object's 
+#' [active_acc_colsets()].
 #'
 #' @param x A `move2` containing acceleration data as collected by EOBS,
 #'   Ornitela, or similar tracking devices. Most of the time this will be
@@ -40,7 +43,33 @@
 #' this means `NA` values are inserted when one burst is stored over multiple
 #' rows of a `data.frame`.
 #'
+#' @seealso [movebank_acc_colsets()] for supported acceleration column sets
+#'   in Movebank.
+#'
 #' @export
+#' 
+#' @examplesIf rlang::is_installed("move2")
+#' # Example burst-format data: acc bursts stored in strings in individual rows
+#' alb <- albatrosses()
+#' 
+#' as_acc(alb)
+#'
+#' # Long-format data: bursts are constructed from samples stored across rows
+#' g <- gulls()
+#' 
+#' head(as_acc(g))
+#'
+#' # Specify the columns to extract explicitly with a colset, e.g. to
+#' # pull a single axis from the gulls data:
+#' as_acc(g, colset = imu_colset(x = "acceleration_raw_x")) |> 
+#'   head()
+#' 
+#' # Output is index-matched to the input move2, so the result can be
+#' # easily attached:
+#' g$a <- as_acc(g)
+#'
+#' # To instead drop missing bursts, set `drop = TRUE`:
+#' as_acc(g, drop = TRUE)
 as_acc <- function(x, ...) {
   UseMethod("as_acc")
 }

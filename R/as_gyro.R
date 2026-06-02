@@ -1,7 +1,10 @@
-#' Convert to gyro
+#' Convert an object to a `gyro` vector
 #'
-#' In many cases the `as_gyro` function will directly create a gyroscope
-#' vector from input data
+#' @description
+#' Extract `gyro` data from a `move2` or convert an object to a `gyro` vector.
+#'
+#' For a `move2`, `gyro` data are extracted from the object's
+#' [active_gyro_colsets()].
 #'
 #' @inheritParams as_acc
 #' @param x A `move2` containing gyroscope data. Most of the time this will be
@@ -19,6 +22,9 @@
 #' can, for example, be added as a column to a `data.frame`. For some tags
 #' this means `NA` values are inserted when one burst is stored over multiple
 #' rows of a `data.frame`.
+#'
+#' @seealso [movebank_gyro_colsets()] for supported gyroscope column sets
+#'   in Movebank.
 #'
 #' @export
 as_gyro <- function(x, ...) {

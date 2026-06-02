@@ -7,10 +7,10 @@
 #' @returns returns a list with the same length as `x` with the peak frequency per axis
 #'
 #' @details
-#'
-#' To increase the resolution of the result zero padding can be used. This can be controlled using the resolution
-#' argument. Note that increasing resolution without increasing the number of samples in a burst has a
-#' limited ability to get closer to the true frequency.
+#' Use the `resolution` argument to increase the resolution of the result by
+#' padding the sample vector with zeros. Note that increasing resolution without
+#' increasing the number of samples in a burst has only a limited ability to
+#' more closely determine the true frequency.
 #'
 #' @export
 #'

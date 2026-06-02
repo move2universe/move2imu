@@ -28,10 +28,21 @@ single \code{move2} may contain multiple active column sets for one IMU sensor.
 \item \code{active_mag_colsets()} — column sets used by \code{\link[=as_mag]{as_mag()}}.
 \item \code{active_gyro_colsets()} — column sets used by \code{\link[=as_gyro]{as_gyro()}}.
 }
+
+If no active colsets are found, you can use \code{\link[=imu_colset]{imu_colset()}} to specify
+a custom set of columns that contain IMU data.
 }
 \details{
-If no active colsets are found, use \code{\link[=imu_colset]{imu_colset()}} to specify the columns
-that contain IMU data.
+\code{move2} objects store IMU data in two ways:
+\itemize{
+\item \strong{Long-format} columns store one measurement (possibly for multiple axes)
+in a single row.
+\item \strong{Burst-format} columns store a burst of measurements as a space-delimited
+string. This string must be segmented into axis-specific measurements using
+an associated column that indicates the axes present for the bursted data.
+A further column provides the sampling frequency of the burst. All three
+of these columns must be present to form a valid burst-format column set.
+}
 }
 \examples{
 active_acc_colsets(albatrosses())

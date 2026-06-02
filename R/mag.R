@@ -1,4 +1,5 @@
 #' @rdname imu_constructors
+#' @order 2
 #' @export
 mag <- function(bursts = list(),
                 frequency = units::set_units(double(), "Hz"),
@@ -7,7 +8,8 @@ mag <- function(bursts = list(),
 }
 
 #' @export
-#' @rdname explore-functions
+#' @rdname imu-predicates
+#' @order 2
 is_mag <- function(x) {
   inherits(x, "mag")
 }

@@ -7,7 +7,7 @@
 merge_imu(x, ids = NULL, drop = FALSE)
 }
 \arguments{
-\item{x}{An IMU vector (e.g. \code{acc}, \code{mag}, \code{gyro}).}
+\item{x}{An IMU vector (\code{acc}, \code{mag}, or \code{gyro})}
 
 \item{ids}{Vector indicating groups to which the elements in \code{x} belong.
 If provided, bursts in \code{x} will not be merged across different values of

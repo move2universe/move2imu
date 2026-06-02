@@ -47,7 +47,7 @@
 #'   manufacturers or generations.
 #' @param units Output units. Either `"m/s^2"` (default) or `"standard_free_fall"`.
 #' @param axes Character string specifying which axes to calibrate, e.g.,
-#'   `"XYZ"` (default), `"XY"`, or `"Z"`. Only these axes will appear in the
+#'   `"XYZ"` (default), `"XY"`, `"Z"`, etc. Only these axes will appear in the
 #'   calibrated output.
 #'
 #' @returns An `acc_calibration` object.
@@ -86,7 +86,8 @@
 #' transform_imu(acc_example(), cal)
 #'
 #' # Convert a data.frame of calibration specs into a calibration vector
-#' # (Useful if specifications are stored as metadata alongside acc bursts)
+#' # (Useful for instance if specifications are stored as metadata alongside
+#' # acc data in a move2)
 #' cal <- as_acc_calibration(
 #'   data.frame(manufacturer = "eobs", tag_id = c(1000, 4000))
 #' )
@@ -139,8 +140,8 @@ acc_calibration <- function(manufacturer = NULL,
   new_imu_calibration(purrr::pmap(args, acc_calibration_), sensor = "acc")
 }
 
-#' @param df data.frame containing columns corresponding to the available
-#'   arguments in `acc_calibration()`
+#' @param df data.frame containing columns with names corresponding to the 
+#'   available arguments in `acc_calibration()`
 #' 
 #' @export
 #'

@@ -27,7 +27,7 @@ and/or \code{"Values"}. By default, all panels are drawn.}
 its input.
 }
 \description{
-Provides a diagnostic overview of an IMU vector (\code{acc}, \code{mag}, \code{gyro}) —
+Provides a diagnostic overview of an IMU vector (\code{acc}, \code{mag}, or \code{gyro}) —
 axis combinations, frequencies, burst sizes, timing, and a coarse quantile
 summary of the burst sample values. Calling \code{\link[=plot]{plot()}} on the result draws a
 multi-panel histogram of those same distributions.

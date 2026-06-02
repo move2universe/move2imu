@@ -22,6 +22,7 @@
 #' a <- acc_example()
 #' 
 #' vedba(a)
+#' 
 #' odba(a)
 vedba <- function(x) {
   if (!is_acc(x)) {

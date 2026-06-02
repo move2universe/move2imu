@@ -44,7 +44,9 @@ of these columns must be present to form a valid burst-format column set.
 }
 \examples{
 movebank_acc_colsets()
+
 movebank_mag_colsets()
+
 movebank_gyro_colsets()
 }
 \seealso{

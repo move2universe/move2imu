@@ -1,7 +1,10 @@
-#' Convert to mag
+#' Convert an object to a `mag` vector
 #'
-#' In many cases the `as_mag` function will directly create a magnetometer
-#' vector from input data
+#' @description
+#' Extract `mag` data from a `move2` or convert an object to a `mag` vector.
+#'
+#' For a `move2`, `mag` data are extracted from the object's
+#' [active_mag_colsets()].
 #'
 #' @inheritParams as_acc
 #' @param x A `move2` containing magnetometer data. Most of the time this will be
@@ -19,6 +22,9 @@
 #' can, for example, be added as a column to a `data.frame`. For some tags
 #' this means `NA` values are inserted when one burst is stored over multiple
 #' rows of a `data.frame`.
+#'
+#' @seealso [movebank_mag_colsets()] for supported magnetometer column sets
+#'   in Movebank.
 #'
 #' @export
 as_mag <- function(x, ...) {

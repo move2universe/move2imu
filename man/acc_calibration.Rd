@@ -61,11 +61,11 @@ manufacturers or generations.}
 \item{units}{Output units. Either \code{"m/s^2"} (default) or \code{"standard_free_fall"}.}
 
 \item{axes}{Character string specifying which axes to calibrate, e.g.,
-\code{"XYZ"} (default), \code{"XY"}, or \code{"Z"}. Only these axes will appear in the
+\code{"XYZ"} (default), \code{"XY"}, \code{"Z"}, etc. Only these axes will appear in the
 calibrated output.}
 
-\item{df}{data.frame containing columns corresponding to the available
-arguments in \code{acc_calibration()}}
+\item{df}{data.frame containing columns with names corresponding to the
+available arguments in \code{acc_calibration()}}
 }
 \value{
 An \code{acc_calibration} object.
@@ -122,7 +122,8 @@ cal <- acc_calibration(
 transform_imu(acc_example(), cal)
 
 # Convert a data.frame of calibration specs into a calibration vector
-# (Useful if specifications are stored as metadata alongside acc bursts)
+# (Useful for instance if specifications are stored as metadata alongside
+# acc data in a move2)
 cal <- as_acc_calibration(
   data.frame(manufacturer = "eobs", tag_id = c(1000, 4000))
 )

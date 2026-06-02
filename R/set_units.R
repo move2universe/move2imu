@@ -12,7 +12,7 @@
 #' To transform raw values to physical units rather than simply attaching or
 #' converting units, use [transform_imu()].
 #'
-#' @param x An `acc`, `mag`, or `gyro` vector.
+#' @param x An IMU vector (`acc`, `mag`, or `gyro`)
 #' @param value Character specifying the target units (e.g., `"m/s^2"`). For
 #'   units in terms of gravitational acceleration, use `"standard_free_fall"`.
 #' @param ... Unused.
@@ -33,7 +33,7 @@
 #' a_ms2 <- set_imu_units(a, "m/s^2")
 #' set_imu_units(a_ms2, "standard_free_fall")
 #'
-#' # Dimensionally incompatible units error
+#' # Units must be appropriate for the sensor type of the input
 #' try(set_imu_units(a, "kg"))
 set_imu_units <- function(x, value, ...) {
   UseMethod("set_imu_units")

@@ -139,7 +139,9 @@ print.imu_colset <- function(x, ...) {
 #'
 #' @examples
 #' movebank_acc_colsets()
+#' 
 #' movebank_mag_colsets()
+#' 
 #' movebank_gyro_colsets()
 NULL
 
@@ -174,10 +176,8 @@ movebank_gyro_colsets <- function() {
 #' - `active_mag_colsets()` — column sets used by [as_mag()].
 #' - `active_gyro_colsets()` — column sets used by [as_gyro()].
 #' 
-#' @details
-#' If no active colsets are found, use [imu_colset()] to specify the columns
-#' that contain IMU data.
-#'
+#' If no active colsets are found, you can use [imu_colset()] to specify 
+#' a custom set of columns that contain IMU data.
 #'
 #' @param x A `move2` object.
 #'

@@ -1,7 +1,7 @@
 #' Summarize and plot an IMU vector
 #'
 #' @description
-#' Provides a diagnostic overview of an IMU vector (`acc`, `mag`, `gyro`) —
+#' Provides a diagnostic overview of an IMU vector (`acc`, `mag`, or `gyro`) —
 #' axis combinations, frequencies, burst sizes, timing, and a coarse quantile
 #' summary of the burst sample values. Calling [plot()] on the result draws a
 #' multi-panel histogram of those same distributions.

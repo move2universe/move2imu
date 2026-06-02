@@ -4,7 +4,7 @@
 \alias{as_acc}
 \alias{as_acc.default}
 \alias{as_acc.move2}
-\title{Convert to acc}
+\title{Convert an object to an \code{acc} vector}
 \usage{
 as_acc(x, ...)
 
@@ -58,12 +58,43 @@ bursts will be stored at the index location corresponding to the start time
 of the burst.}
 }
 \description{
-In many cases the \code{as_acc} function will directly create an acceleration
-vector from input data
+Extract \code{acc} data from a \code{move2} or convert an object to an \code{acc} vector.
+
+For a \code{move2}, \code{acc} data are extracted from the object's
+\code{\link[=active_acc_colsets]{active_acc_colsets()}}.
 }
 \details{
 The resulting vector will be as long as the input. This means it
 can, for example, be added as a column to a \code{data.frame}. For some tags
 this means \code{NA} values are inserted when one burst is stored over multiple
 rows of a \code{data.frame}.
+}
+\examples{
+\dontshow{if (rlang::is_installed("move2")) withAutoprint(\{ # examplesIf}
+# Example burst-format data: acc bursts stored in strings in individual rows
+alb <- albatrosses()
+
+as_acc(alb)
+
+# Long-format data: bursts are constructed from samples stored across rows
+g <- gulls()
+
+head(as_acc(g))
+
+# Specify the columns to extract explicitly with a colset, e.g. to
+# pull a single axis from the gulls data:
+as_acc(g, colset = imu_colset(x = "acceleration_raw_x")) |> 
+  head()
+
+# Output is index-matched to the input move2, so the result can be
+# easily attached:
+g$a <- as_acc(g)
+
+# To instead drop missing bursts, set `drop = TRUE`:
+as_acc(g, drop = TRUE)
+\dontshow{\}) # examplesIf}
+}
+\seealso{
+\code{\link[=movebank_acc_colsets]{movebank_acc_colsets()}} for supported acceleration column sets
+in Movebank.
 }
