@@ -26,7 +26,11 @@ A vector of the same class as \code{x}.
 For a given IMU vector, identify temporally adjacent bursts and
 merge them into a single burst. Bursts that end at the same time as the
 start time of the next burst are considered adjacent. Bursts with different
-frequencies or axes will not be merged.
+frequencies, axes, or burst data units will not be merged.
+
+To merge
+bursts with differing units, convert them to a common
+unit first with \code{\link[=set_imu_units]{set_imu_units()}}.
 }
 \examples{
 a <- acc(

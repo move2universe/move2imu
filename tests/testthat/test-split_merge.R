@@ -196,6 +196,49 @@ test_that("Do not combine bursts with different IDs", {
   expect_equal(n_samples(a2), as.integer(c(90, 30)))
 })
 
+test_that("Do not combine bursts with different units", {
+  # 4 adjacent bursts, same freq/axes. Bursts 1-2 in m/s^2, burst 3 unitless,
+  # burst 4 in g. None of the boundaries should merge.
+  a <- acc(
+    c(
+      acc_burst_example(1:30),
+      acc_burst_example(31:60),
+      acc_burst_example(61:90),
+      acc_burst_example(91:120)
+    ),
+    frequency = units::set_units(10, "Hz"),
+    start = as.POSIXct(c(0, 3, 6, 9), tz = "UTC")
+  )
+
+  a_mixed <- c(
+    set_imu_units(a[1:2], "m/s^2"),
+    a[3],
+    set_imu_units(a[4], "standard_free_fall")
+  )
+
+  # Bursts 1-2 share units and should merge; boundaries 2-3 (units vs
+  # unitless) and 3-4 (unitless vs convertible-but-different units) must not.
+  merged <- merge_imu(a_mixed, drop = TRUE)
+  expect_length(merged, 3)
+  expect_equal(n_samples(merged), as.integer(c(60, 30, 30)))
+  expect_identical(units::deparse_unit(bursts(merged)[[1]]), "m s-2")
+  expect_false(inherits(bursts(merged)[[2]], "units"))
+  expect_identical(units::deparse_unit(bursts(merged)[[3]]), "standard_free_fall")
+
+  # Bursts with the same units should still merge among themselves
+  a_same <- set_imu_units(a, "m/s^2")
+  
+  merged_same <- merge_imu(a_same, drop = TRUE)
+  
+  expect_length(merged_same, 1)
+  expect_equal(n_samples(merged_same), 120L)
+  
+  merged_unitless <- merge_imu(a, drop = TRUE)
+  
+  expect_length(merged_unitless, 1)
+  expect_equal(n_samples(merged_same), n_samples(merged_unitless))
+})
+
 test_that("Don't combine bursts without start time", {
   a <- acc(
     c(acc_burst_example(x = 1:10), acc_burst_example(x = 1:10)),

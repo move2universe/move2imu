@@ -1,9 +1,14 @@
 #' Merge adjacent bursts in an IMU vector
 #'
+#' @description
 #' For a given IMU vector, identify temporally adjacent bursts and
 #' merge them into a single burst. Bursts that end at the same time as the
 #' start time of the next burst are considered adjacent. Bursts with different
-#' frequencies or axes will not be merged.
+#' frequencies, axes, or burst data units will not be merged. 
+#' 
+#' To merge
+#' bursts with differing units, convert them to a common
+#' unit first with [set_imu_units()].
 #'
 #' @inheritParams n_axis
 #' @param ids Vector indicating groups to which the elements in `x` belong.
@@ -69,6 +74,15 @@ merge_imu <- function(x, ids = NULL, drop = FALSE) {
   )
   is_same_n_axis <- (axes[-1] == axes[-nv]) & (n_axis(xv)[-1] == n_axis(xv)[-nv])
 
+  # Collapsible bursts must have identical units (or both be unitless)
+  burst_units <- purrr::map_chr(
+    bursts(xv),
+    function(b) if (inherits(b, "units")) units::deparse_unit(b) else NA_character_
+  )
+  is_same_units <- (burst_units[-1] == burst_units[-nv]) |
+    (is.na(burst_units[-1]) & is.na(burst_units[-nv]))
+  is_same_units[is.na(is_same_units)] <- FALSE
+
   if (rlang::is_null(ids)) {
     is_same_id <- vctrs::vec_recycle(TRUE, nv - 1)
   } else {
@@ -77,7 +91,7 @@ merge_imu <- function(x, ids = NULL, drop = FALSE) {
     is_same_id <- (ids_v[-1] == ids_v[-nv]) | (is.na(ids_v[-1]) & is.na(ids_v[-nv]))
   }
 
-  to_bind <- c(FALSE, is_adjacent_burst & is_same_freq & is_same_n_axis & is_same_id)
+  to_bind <- c(FALSE, is_adjacent_burst & is_same_freq & is_same_n_axis & is_same_units & is_same_id)
   to_bind[is.na(to_bind)] <- FALSE
 
   # Split entries in the vector into groups that should be collapsed and
