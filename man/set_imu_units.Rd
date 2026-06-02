@@ -2,9 +2,12 @@
 % Please edit documentation in R/set_units.R
 \name{set_imu_units}
 \alias{set_imu_units}
-\title{Set or convert units on IMU burst data}
+\alias{drop_imu_units}
+\title{Manage units in IMU burst data}
 \usage{
 set_imu_units(x, value, ...)
+
+drop_imu_units(x, ...)
 }
 \arguments{
 \item{x}{An IMU vector (\code{acc}, \code{mag}, or \code{gyro})}
@@ -15,17 +18,25 @@ units in terms of gravitational acceleration, use \code{"standard_free_fall"}.}
 \item{...}{Unused.}
 }
 \value{
-The input vector with units attached to each burst matrix.
+The input vector with units attached to, converted on, or removed
+from each burst matrix.
 }
 \description{
-Methods to attach or convert units on the
-burst matrices of \code{acc}, \code{mag}, and \code{gyro} vectors. Each method validates
-that the target unit is dimensionally compatible with its IMU class:
+Set, convert, or drop units in burst matrices of \code{acc}, \code{mag}, and \code{gyro}
+vectors.
+
+\code{set_imu_units()} attaches units to unitless bursts or converts between
+compatible units. The target unit must be dimensionally compatible with
+the IMU class:
 \itemize{
 \item \code{acc}: acceleration units (e.g., \code{"m/s^2"}, \code{"standard_free_fall"})
 \item \code{mag}: magnetic flux density units (e.g., \code{"tesla"}, \code{"uT"}, \code{"gauss"})
 \item \code{gyro}: angular velocity units (e.g., \code{"rad/s"}, \code{"degree/s"})
 }
+
+\code{drop_imu_units()} strips units from each burst, leaving the underlying
+numeric values unchanged. Bursts that do not carry units are returned
+as-is.
 
 To transform raw values to physical units rather than simply attaching or
 converting units, use \code{\link[=transform_imu]{transform_imu()}}.
@@ -42,6 +53,9 @@ set_imu_units(a_ms2, "standard_free_fall")
 
 # Units must be appropriate for the sensor type of the input
 try(set_imu_units(a, "kg"))
+
+# Strip units back off
+drop_imu_units(a_ms2)
 }
 \seealso{
 \code{\link[=transform_imu]{transform_imu()}} to transform raw IMU values

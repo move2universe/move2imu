@@ -117,3 +117,64 @@ test_that("set_imu_units.gyro rejects dimensionally incompatible units", {
   expect_error(set_imu_units(g, "m/s^2"), "not valid for `gyro` vector")
   expect_error(set_imu_units(g, "tesla"), "not valid for `gyro` vector")
 })
+
+test_that("drop_imu_units strips units from acc burst matrices", {
+  a <- set_imu_units(acc_example(), "m/s^2")
+  a_bare <- drop_imu_units(a)
+
+  expect_false(inherits(bursts(a_bare)[[1]], "units"))
+  expect_false(inherits(bursts(a_bare)[[2]], "units"))
+  expect_equal(
+    as.numeric(bursts(a_bare)[[1]]),
+    as.numeric(bursts(a)[[1]])
+  )
+  expect_identical(colnames(bursts(a_bare)[[1]]), colnames(bursts(a)[[1]]))
+})
+
+test_that("drop_imu_units preserves imu structure", {
+  a <- set_imu_units(acc_example(), "m/s^2")
+  a_bare <- drop_imu_units(a)
+
+  expect_s3_class(a_bare, "acc")
+  expect_length(a_bare, length(a))
+  expect_identical(freqs(a_bare), freqs(a))
+  expect_identical(starts(a_bare), starts(a))
+})
+
+test_that("drop_imu_units ignores unitless bursts", {
+  a <- acc_example()
+  a_bare <- drop_imu_units(a)
+  
+  expect_identical(a, a_bare)
+})
+
+test_that("drop_imu_units handles NA elements", {
+  a <- set_imu_units(acc_example(), "m/s^2")
+  a_na <- c(a[1], acc(list(NULL), units::set_units(NA, "Hz")), a[2])
+  a_bare <- drop_imu_units(a_na)
+
+  expect_identical(is.na(a_bare), c(FALSE, TRUE, FALSE))
+  expect_true(is.null(bursts(a_bare)[[2]]))
+  expect_false(inherits(bursts(a_bare)[[1]], "units"))
+})
+
+test_that("drop_imu_units works on mag and gyro", {
+  m <- set_imu_units(
+    mag(list(cbind(X = 1:5, Y = 1:5, Z = 1:5)), units::set_units(20, "Hz")),
+    "tesla"
+  )
+  g <- set_imu_units(
+    gyro(list(cbind(X = 1:5, Y = 1:5, Z = 1:5)), units::set_units(20, "Hz")),
+    "rad/s"
+  )
+
+  expect_false(inherits(bursts(drop_imu_units(m))[[1]], "units"))
+  expect_false(inherits(bursts(drop_imu_units(g))[[1]], "units"))
+  expect_s3_class(drop_imu_units(m), "mag")
+  expect_s3_class(drop_imu_units(g), "gyro")
+})
+
+test_that("units::drop_units dispatches to drop_imu_units for imu vectors", {
+  a <- set_imu_units(acc_example(), "m/s^2")
+  expect_identical(units::drop_units(a), drop_imu_units(a))
+})

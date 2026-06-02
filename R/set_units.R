@@ -1,13 +1,20 @@
-#' Set or convert units on IMU burst data
+#' Manage units in IMU burst data
 #'
 #' @description
-#' Methods to attach or convert units on the
-#' burst matrices of `acc`, `mag`, and `gyro` vectors. Each method validates
-#' that the target unit is dimensionally compatible with its IMU class:
+#' Set, convert, or drop units in burst matrices of `acc`, `mag`, and `gyro` 
+#' vectors.
 #'
-#' - `acc`: acceleration units (e.g., `"m/s^2"`, `"standard_free_fall"`)
-#' - `mag`: magnetic flux density units (e.g., `"tesla"`, `"uT"`, `"gauss"`)
-#' - `gyro`: angular velocity units (e.g., `"rad/s"`, `"degree/s"`)
+#' `set_imu_units()` attaches units to unitless bursts or converts between
+#' compatible units. The target unit must be dimensionally compatible with
+#' the IMU class:
+#'
+#'   - `acc`: acceleration units (e.g., `"m/s^2"`, `"standard_free_fall"`)
+#'   - `mag`: magnetic flux density units (e.g., `"tesla"`, `"uT"`, `"gauss"`)
+#'   - `gyro`: angular velocity units (e.g., `"rad/s"`, `"degree/s"`)
+#'
+#' `drop_imu_units()` strips units from each burst, leaving the underlying
+#' numeric values unchanged. Bursts that do not carry units are returned
+#' as-is.
 #'
 #' To transform raw values to physical units rather than simply attaching or
 #' converting units, use [transform_imu()].
@@ -17,7 +24,8 @@
 #'   units in terms of gravitational acceleration, use `"standard_free_fall"`.
 #' @param ... Unused.
 #'
-#' @returns The input vector with units attached to each burst matrix.
+#' @returns The input vector with units attached to, converted on, or removed
+#'   from each burst matrix.
 #'
 #' @seealso [transform_imu()] to transform raw IMU values
 #'
@@ -35,6 +43,9 @@
 #'
 #' # Units must be appropriate for the sensor type of the input
 #' try(set_imu_units(a, "kg"))
+#'
+#' # Strip units back off
+#' drop_imu_units(a_ms2)
 set_imu_units <- function(x, value, ...) {
   UseMethod("set_imu_units")
 }
@@ -69,6 +80,42 @@ set_units.mag <- function(x, value, ...) {
 #' @exportS3Method units::set_units
 set_units.gyro <- function(x, value, ...) {
   set_imu_units(x, value)
+}
+
+#' @rdname set_imu_units
+#' @export
+drop_imu_units <- function(x, ...) {
+  assert_imu(x)
+  sensor <- class(x)[1]
+
+  bursts_dropped <- purrr::map(
+    bursts(x),
+    function(b) {
+      if (is.null(b) || !inherits(b, "units")) {
+        return(b)
+      }
+      units::drop_units(b)
+    }
+  )
+
+  bursts(x) <- new_burst_list(bursts_dropped, sensor = sensor)
+
+  x
+}
+
+#' @exportS3Method units::drop_units
+drop_units.acc <- function(x, ...) {
+  drop_imu_units(x)
+}
+
+#' @exportS3Method units::drop_units
+drop_units.mag <- function(x, ...) {
+  drop_imu_units(x)
+}
+
+#' @exportS3Method units::drop_units
+drop_units.gyro <- function(x, ...) {
+  drop_imu_units(x)
 }
 
 set_imu_units_ <- function(x, value, reference, sensor) {
