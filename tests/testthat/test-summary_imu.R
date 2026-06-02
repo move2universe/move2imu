@@ -134,27 +134,27 @@ test_that("plot.imu_summary handles single-burst (empty Interval panel)", {
   expect_no_error(with_pdf(plot(s)))
 })
 
-test_that("plot.imu_summary `which` selects by name and by integer", {
+test_that("plot.imu_summary `panel` selects by name and by integer", {
   s <- summary(acc_example())
   expect_no_error(with_pdf({
-    plot(s, which = "Values")
-    plot(s, which = c("Frequency", "Values"))
-    plot(s, which = 1)
-    plot(s, which = c(1, 5))
+    plot(s, panel = "Values")
+    plot(s, panel = c("Frequency", "Values"))
+    plot(s, panel = 1)
+    plot(s, panel = c(1, 5))
   }))
 })
 
 test_that("plot.imu_summary errors on unknown panel name", {
   s <- summary(acc_example())
   pdf(tempfile()); on.exit(dev.off())
-  expect_error(plot(s, which = "NotAPanel"))
+  expect_error(plot(s, panel = "NotAPanel"))
 })
 
-test_that("plot.imu_summary errors on out-of-range integer `which`", {
+test_that("plot.imu_summary errors on out-of-range integer `panel`", {
   s <- summary(acc_example())
   pdf(tempfile()); on.exit(dev.off())
-  expect_error(plot(s, which = 99), "between 1 and")
-  expect_error(plot(s, which = 0),  "between 1 and")
+  expect_error(plot(s, panel = 99), "between 1 and")
+  expect_error(plot(s, panel = 0),  "between 1 and")
 })
 
 test_that("plot.imu_summary forwards extra args to hist()", {

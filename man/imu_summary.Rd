@@ -8,7 +8,7 @@
 \usage{
 \method{summary}{imu}(object, ...)
 
-\method{plot}{imu_summary}(x, which = NULL, ...)
+\method{plot}{imu_summary}(x, panel = NULL, ...)
 }
 \arguments{
 \item{object}{An \code{imu} object.}
@@ -17,7 +17,7 @@
 
 \item{x}{An \code{imu_summary} object (returned by \code{summary()}).}
 
-\item{which}{Optional character vector of panel names or integer
+\item{panel}{Optional character vector of panel names or integer
 vector of panel positions, restricting which panels are drawn. Valid
 names: \code{"Frequency"}, \code{"Samples per burst"}, \code{"Duration"}, \code{"Intervals"},
 and/or \code{"Values"}. By default, all panels are drawn.}
@@ -47,5 +47,5 @@ s
 plot(s)
 
 # Focus on a single panel, with custom binning/xlim
-plot(s, which = "Values", breaks = 50, xlim = c(0, 1))
+plot(s, panel = "Values", breaks = 50, xlim = c(0, 1))
 }

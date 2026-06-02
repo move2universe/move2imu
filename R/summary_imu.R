@@ -29,7 +29,7 @@
 #' plot(s)
 #'
 #' # Focus on a single panel, with custom binning/xlim
-#' plot(s, which = "Values", breaks = 50, xlim = c(0, 1))
+#' plot(s, panel = "Values", breaks = 50, xlim = c(0, 1))
 NULL
 
 #' @rdname imu_summary
@@ -162,19 +162,19 @@ print.imu_summary <- function(x, ...) {
 }
 
 #' @param x An `imu_summary` object (returned by `summary()`).
-#' @param which Optional character vector of panel names or integer
+#' @param panel Optional character vector of panel names or integer
 #'   vector of panel positions, restricting which panels are drawn. Valid
 #'   names: `"Frequency"`, `"Samples per burst"`, `"Duration"`, `"Intervals"`,
 #'   and/or `"Values"`. By default, all panels are drawn.
 #'
 #' @rdname imu_summary
 #' @export
-plot.imu_summary <- function(x, which = NULL, ...) {
+plot.imu_summary <- function(x, panel = NULL, ...) {
   if (is.null(x$axes)) {
     message("Nothing to plot (no non-NA bursts).")
     return(invisible(x))
   }
-  
+
   panels <- list(
     Frequency = list(
       data = x$freqs,
@@ -197,9 +197,9 @@ plot.imu_summary <- function(x, which = NULL, ...) {
       xlab = "Value"
     )
   )
-  
-  if (!is.null(which)) {
-    panels <- select_panels(panels, which)
+
+  if (!is.null(panel)) {
+    panels <- select_panels(panels, panel)
   }
 
   if (length(panels) == 0) {
@@ -237,19 +237,19 @@ plot.imu_summary <- function(x, which = NULL, ...) {
 
 # Subset the panel list by name or integer index, validating against the
 # panels that are actually available
-select_panels <- function(panels, which) {
+select_panels <- function(panels, which_panel) {
   available <- names(panels)
-  
-  if (is.numeric(which)) {
-    if (any(which > length(available)) || any(which <= 0)) {
-      rlang::abort(paste0("`which` must be between 1 and ", length(available)))
+
+  if (is.numeric(which_panel)) {
+    if (any(which_panel > length(available)) || any(which_panel <= 0)) {
+      rlang::abort(paste0("`which_panel` must be between 1 and ", length(available)))
     }
-    
-    sel <- available[which]
+
+    sel <- available[which_panel]
   } else {
-    sel <- which
+    sel <- which_panel
   }
-  
+
   sel <- rlang::arg_match(sel, available, multiple = TRUE)
   panels[sel]
 }
