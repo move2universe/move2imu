@@ -90,12 +90,10 @@ imu_colset <- function(x = NULL,
 
 #' @export
 print.imu_colset <- function(x, ...) {
-  type <- attr(x, "type")
-
   cat(paste0(
-    type, "-format [",
-    paste0(names(x), "=\"", unclass(x), "\"", collapse = ", "),
-    "]\n"
+    "<imu_colset> [\n",
+    paste0("  ", names(x), " = \"", unclass(x), "\"", collapse = ",\n"),
+    "\n]\n"
   ))
 
   invisible(x)
@@ -404,9 +402,9 @@ gyro_colset_config <- function() {
 acc_colset_eobs <- function() {
   new_imu_colset(
     cols = c(
+      bursts = "eobs_accelerations_raw",
       axes = "eobs_acceleration_axes",
-      frequency = "eobs_acceleration_sampling_frequency_per_axis",
-      bursts = "eobs_accelerations_raw"
+      frequency = "eobs_acceleration_sampling_frequency_per_axis"
     ),
     type = "burst"
   )
@@ -415,9 +413,9 @@ acc_colset_eobs <- function() {
 acc_colset_burst <- function() {
   new_imu_colset(
     cols = c(
+      bursts = "accelerations_raw",
       axes = "acceleration_axes",
-      frequency = "acceleration_sampling_frequency_per_axis",
-      bursts = "accelerations_raw"
+      frequency = "acceleration_sampling_frequency_per_axis"
     ),
     type = "burst"
   )
