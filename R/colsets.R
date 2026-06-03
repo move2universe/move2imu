@@ -378,6 +378,7 @@ acc_colset_config <- function() {
   list(
     eobs = register_colset(acc_colset_eobs()),
     raw = register_colset(acc_colset_raw()),
+    acc = register_colset(acc_colset_acc()),
     xyz = register_colset(acc_colset_xyz()),
     raw_xyz = register_colset(acc_colset_raw_xyz())
   )
@@ -398,7 +399,6 @@ gyro_colset_config <- function() {
   )
 }
 
-
 acc_colset_eobs <- function() {
   new_imu_colset(
     cols = c(
@@ -414,6 +414,17 @@ acc_colset_raw <- function() {
   new_imu_colset(
     cols = c(
       bursts = "accelerations_raw",
+      axes = "acceleration_axes",
+      frequency = "acceleration_sampling_frequency_per_axis"
+    ),
+    type = "compact"
+  )
+}
+
+acc_colset_acc <- function() {
+  new_imu_colset(
+    cols = c(
+      bursts = "accelerations",
       axes = "acceleration_axes",
       frequency = "acceleration_sampling_frequency_per_axis"
     ),

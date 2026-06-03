@@ -6,12 +6,14 @@ test_that("Config predicates validate colsets against supported defaults", {
 
   expect_true(matches_any(acc_colset_eobs(), cfg))
   expect_true(matches_any(acc_colset_raw(), cfg))
+  expect_true(matches_any(acc_colset_acc(), cfg))
   expect_true(matches_any(acc_colset_xyz(), cfg))
   expect_true(matches_any(acc_colset_raw_xyz(), cfg))
 
   # Compact-format acc cols must contain all listed cols
   expect_false(matches_any(acc_colset_eobs()[1:2], cfg))
   expect_false(matches_any(acc_colset_raw()[1], cfg))
+  expect_false(matches_any(acc_colset_acc()[1], cfg))
 
   # Expanded-format acc cols can consist of a subset of allowable cols
   expect_true(matches_any(acc_colset_xyz()[1:2], cfg))
@@ -109,6 +111,7 @@ test_that("Currently supported colsets", {
     list(
       eobs = acc_colset_eobs(),
       raw = acc_colset_raw(),
+      acc = acc_colset_acc(),
       xyz = acc_colset_xyz(),
       raw_xyz = acc_colset_raw_xyz()
     )
@@ -166,6 +169,7 @@ test_that("imu_colset() errors on invalid specifications", {
 test_that("Can get colset type from colset", {
   expect_equal(attr(acc_colset_eobs(), "type"), "compact")
   expect_equal(attr(acc_colset_raw(), "type"), "compact")
+  expect_equal(attr(acc_colset_acc(), "type"), "compact")
   expect_equal(attr(acc_colset_xyz(), "type"), "expanded")
   expect_equal(attr(acc_colset_raw_xyz(), "type"), "expanded")
 })
