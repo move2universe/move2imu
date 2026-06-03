@@ -191,6 +191,20 @@ test_that("Correctly error on bad colset specifications", {
   expect_error(as_acc(gulls(), colset = "foobar"), "must be an `imu_colset`")
 })
 
+test_that("Error on a user-supplied colset whose columns are present but empty", {
+  g <- gulls()
+  g$acceleration_raw_x <- NA_real_
+  g$acceleration_raw_y <- NA_real_
+  g$acceleration_raw_z <- NA_real_
+
+  # Columns exist (so they pass the "missing columns" check) but hold no data.
+  # Without the guard this would fail later with a cryptic `round()` error.
+  expect_error(
+    as_acc(g, colset = acc_colset_raw_xyz()),
+    "contain no data"
+  )
+})
+
 test_that("Can split expanded-format data into bursts by inferred frequency", {
   t1 <- data.frame(
     id = 1,

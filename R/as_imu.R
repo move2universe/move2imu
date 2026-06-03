@@ -21,8 +21,10 @@ as_imu.move2 <- function(x, sensor, colset = NULL, min_freq = 1, merge_continuou
       i = paste0("Use `duplicated_", sensor, "_rows()` to identify duplications.")
     ))
   }
-  
-  out <- purrr::map(
+
+  # Use lapply as we don't need purr's index errors here. User likely
+  # will not realize we are iterating over colsets.
+  out <- lapply(
     colsets,
     function(cols) {
       as_imu_move2_(
@@ -132,8 +134,8 @@ as_imu_move2_expanded <- function(x,
                                   freq_digits = 4,
                                   ...) {
   col_names <- as.character(colset)
-  m <- as.matrix(data.frame(x)[, col_names])
-  
+  m <- as.matrix(as.data.frame(x)[, col_names])
+
   colnames(m) <- names(colset)
   
   # TODO: may want a safer way to handle units. Some columns will have units, others not
@@ -378,12 +380,28 @@ new_freq_regime <- function(n, n_next = 0, prev_run = FALSE) {
 
 check_colset <- function(x, colset, call = rlang::caller_env()) {
   assert_all_cols_present(x, colset, call = call)
+  assert_colset_has_data(x, colset, call = call)
   
   if (attr(colset, "type") == "compact") {
     assert_compact_col_types(x, colset, call = call)
   } else {
     assert_matched_units(x, colset, call = call)
     assert_colset_numeric(x, colset, call = call)
+  }
+}
+
+assert_colset_has_data <- function(x, colset, call = rlang::caller_env()) {
+  if (all(cols_empty(x, colset))) {
+    rlang::abort(
+      c(
+        "The provided `colset` columns contain no data.",
+        x = paste0(
+          "Columns \"", paste(colset, collapse = "\", \""),
+          "\" are empty."
+        )
+      ),
+      call = call
+    )
   }
 }
 
