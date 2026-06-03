@@ -29,7 +29,7 @@
 #'    the Research Institute for Nature and Forest (INBO). Data collected by the 
 #'    [LifeWatch](https://lifewatch.be/birds) GPS 
 #'    tracking network for large birds for the project/study LBBG_ZEEBRUGGE.
-#'    Acceleration data are provided in long format from
+#'    Acceleration data are provided in expanded format from
 #'    trackers developed by the University of Amsterdam Bird Tracking 
 #'    System ([UvA-BiTS](http://www.uva-bits.nl)).
 #'    

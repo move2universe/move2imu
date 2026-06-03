@@ -1,6 +1,6 @@
 skip_if_not_installed("move2")
 
-test_that("Can get acc from burst-format acc data", {
+test_that("Can get acc from compact-format acc data", {
   alb_data <- albatrosses()
 
   acc <- as_acc(alb_data, drop = TRUE)
@@ -34,7 +34,7 @@ test_that("Can get acc from burst-format acc data", {
   )
 })
 
-test_that("Can get acc from long-format acc data", {
+test_that("Can get acc from expanded-format acc data", {
   gulls_data <- gulls()
   
   acc_i <- which(gulls_data$sensor_type_id == 2365683)
@@ -94,7 +94,7 @@ test_that("Can manually specify acc columns to use for parsing", {
   )
 })
 
-test_that("Can manually specify a subset of long-format cols", {
+test_that("Can manually specify a subset of expanded-format cols", {
   col <- imu_colset(y = "acceleration_raw_y")
   
   a <- as_acc(gulls(), colset = col)
@@ -191,7 +191,7 @@ test_that("Correctly error on bad colset specifications", {
   expect_error(as_acc(gulls(), colset = "foobar"), "must be an `imu_colset`")
 })
 
-test_that("Can split long-format data into bursts by inferred frequency", {
+test_that("Can split expanded-format data into bursts by inferred frequency", {
   t1 <- data.frame(
     id = 1,
     acceleration_x = 1:69,
@@ -314,7 +314,7 @@ test_that("Preserve time zone", {
   expect_equal(attr(starts(as_acc(g)), "tzone"), "CET")
 })
 
-test_that("Equivalent data in burst and long format produce same acc", {
+test_that("Equivalent data in burst and expanded format produce same acc", {
   t1 <- data.frame(
     id = 1,
     acceleration_x = as.numeric(1:10),
@@ -405,7 +405,7 @@ test_that("Don't coerce non-eobs burst cols", {
   expect_identical(unlist(bursts(a)), rep(1.1:10.1, 3))
 })
 
-test_that("as_acc() checks long-format coltypes", {
+test_that("as_acc() checks expanded-format coltypes", {
   g <- gulls()
   g[["acceleration_raw_x"]] <- "foobar"
   
@@ -440,7 +440,7 @@ test_that("as_acc() errors on swapped burst column types", {
   )
 })
 
-test_that("Custom burst-format colset works end-to-end", {
+test_that("Custom compact-format colset works end-to-end", {
   alb <- albatrosses()
   
   a <- as_acc(alb, colset = acc_colset_eobs())
@@ -463,7 +463,7 @@ test_that("Custom burst-format colset works end-to-end", {
   )
 })
 
-test_that("Custom long-format colset works end-to-end", {
+test_that("Custom expanded-format colset works end-to-end", {
   gul <- gulls()
   
   a <- as_acc(gul, colset = acc_colset_raw_xyz())

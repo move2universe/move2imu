@@ -33,13 +33,13 @@ Movebank's conventions, provide a custom set of IMU columns with
 \details{
 \code{move2} objects store IMU data in two ways:
 \itemize{
-\item \strong{Long-format} columns store one measurement (possibly for multiple axes)
-in a single row.
-\item \strong{Burst-format} columns store a burst of measurements as a space-delimited
-string. This string must be segmented into axis-specific measurements using
-an associated column that indicates the axes present for the bursted data.
+\item \strong{Expanded-format} columns store each IMU sample (possibly for multiple axes)
+in its own row.
+\item \strong{Compact-format} columns store a burst of IMU samples as a space-delimited
+string. This string must be segmented into axis-specific values using
+an associated column that indicates the axes present in the burst.
 A further column provides the sampling frequency of the burst. All three
-of these columns must be present to form a valid burst-format column set.
+of these columns must be present to form a valid compact-format column set.
 }
 }
 \examples{

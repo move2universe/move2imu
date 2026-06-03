@@ -3,10 +3,10 @@ acc_burst_example <- function(x = NULL, y = NULL, z = NULL) {
   new_burst_list(list(do.call(cbind, list(X = x, Y = y, Z = z))), "acc")
 }
 
-# Fabricated long-format mag move2. Uses the column names expected by
+# Fabricated expanded-format mag move2. Uses the column names expected by
 # `mag_colset_xyz()` (i.e. `magnetic_field_{x,y,z}`). Two bursts at 10 Hz,
 # separated by a gap so `as_mag()` splits them.
-mag_example_long <- function(id = "long") {
+mag_example_expanded <- function(id = "expanded") {
   t <- data.frame(
     id = id,
     magnetic_field_x = as.numeric(1:10),
@@ -27,10 +27,10 @@ mag_example_long <- function(id = "long") {
   )
 }
 
-# Fabricated burst-format mag move2. Uses the column names expected by
-# `mag_colset_burst()`. Two XYZ bursts at 10 Hz, separated by a gap so that
+# Fabricated compact-format mag move2. Uses the column names expected by
+# `mag_colset_raw()`. Two XYZ bursts at 10 Hz, separated by a gap so that
 # `merge_imu` does not collapse them.
-mag_example_burst <- function(id = "burst") {
+mag_example_compact <- function(id = "compact") {
   t <- data.frame(
     id = id,
     magnetic_field_axes = "XYZ",
@@ -51,10 +51,10 @@ mag_example_burst <- function(id = "burst") {
   )
 }
 
-# Fabricated long-format gyro move2. Uses the column names expected by
+# Fabricated expanded-format gyro move2. Uses the column names expected by
 # `gyro_colset_xyz()` (i.e. `angular_velocity_{x,y,z}`). Two bursts at 10 Hz,
 # separated by a gap so `as_gyro()` splits them.
-gyro_example_long <- function(id = "long") {
+gyro_example_expanded <- function(id = "expanded") {
   t <- data.frame(
     id = id,
     angular_velocity_x = as.numeric(1:10),
@@ -75,10 +75,10 @@ gyro_example_long <- function(id = "long") {
   )
 }
 
-# Fabricated burst-format gyro move2. Uses the column names expected by
-# `gyro_colset_burst()`. Two XYZ bursts at 10 Hz, separated by a gap so that
+# Fabricated compact-format gyro move2. Uses the column names expected by
+# `gyro_colset_raw()`. Two XYZ bursts at 10 Hz, separated by a gap so that
 # `merge_imu` does not collapse them.
-gyro_example_burst <- function(id = "burst") {
+gyro_example_compact <- function(id = "compact") {
   t <- data.frame(
     id = id,
     gyroscope_axes = "XYZ",
@@ -99,8 +99,8 @@ gyro_example_burst <- function(id = "burst") {
   )
 }
 
-# Build sample data source to simulate case where "bursted" data is actually
-# continuous, as bursts are adjacent in time.
+# Build sample data source to simulate case where compact-format data is actually
+# continuous, as the bursts are adjacent in time.
 albatrosses_messy <- function() {
   d <- albatrosses()
   d <- d[d$sensor_type_id == 2365683, ]

@@ -13,7 +13,7 @@
 #' If no active colset is detected (e.g. a `move2` with only GPS data),
 #' `has_*()` returns `FALSE` for all rows.
 #'
-#' For long-format data (where multiple rows compose a single burst)
+#' For expanded-format data (where multiple rows compose a single burst)
 #' all rows that contain IMU data are flagged `TRUE`. However, the output
 #' of `as_*()` will not necessarily return bursts at each of these locations,
 #' as multiple of these rows will be combined into a single burst.

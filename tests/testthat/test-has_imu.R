@@ -1,13 +1,13 @@
 skip_if_not_installed("move2")
 
-test_that("has_acc flags rows with raw acc data (burst format)", {
-  # For burst-format data (one row per burst), every row that contributes
+test_that("has_acc flags rows with raw acc data (compact format)", {
+  # For compact-format data (one row per burst), every row that contributes
   # data also stores a non-NA burst in the as_acc() output
   alb <- albatrosses()
   expect_identical(has_acc(alb), !is.na(as_acc(alb)))
 })
 
-test_that("has_acc flags rows with raw acc data (long format)", {
+test_that("has_acc flags rows with raw acc data (expanded format)", {
   gul <- gulls()
 
   h <- has_acc(gul)

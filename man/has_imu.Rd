@@ -37,7 +37,7 @@ certain column sets, use the \code{colset} argument.
 If no active colset is detected (e.g. a \code{move2} with only GPS data),
 \verb{has_*()} returns \code{FALSE} for all rows.
 
-For long-format data (where multiple rows compose a single burst)
+For expanded-format data (where multiple rows compose a single burst)
 all rows that contain IMU data are flagged \code{TRUE}. However, the output
 of \verb{as_*()} will not necessarily return bursts at each of these locations,
 as multiple of these rows will be combined into a single burst.

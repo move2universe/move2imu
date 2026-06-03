@@ -9,23 +9,23 @@
 #'
 #' `move2` objects store IMU data in two ways:
 #'
-#' - **Long-format** columns store one measurement (possibly for multiple axes)
-#'   in a single row.
+#' - **Expanded-format** columns store each IMU sample (possibly for multiple axes)
+#'   in its own row.
 #'
-#' - **Burst-format** columns store a burst of measurements as a space-delimited
-#'   string. This string must be segmented into axis-specific measurements using
-#'   an associated column that indicates the axes present for the bursted data.
+#' - **Compact-format** columns store a burst of IMU samples as a space-delimited
+#'   string. This string must be segmented into axis-specific values using
+#'   an associated column that indicates the axes present in the burst.
 #'   A further column provides the sampling frequency of the burst. All three
-#'   of these columns must be present to form a valid burst-format column set.
+#'   of these columns must be present to form a valid compact-format column set.
 #'   
-#' @param x,y,z (Long-format) Column name(s) for the X, Y, and/or Z axes.
-#' @param bursts (Burst-format) Column name containing the raw burst strings.
-#' @param axes (Burst-format) Column name containing the axis labels for
+#' @param x,y,z (Expanded-format) Column name(s) for the X, Y, and/or Z axes.
+#' @param bursts (Compact-format) Column name containing the raw burst strings.
+#' @param axes (Compact-format) Column name containing the axis labels for
 #'   each burst.
-#' @param frequency (Burst-format) Column name containing the sampling
+#' @param frequency (Compact-format) Column name containing the sampling
 #'   frequency for each burst.
 #'
-#' @returns An `imu_colset` object of type `"long"` or `"burst"`.
+#' @returns An `imu_colset` object of type `"expanded"` or `"compact"`.
 #'
 #' @seealso [as_acc()], [as_mag()], [as_gyro()] to extract IMU data from a move2
 #'   object.
@@ -39,11 +39,11 @@
 #' @export
 #'
 #' @examples
-#' # Long-format: one or more axes
+#' # Expanded-format: one or more axes
 #' imu_colset(x = "my_x", y = "my_y", z = "my_z")
 #' imu_colset(x = "my_x", y = "my_y")
 #'
-#' # Burst-format: all three columns required
+#' # Compact-format: all three columns required
 #' imu_colset(bursts = "my_raw", axes = "my_axes", frequency = "my_freq")
 #' 
 #' # Use a colset to extract IMU data from those columns in a move2 object
@@ -54,35 +54,35 @@ imu_colset <- function(x = NULL,
                        bursts = NULL,
                        axes = NULL,
                        frequency = NULL) {
-  long_args <- purrr::compact(list(X = x, Y = y, Z = z))
-  burst_args <- purrr::compact(list(bursts = bursts, axes = axes, frequency = frequency))
+  expanded_args <- purrr::compact(list(X = x, Y = y, Z = z))
+  compact_args <- purrr::compact(list(bursts = bursts, axes = axes, frequency = frequency))
   
-  has_long <- length(long_args) > 0
-  has_burst <- length(burst_args) > 0
+  has_expanded <- length(expanded_args) > 0
+  has_compact <- length(compact_args) > 0
   
-  if (has_long && has_burst) {
+  if (has_expanded && has_compact) {
     rlang::abort(c(
-      "Cannot mix long-format and burst-format columns in a single imu_colset.",
-      i = "Use either `x`/`y`/`z` (long-format) or `bursts`/`axes`/`frequency` (burst-format)."
+      "Cannot mix expanded-format and compact-format columns in a single imu_colset.",
+      i = "Use either `x`/`y`/`z` (expanded-format) or `bursts`/`axes`/`frequency` (compact-format)."
     ))
   }
   
-  if (!has_long && !has_burst) {
+  if (!has_expanded && !has_compact) {
     rlang::abort("No IMU data columns specified.")
   }
   
-  if (has_burst) {
-    if (length(burst_args) != 3) {
+  if (has_compact) {
+    if (length(compact_args) != 3) {
       rlang::abort(
-        "Burst format requires `bursts`, `axes`, and `frequency` columns."
+        "Compact format requires `bursts`, `axes`, and `frequency` columns."
       )
     }
     
-    cols <- unlist(burst_args)
-    type <- "burst"
+    cols <- unlist(compact_args)
+    type <- "compact"
   } else {
-    cols <- unlist(long_args)
-    type <- "long"
+    cols <- unlist(expanded_args)
+    type <- "expanded"
   }
   
   new_imu_colset(cols = cols, type = type)
@@ -119,14 +119,14 @@ print.imu_colset <- function(x, ...) {
 #' @details
 #' `move2` objects store IMU data in two ways:
 #'
-#' - **Long-format** columns store one measurement (possibly for multiple axes)
-#'   in a single row.
+#' - **Expanded-format** columns store each IMU sample (possibly for multiple axes)
+#'   in its own row.
 #'
-#' - **Burst-format** columns store a burst of measurements as a space-delimited
-#'   string. This string must be segmented into axis-specific measurements using
-#'   an associated column that indicates the axes present for the bursted data.
+#' - **Compact-format** columns store a burst of IMU samples as a space-delimited
+#'   string. This string must be segmented into axis-specific values using
+#'   an associated column that indicates the axes present in the burst.
 #'   A further column provides the sampling frequency of the burst. All three
-#'   of these columns must be present to form a valid burst-format column set.
+#'   of these columns must be present to form a valid compact-format column set.
 #'   
 #' @returns A named list of `imu_colset` objects.
 #' 
@@ -197,7 +197,7 @@ movebank_gyro_colsets <- function() {
 #' # Multiple colsets may be available
 #' active_acc_colsets(move2::mt_stack(albatrosses(), gulls()))
 #'
-#' # Missing long-format axes are not included in the set
+#' # Missing expanded-format axes are not included in the set
 #' g <- gulls()
 #' g$acceleration_raw_x <- NULL
 #' active_acc_colsets(g)
@@ -234,7 +234,7 @@ active_gyro_colsets <- function(x) {
 }
 
 # Apply active colset logic in a move2 for a given IMU class. Active colsets
-# are fully present (if burst-format) and contain data.
+# are fully present (if compact-format) and contain data.
 active_colsets_ <- function(x, sensor) {
   force(x)
   config <- switch(
@@ -260,12 +260,12 @@ active_colsets_ <- function(x, sensor) {
         cols_present <- cols_in_x[!cols_empty(x, cols_in_x)]
 
         if (!setequal(cols_present, colset)) {
-          if (attr(colset, "type") == "burst") {
+          if (attr(colset, "type") == "compact") {
             # Remove entire colset for types that require all cols present
             return(NULL)
           }
 
-          # Rebuild long-format colset with only present columns
+          # Rebuild expanded-format colset with only present columns
           return(new_imu_colset(cols = cols_present, type = attr(colset, "type")))
         }
 
@@ -356,7 +356,7 @@ duplicated_imu_rows <- function(x, colsets = NULL) {
 # the same colset can be passed to `as_acc()`, `as_mag()`, or `as_gyro()` -
 # the IMU class is determined by which converter you call, not by the colset.
 new_imu_colset <- function(cols, type) {
-  type <- rlang::arg_match(type, c("long", "burst"))
+  type <- rlang::arg_match(type, c("expanded", "compact"))
   
   structure(
     cols,
@@ -377,7 +377,7 @@ is_imu_colset <- function(x) {
 acc_colset_config <- function() {
   list(
     eobs = register_colset(acc_colset_eobs()),
-    burst = register_colset(acc_colset_burst()),
+    raw = register_colset(acc_colset_raw()),
     xyz = register_colset(acc_colset_xyz()),
     raw_xyz = register_colset(acc_colset_raw_xyz())
   )
@@ -385,7 +385,7 @@ acc_colset_config <- function() {
 
 mag_colset_config <- function() {
   list(
-    burst = register_colset(mag_colset_burst()),
+    raw = register_colset(mag_colset_raw()),
     xyz = register_colset(mag_colset_xyz()),
     raw_xyz = register_colset(mag_colset_raw_xyz())
   )
@@ -393,7 +393,7 @@ mag_colset_config <- function() {
 
 gyro_colset_config <- function() {
   list(
-    burst = register_colset(gyro_colset_burst()),
+    raw = register_colset(gyro_colset_raw()),
     xyz = register_colset(gyro_colset_xyz())
   )
 }
@@ -406,18 +406,18 @@ acc_colset_eobs <- function() {
       axes = "eobs_acceleration_axes",
       frequency = "eobs_acceleration_sampling_frequency_per_axis"
     ),
-    type = "burst"
+    type = "compact"
   )
 }
 
-acc_colset_burst <- function() {
+acc_colset_raw <- function() {
   new_imu_colset(
     cols = c(
       bursts = "accelerations_raw",
       axes = "acceleration_axes",
       frequency = "acceleration_sampling_frequency_per_axis"
     ),
-    type = "burst"
+    type = "compact"
   )
 }
 
@@ -428,7 +428,7 @@ acc_colset_xyz <- function() {
       Y = "acceleration_y",
       Z = "acceleration_z"
     ),
-    type = "long"
+    type = "expanded"
   )
 }
 
@@ -439,18 +439,18 @@ acc_colset_raw_xyz <- function() {
       Y = "acceleration_raw_y",
       Z = "acceleration_raw_z"
     ),
-    type = "long"
+    type = "expanded"
   )
 }
 
-mag_colset_burst <- function() {
+mag_colset_raw <- function() {
   new_imu_colset(
     cols = c(
       bursts = "magnetic_fields_raw",
       axes = "magnetic_field_axes",
       frequency = "magnetic_field_sampling_frequency_per_axis"
     ),
-    type = "burst"
+    type = "compact"
   )
 }
 
@@ -461,7 +461,7 @@ mag_colset_xyz <- function() {
       Y = "magnetic_field_y",
       Z = "magnetic_field_z"
     ),
-    type = "long"
+    type = "expanded"
   )
 }
 
@@ -472,18 +472,18 @@ mag_colset_raw_xyz <- function() {
       Y = "magnetic_field_raw_y",
       Z = "magnetic_field_raw_z"
     ),
-    type = "long"
+    type = "expanded"
   )
 }
 
-gyro_colset_burst <- function() {
+gyro_colset_raw <- function() {
   new_imu_colset(
     cols = c(
       bursts = "angular_velocities_raw",
       axes = "gyroscope_axes",
       frequency = "gyroscope_sampling_frequency_per_axis"
     ),
-    type = "burst"
+    type = "compact"
   )
 }
 
@@ -494,21 +494,21 @@ gyro_colset_xyz <- function() {
       Y = "angular_velocity_y",
       Z = "angular_velocity_z"
     ),
-    type = "long"
+    type = "expanded"
   )
 }
 
 # Build a single config entry from a colset.
 #
-# - "burst" type colsets require all columns to be present
-# - "long" type colsets allow subsets of the axis cols
+# - "compact" type colsets require all columns to be present
+# - "expanded" type colsets allow subsets of the axis cols
 #
 # - `is_` checks whether a colset vector matches this entry (including subsets
-#   for long format)
+#   for expanded format)
 # - `is_in_` checks whether a `move2` object contains the required columns
-#   (including subsets for long format)
+#   (including subsets for expanded format)
 register_colset <- function(cols) {
-  if (attr(cols, "type") == "burst") {
+  if (attr(cols, "type") == "compact") {
     list(
       cols = cols,
       is_ = function(x) setequal(x, cols) && length(x) == length(cols),

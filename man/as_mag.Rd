@@ -36,7 +36,7 @@ specify a custom set of columns, use \code{\link[=imu_colset]{imu_colset()}}.}
 
 \item{min_freq}{Numeric value indicating the
 minimum allowable within-burst data collection frequency when identifying
-bursts in long-format data. Any two adjacent timestamps
+bursts in expanded-format data. Any two adjacent timestamps
 that fall outside of the period defined by this frequency will be split
 into separate bursts. If no units are provided, this value is assumed to
 be in Hz.

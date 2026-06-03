@@ -14,18 +14,18 @@ imu_colset(
 )
 }
 \arguments{
-\item{x, y, z}{(Long-format) Column name(s) for the X, Y, and/or Z axes.}
+\item{x, y, z}{(Expanded-format) Column name(s) for the X, Y, and/or Z axes.}
 
-\item{bursts}{(Burst-format) Column name containing the raw burst strings.}
+\item{bursts}{(Compact-format) Column name containing the raw burst strings.}
 
-\item{axes}{(Burst-format) Column name containing the axis labels for
+\item{axes}{(Compact-format) Column name containing the axis labels for
 each burst.}
 
-\item{frequency}{(Burst-format) Column name containing the sampling
+\item{frequency}{(Compact-format) Column name containing the sampling
 frequency for each burst.}
 }
 \value{
-An \code{imu_colset} object of type \code{"long"} or \code{"burst"}.
+An \code{imu_colset} object of type \code{"expanded"} or \code{"compact"}.
 }
 \description{
 Define which columns in a \code{move2} object contain IMU data. Pass the
@@ -34,21 +34,21 @@ to convert those columns into an IMU vector.
 
 \code{move2} objects store IMU data in two ways:
 \itemize{
-\item \strong{Long-format} columns store one measurement (possibly for multiple axes)
-in a single row.
-\item \strong{Burst-format} columns store a burst of measurements as a space-delimited
-string. This string must be segmented into axis-specific measurements using
-an associated column that indicates the axes present for the bursted data.
+\item \strong{Expanded-format} columns store each IMU sample (possibly for multiple axes)
+in its own row.
+\item \strong{Compact-format} columns store a burst of IMU samples as a space-delimited
+string. This string must be segmented into axis-specific values using
+an associated column that indicates the axes present in the burst.
 A further column provides the sampling frequency of the burst. All three
-of these columns must be present to form a valid burst-format column set.
+of these columns must be present to form a valid compact-format column set.
 }
 }
 \examples{
-# Long-format: one or more axes
+# Expanded-format: one or more axes
 imu_colset(x = "my_x", y = "my_y", z = "my_z")
 imu_colset(x = "my_x", y = "my_y")
 
-# Burst-format: all three columns required
+# Compact-format: all three columns required
 imu_colset(bursts = "my_raw", axes = "my_axes", frequency = "my_freq")
 
 # Use a colset to extract IMU data from those columns in a move2 object

@@ -42,7 +42,7 @@ in Belgium and the Netherlands. Published by
 the Research Institute for Nature and Forest (INBO). Data collected by the
 \href{https://lifewatch.be/birds}{LifeWatch} GPS
 tracking network for large birds for the project/study LBBG_ZEEBRUGGE.
-Acceleration data are provided in long format from
+Acceleration data are provided in expanded format from
 trackers developed by the University of Amsterdam Bird Tracking
 System (\href{http://www.uva-bits.nl}{UvA-BiTS}).
 

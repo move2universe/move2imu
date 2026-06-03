@@ -5,15 +5,15 @@ test_that("Config predicates validate colsets against supported defaults", {
   cfg <- acc_colset_config()
 
   expect_true(matches_any(acc_colset_eobs(), cfg))
-  expect_true(matches_any(acc_colset_burst(), cfg))
+  expect_true(matches_any(acc_colset_raw(), cfg))
   expect_true(matches_any(acc_colset_xyz(), cfg))
   expect_true(matches_any(acc_colset_raw_xyz(), cfg))
 
-  # Burst-format acc cols must contain all listed cols
+  # Compact-format acc cols must contain all listed cols
   expect_false(matches_any(acc_colset_eobs()[1:2], cfg))
-  expect_false(matches_any(acc_colset_burst()[1], cfg))
+  expect_false(matches_any(acc_colset_raw()[1], cfg))
 
-  # Long-format acc cols can consist of a subset of allowable cols
+  # Expanded-format acc cols can consist of a subset of allowable cols
   expect_true(matches_any(acc_colset_xyz()[1:2], cfg))
   expect_true(matches_any(acc_colset_raw_xyz()[3], cfg))
 
@@ -28,7 +28,7 @@ test_that("Can find active colsets in move2 object", {
   expect_identical(active_acc_colsets(gulls()), list(raw_xyz = acc_colset_raw_xyz()))
 })
 
-test_that("Correctly subset active colsets for long-format acc cols", {
+test_that("Correctly subset active colsets for expanded-format acc cols", {
   skip_if_not_installed("move2")
   gulls_data <- gulls()
   gulls_sub <- gulls_data[, setdiff(colnames(gulls_data), "acceleration_raw_y")]
@@ -36,7 +36,7 @@ test_that("Correctly subset active colsets for long-format acc cols", {
     active_acc_colsets(gulls_sub),
     list(raw_xyz = new_imu_colset(
       c(X = "acceleration_raw_x", Z = "acceleration_raw_z"),
-      type = "long"
+      type = "expanded"
     ))
   )
 })
@@ -74,7 +74,7 @@ test_that("Use data values to determine active colset if multiple present", {
   colsets <- active_acc_colsets(m)
   expect_identical(
     colsets$raw_xyz,
-    new_imu_colset(c(Z = "acceleration_raw_z"), type = "long")
+    new_imu_colset(c(Z = "acceleration_raw_z"), type = "expanded")
   )
   
   # If all cols in a set are missing, then the next colset will be used
@@ -90,7 +90,7 @@ test_that("Use data values to determine active colset if multiple present", {
   expect_error(active_acc_colsets(m), "Could not identify a full")
 })
 
-test_that("Correctly identify that a non-full burst colset is invalid", {
+test_that("Correctly identify that a non-full compact-format colset is invalid", {
   skip_if_not_installed("move2")
   alb <- albatrosses()
   alb$eobs_acceleration_axes <- NA
@@ -108,7 +108,7 @@ test_that("Currently supported colsets", {
     movebank_acc_colsets(),
     list(
       eobs = acc_colset_eobs(),
-      burst = acc_colset_burst(),
+      raw = acc_colset_raw(),
       xyz = acc_colset_xyz(),
       raw_xyz = acc_colset_raw_xyz()
     )
@@ -164,8 +164,8 @@ test_that("imu_colset() errors on invalid specifications", {
 })
 
 test_that("Can get colset type from colset", {
-  expect_equal(attr(acc_colset_eobs(), "type"), "burst")
-  expect_equal(attr(acc_colset_burst(), "type"), "burst")
-  expect_equal(attr(acc_colset_xyz(), "type"), "long")
-  expect_equal(attr(acc_colset_raw_xyz(), "type"), "long")
+  expect_equal(attr(acc_colset_eobs(), "type"), "compact")
+  expect_equal(attr(acc_colset_raw(), "type"), "compact")
+  expect_equal(attr(acc_colset_xyz(), "type"), "expanded")
+  expect_equal(attr(acc_colset_raw_xyz(), "type"), "expanded")
 })

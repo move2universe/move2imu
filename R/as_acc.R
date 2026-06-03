@@ -19,7 +19,7 @@
 #'   specify a custom set of columns, use [imu_colset()].
 #' @param min_freq Numeric value indicating the
 #'   minimum allowable within-burst data collection frequency when identifying
-#'   bursts in long-format data. Any two adjacent timestamps
+#'   bursts in expanded-format data. Any two adjacent timestamps
 #'   that fall outside of the period defined by this frequency will be split
 #'   into separate bursts. If no units are provided, this value is assumed to
 #'   be in Hz.
@@ -49,12 +49,12 @@
 #' @export
 #' 
 #' @examplesIf rlang::is_installed("move2")
-#' # Example burst-format data: acc bursts stored in strings in individual rows
+#' # Example compact-format data: acc bursts stored in strings in individual rows
 #' alb <- albatrosses()
 #' 
 #' as_acc(alb)
 #'
-#' # Long-format data: bursts are constructed from samples stored across rows
+#' # Expanded-format data: bursts are constructed from samples stored across rows
 #' g <- gulls()
 #' 
 #' head(as_acc(g))
