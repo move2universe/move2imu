@@ -98,3 +98,36 @@ test_that("transform_imu() units argument passes through", {
     as.numeric(bursts(result_g)[[1]]) * GRAV_CONST
   )
 })
+
+test_that("transform_imu() transforms bursts with no calibration to NA", {
+  a <- acc_example()
+  
+  cal <- as_acc_calibration(
+    data.frame(offset = c(2048, NA), slope = c(0.001, NA))
+  )
+  
+  expect_true(is.na(cal)[2])
+
+  out <- suppressWarnings(transform_imu(a, cal))
+  expect_false(is.na(out)[1])
+  expect_true(is.na(out)[2])
+  
+  expect_equal(as.numeric(freqs(out)[1]), 20)
+  expect_true(is.na(freqs(out)[2]))
+  
+  expect_true(inherits(bursts(out)[[1]], "units"))
+  expect_null(bursts(out)[[2]])
+})
+
+test_that("transform_imu() warns only when data is lost to a missing calibration", {
+  a <- acc_example()  # both bursts have data
+  cal_missing  <- as_acc_calibration(data.frame(offset = c(2048, NA), slope = c(0.001, NA)))
+  cal_complete <- acc_calibration(offset = 2048, slope = 0.001)
+
+  expect_warning(transform_imu(a, cal_missing), "Returning NA")
+  expect_no_warning(transform_imu(a, cal_complete))
+
+  # Missing calibration shouldn't warn if there aren't any data to begin with
+  a[2] <- NA
+  expect_no_warning(transform_imu(a, cal_missing))
+})

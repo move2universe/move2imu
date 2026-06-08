@@ -65,7 +65,9 @@ manufacturers or generations.}
 calibrated output.}
 
 \item{df}{data.frame containing columns with names corresponding to the
-available arguments in \code{acc_calibration()}}
+available arguments in \code{acc_calibration()}. Each row produces a single
+calibration. Rows with invalid argument combinations produce a \code{NA}
+calibration.}
 }
 \value{
 An \code{acc_calibration} object.
@@ -91,6 +93,15 @@ default offset, slope, and orientation parameters used for each e-obs
 tag ID. The tag ID defines the tag generation. Note that tags from generation
 1 could be set either to low or high sensitivity, each with their own
 default calibration parameters.
+
+\code{acc_calibration()} errors if the provided arguments are not sufficient
+to identify a unique calibration function (e.g. if \code{manufacturer = "eobs"}
+but no \code{tag_id} is provided).
+
+In contrast, \code{as_acc_calibration()} converts rows with invalid calibration
+parameter specifications to missing (\code{NA}) calibration objects.
+A missing \code{acc_calibration} passed to \code{\link[=transform_imu]{transform_imu()}} applies no
+calibration and returns \code{NA} for the corresponding burst.
 }
 \examples{
 # Calibration for ornitela tags:

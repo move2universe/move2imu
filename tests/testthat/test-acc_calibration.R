@@ -6,6 +6,7 @@ test_that("acc_calibration() returns an acc_calibration object", {
   cal <- acc_calibration(offset = 2048, slope = 0.001)
   expect_s3_class(cal, "acc_calibration")
   expect_s3_class(cal, "imu_calibration")
+  expect_s3_class(cal, "vctrs_vctr")
   expect_true(is.list(cal))
   expect_true(all(purrr::map_lgl(cal, is.function)))
 })
@@ -254,6 +255,12 @@ test_that("axes vectorizes across elements", {
   expect_equal(ncol(cal[[2]](b)), 2)
 })
 
+test_that("invalid axes error", {
+  expect_error(acc_calibration(offset = 1, slope = 1, axes = NA), "axes")
+  expect_error(acc_calibration(offset = 1, slope = 1, axes = "ABC"), "axes")
+  expect_error(acc_calibration(offset = 1, slope = 1, axes = ""), "axes")
+})
+
 # --- as_acc_calibration() ------------------------------------------------
 
 test_that("as_acc_calibration() creates functions from data.frame", {
@@ -297,18 +304,17 @@ test_that("as_acc_calibration() silently ignores unrecognized columns", {
   expect_silent(as_acc_calibration(df))
 })
 
-test_that("as_acc_calibration() errors on unrecognized manufacturer", {
-  expect_error(
-    as_acc_calibration(data.frame(tag_id = 1, manufacturer = "foobar", offset = 1, slope = 1)),
-    "Unrecognized manufacturer"
+test_that("as_acc_calibration() returns NA for a row it cannot build", {
+  cal <- as_acc_calibration(
+    data.frame(
+      manufacturer = c("ornitela", "foobar", NA),
+      offset = c(NA, 1, NA), slope = c(NA, 1, NA)
+    )
   )
-})
-
-test_that("as_acc_calibration() errors when custom rows lack offset/slope", {
-  expect_error(
-    as_acc_calibration(data.frame(tag_id = 1)),
-    "offset.*required|slope.*required"
-  )
+  expect_length(cal, 3)
+  expect_false(is.na(cal)[1])
+  expect_true(is.na(cal)[2])
+  expect_true(is.na(cal)[3])
 })
 
 test_that("as_acc_calibration() handles mixed manufacturer and custom rows", {
@@ -370,6 +376,18 @@ test_that("as_acc_calibration() does 1:1 row-to-calibration conversion", {
     cal[[2]](b),
     acc_calibration("eobs", tag_id = 1000, offset = 2100, slope = 0.001)[[1]](b)
   )
+})
+
+test_that("as_acc_calibration() treats NA units/axes as defaults", {
+  # A stray NA in a units/axes column (e.g. after a join) must not invalidate
+  # an otherwise complete calibration spec.
+  cal_u <- as_acc_calibration(data.frame(offset = 2048, slope = 0.001, units = NA))
+  expect_false(is.na(cal_u)[1])
+  expect_identical(cal_u[[1]](b), acc_calibration(offset = 2048, slope = 0.001)[[1]](b))
+  
+  cal_a <- as_acc_calibration(data.frame(offset = 2048, slope = 0.001, axes = NA))
+  expect_false(is.na(cal_a)[1])
+  expect_equal(ncol(cal_a[[1]](b)), 3)
 })
 
 # --- eobs_specs() -------------------------------------------------------------

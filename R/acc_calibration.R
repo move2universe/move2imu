@@ -20,6 +20,15 @@
 #' tag ID. The tag ID defines the tag generation. Note that tags from generation
 #' 1 could be set either to low or high sensitivity, each with their own
 #' default calibration parameters.
+#'
+#' `acc_calibration()` errors if the provided arguments are not sufficient
+#' to identify a unique calibration function (e.g. if `manufacturer = "eobs"`
+#' but no `tag_id` is provided).
+#' 
+#' In contrast, `as_acc_calibration()` converts rows with invalid calibration
+#' parameter specifications to missing (`NA`) calibration objects. 
+#' A missing `acc_calibration` passed to [transform_imu()] applies no
+#' calibration and returns `NA` for the corresponding burst.
 #' 
 #' @param manufacturer Manufacturer of the tag. Currently, `"eobs"` and
 #'   `"ornitela"` are supported. For other manufacturers, leave `NULL` and
@@ -109,46 +118,36 @@ acc_calibration <- function(manufacturer = NULL,
                             units = "m/s^2",
                             axes = "XYZ") {
   args <- list(
-    tag_id = tag_id,
-    manufacturer = manufacturer,
-    sensitivity = sensitivity,
-    offset_x = offset_x,
-    offset_y = offset_y,
-    offset_z = offset_z,
-    slope_x = slope_x,
-    slope_y = slope_y,
-    slope_z = slope_z,
-    orientation_x = orientation_x,
-    orientation_y = orientation_y,
-    orientation_z = orientation_z,
+    tag_id = tag_id %||% NA,
+    manufacturer = manufacturer %||% NA,
+    sensitivity = sensitivity %||% NA,
+    offset_x = offset_x %||% NA,
+    offset_y = offset_y %||% NA,
+    offset_z = offset_z %||% NA,
+    slope_x = slope_x %||% NA,
+    slope_y = slope_y %||% NA,
+    slope_z = slope_z %||% NA,
+    orientation_x = orientation_x %||% NA,
+    orientation_y = orientation_y %||% NA,
+    orientation_z = orientation_z %||% NA,
     units = units,
     axes = axes
-  )
-  
-  # Coerce NULLs to NA so they recycle as length 1, not length 0
-  args <- purrr::map(
-    args,
-    function(x) {
-      if (is.null(x)) {
-        NA
-      } else {
-        x
-      }
-    }
   )
   
   new_imu_calibration(purrr::pmap(args, acc_calibration_), sensor = "acc")
 }
 
-#' @param df data.frame containing columns with names corresponding to the 
-#'   available arguments in `acc_calibration()`
-#' 
+#' @param df data.frame containing columns with names corresponding to the
+#'   available arguments in `acc_calibration()`. Each row produces a single
+#'   calibration. Rows with invalid argument combinations produce a `NA`
+#'   calibration.
+#'
 #' @export
 #'
 #' @rdname acc_calibration
 as_acc_calibration <- function(df) {
   assertthat::assert_that(is.data.frame(df))
-
+  
   args <- list(
     tag_id = df[["tag_id"]],
     manufacturer = df[["manufacturer"]],
@@ -162,11 +161,28 @@ as_acc_calibration <- function(df) {
     orientation_x = resolve_axis_col(df, "orientation", "x"),
     orientation_y = resolve_axis_col(df, "orientation", "y"),
     orientation_z = resolve_axis_col(df, "orientation", "z"),
-    units = df[["units"]] %||% "m/s^2",
-    axes = df[["axes"]] %||% "XYZ"
+    units = resolve_scalar_col(df, "units", "m/s^2"),
+    axes = resolve_scalar_col(df, "axes", "XYZ")
   )
   
-  do.call(acc_calibration, args)
+  # Coerce NULL to NA so each row recycles to length 1
+  args <- purrr::map(args, function(x) if (is.null(x)) NA else x)
+  
+  # If calibration can't be built because of an invalid spec, return NULL
+  # This is because intention is to use it with heterogeneous data frames where
+  # not all rows may be intended to be calibrated (e.g. if cal specs are in a
+  # move2 where some rows aren't even acc data)
+  fns <- purrr::pmap(
+    args, 
+    function(...) {
+      tryCatch(
+        acc_calibration_(...), 
+        error = function(cnd) NULL
+      )
+    }
+  )
+  
+  new_imu_calibration(fns, sensor = "acc")
 }
 
 acc_calibration_ <- function(manufacturer = NULL,
@@ -185,6 +201,9 @@ acc_calibration_ <- function(manufacturer = NULL,
                              axes = "XYZ") {
   rlang::arg_match(units, c("m/s^2", "standard_free_fall"))
   axes <- strsplit(toupper(gsub("\\s", "", axes)), "")[[1]]
+  if (length(axes) == 0 || anyNA(axes) || !all(axes %in% c("X", "Y", "Z"))) {
+    rlang::abort('`axes` must be a string containing only "X", "Y", and/or "Z".')
+  }
   
   # Resolve manufacturer defaults, then let user-provided values override
   if (!rlang::is_null(manufacturer) && !rlang::is_na(manufacturer)) {
@@ -393,6 +412,14 @@ resolve_axis_col <- function(df, col, axis) {
   } else {
     v_axis %||% v_scalar
   }
+}
+
+# Read a scalar spec column from `df`, converting both NULL and NA to
+# defaults
+resolve_scalar_col <- function(df, col, default) {
+  v <- df[[col]] %||% default
+  v[is.na(v)] <- default
+  v
 }
 
 GRAV_CONST <- 9.80665

@@ -16,8 +16,8 @@ case the calibration function is recycled to all elements of \code{x}.
 Currently, only \code{\link[=acc_calibration]{acc_calibration()}} is supported.}
 }
 \value{
-An IMU vector of the same length as \code{x}, with each burst
-transformed by the corresponding calibration function.
+An IMU vector of the same length as \code{x}, with each burst transformed
+by the corresponding calibration function.
 }
 \description{
 Transforms raw values from an IMU sensor to physical units (e.g., meters
@@ -25,6 +25,12 @@ per second squared) using a specified calibration function or set of
 calibration functions.
 
 Use \code{\link[=acc_calibration]{acc_calibration()}} to specify calibration functions for \code{acc} vectors.
+}
+\details{
+An \code{acc_calibration} object may contain missing (\code{NA}) elements (e.g. if
+produced by \code{\link[=as_acc_calibration]{as_acc_calibration()}}). \code{transform_imu()} returns \code{NA} in such
+cases and emits a warning if any bursts are lost because of missing
+calibration specifications.
 }
 \examples{
 a <- acc_example()
