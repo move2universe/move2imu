@@ -178,10 +178,9 @@ merge_imu <- function(x, ids = NULL, drop = FALSE) {
 #'   mutate(burst = merge_imu(burst, ids = id, drop = FALSE))
 #' }
 split_imu <- function(x, interval) {
-  assertthat::assert_that(
-    as.numeric(interval) > 0,
-    msg = "`interval` must be a positive number"
-  )
+  if (!(as.numeric(interval) > 0)) {
+    cli::cli_abort("{.arg interval} must be a positive number.")
+  }
 
   sensor <- class(x)[1]
 

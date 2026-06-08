@@ -81,7 +81,7 @@ test_that("as_mag() errors on overlapping mag rows with a mag-specific message",
 test_that("as_mag() rejects a non-mag colset argument", {
   expect_error(
     as_mag(mag_example_expanded(), colset = "foobar"),
-    "must be an `imu_colset`"
+    "must be an <imu_colset>"
   )
 })
 

@@ -31,17 +31,15 @@ plot_time <- function(x, ylab = "Value") {
   keep <- !is.na(x) & !is.na(time)
 
   if (!any(keep)) {
-    rlang::abort(c(
-      "`plot_time()` requires burst start timestamps in `x`",
-      i = "Use `starts(x) <- ...` to assign timestamps."
+    cli::cli_abort(c(
+      "{.fn plot_time} requires burst start timestamps in {.arg x}.",
+      "i" = "Use {.code starts(x) <- ...} to assign timestamps."
     ))
   }
 
   n_no_start <- sum(!is.na(x) & is.na(time))
   if (n_no_start > 0) {
-    rlang::warn(paste0(
-      "Omitting ", n_no_start, " burst(s) with no start timestamp."
-    ))
+    cli::cli_warn("Omitting {n_no_start} burst{?s} with no start timestamp.")
   }
 
   dt <- mapply(

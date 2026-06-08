@@ -405,7 +405,7 @@ test_that("as_acc_calibration() warns and returns NA for rows it cannot build", 
         offset = c(NA, 1, NA), slope = c(NA, 1, NA)
       )
     ),
-    "for 2 of 3 calibrations"
+    "for 2 calibrations"
   )
   expect_length(cal, 3)
   expect_false(is.na(cal)[1])
@@ -438,7 +438,7 @@ test_that("acc_calibration() and as_acc_calibration() agree on unresolved entrie
 test_that("acc_calibration() warns once for multiple unresolved entries", {
   expect_warning(
     cal <- acc_calibration(manufacturer = "eobs", tag_id = c(NA, NA, 1000)),
-    "for 2 of 3 calibrations"
+    "for 2 calibrations"
   )
   expect_equal(is.na(cal), c(TRUE, TRUE, FALSE))
 })

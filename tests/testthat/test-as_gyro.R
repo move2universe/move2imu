@@ -80,7 +80,7 @@ test_that("as_gyro() errors on overlapping gyro rows with a gyro-specific messag
 test_that("as_gyro() rejects a non-gyro colset argument", {
   expect_error(
     as_gyro(gyro_example_expanded(), colset = "foobar"),
-    "must be an `imu_colset`"
+    "must be an <imu_colset>"
   )
 })
 

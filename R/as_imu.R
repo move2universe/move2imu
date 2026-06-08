@@ -13,12 +13,10 @@ as_imu.move2 <- function(x, sensor, colset = NULL, min_freq = 1, merge_continuou
   dup <- duplicated_imu_rows(x, colsets = colsets)
   
   if (length(dup) > 0) {
-    rlang::abort(c(
-      paste0(
-        "`x` contains ", length(dup),
-        " timestamps with multiple sources of ", sensor, " data."
-      ),
-      i = paste0("Use `duplicated_", sensor, "_rows()` to identify duplications.")
+    dup_fn <- paste0("duplicated_", sensor, "_rows")
+    cli::cli_abort(c(
+      "{.arg x} contains {length(dup)} timestamp{?s} with multiple sources of {sensor} data.",
+      "i" = "Use {.help [{.fun {dup_fn}}](move2imu::{dup_fn})} to identify duplications."
     ))
   }
 
@@ -96,11 +94,8 @@ as_imu_compact <- function(x, axes, freq, sensor, timestamp, force_int = FALSE) 
     all_vals <- all_vals[!is.na(all_vals)]
     
     if (any((as.numeric(all_vals) %% 1) != 0)) {
-      rlang::warn(
-        paste0(
-          "Detected numeric values, but expected integers. ",
-          "Some precision will be lost."
-        )
+      cli::cli_warn(
+        "Detected numeric values, but expected integers. Some precision will be lost."
       )
     }
     
@@ -200,18 +195,16 @@ parse_colsets <- function(x, colset, sensor, quiet = FALSE) {
     } else if (rlang::is_list(colset) && all(purrr::map_lgl(colset, is_imu_colset))) {
       colsets <- colset
     } else {
-      rlang::abort(c(
-        "`colset` must be an `imu_colset` object or a list of `imu_colset` objects.",
-        i = "Use `imu_colset()` to create an `imu_colset` object."
+      cli::cli_abort(c(
+        "{.arg colset} must be an {.cls imu_colset} object or a list of {.cls imu_colset} objects.",
+        "i" = "Use {.help [{.fun imu_colset}](move2imu::imu_colset)} to create an {.cls imu_colset} object."
       ))
     }
   } else {
     colsets <- active_colsets_(x, sensor = sensor)
-    
+
     if (!quiet && length(colsets) > 1) {
-      rlang::warn(paste0(
-        "Detected multiple valid ", sensor, " column sets."
-      ))
+      cli::cli_warn("Detected multiple valid {sensor} column sets.")
     }
   }
   
@@ -277,7 +270,9 @@ which_imu_vals <- function(x, colset) {
 #' @returns Integer vector of IDs identifying burst groups
 #' @noRd
 parse_bursts <- function(x, colset, min_freq = 1, freq_tol = 1e-6) {
-  assertthat::assert_that(min_freq >= 0)
+  if (min_freq < 0) {
+    cli::cli_abort("{.arg min_freq} must be greater than or equal to 0.")
+  }
   
   if (!inherits(min_freq, "units")) {
     min_freq <- units::set_units(min_freq, "Hz")
@@ -392,13 +387,10 @@ check_colset <- function(x, colset, call = rlang::caller_env()) {
 
 assert_colset_has_data <- function(x, colset, call = rlang::caller_env()) {
   if (all(cols_empty(x, colset))) {
-    rlang::abort(
+    cli::cli_abort(
       c(
-        "The provided `colset` columns contain no data.",
-        x = paste0(
-          "Columns \"", paste(colset, collapse = "\", \""),
-          "\" are empty."
-        )
+        "The provided {.arg colset} columns contain no data.",
+        "x" = "Column{?s} {.val {colset}} {?is/are} empty."
       ),
       call = call
     )
@@ -420,10 +412,10 @@ assert_matched_units <- function(x, cols, call = rlang::caller_env()) {
   )
   
   if (length(unique_units) != 1) {
-    rlang::abort(
+    cli::cli_abort(
       c(
         "Multiple units detected across input columns.",
-        i = "All columns must have consistent units."
+        "i" = "All columns must have consistent units."
       ),
       call = call
     )
@@ -434,13 +426,11 @@ assert_colset_numeric <- function(x, colset, call = rlang::caller_env()) {
   cols_num <- purrr::map_lgl(colset, function(col) is.numeric(x[[col]]))
   
   if (any(!cols_num)) {
-    rlang::abort(
+    non_numeric <- colset[!cols_num]
+    cli::cli_abort(
       c(
-        paste0(
-          "Detected non-numeric columns: \"",
-          paste0(colset[!cols_num], collapse = "\", \""), "\""
-        ),
-        i = "Columns must contain numeric data."
+        "Detected non-numeric column{?s}: {.val {non_numeric}}.",
+        "i" = "Columns must contain numeric data."
       ),
       call = call
     )
@@ -453,20 +443,23 @@ assert_compact_col_types <- function(x, colset, call = rlang::caller_env()) {
   freq_col <- colset[["frequency"]]
   
   if (!is.character(x[[bursts_col]]) && !is.factor(x[[bursts_col]])) {
-    rlang::abort(c(
-      paste0("`bursts` column \"", bursts_col, "\" must be character, not ", class(x[[bursts_col]])[1])
-    ), call = call)
+    cli::cli_abort(
+      "{.arg bursts} column {.val {bursts_col}} must be character, not {.cls {class(x[[bursts_col]])[1]}}.",
+      call = call
+    )
   }
-  
+
   if (!is.character(x[[axes_col]]) && !is.factor(x[[axes_col]])) {
-    rlang::abort(c(
-      paste0("`axes` column \"", axes_col, "\" must be character, not ", class(x[[axes_col]])[1])
-    ), call = call)
+    cli::cli_abort(
+      "{.arg axes} column {.val {axes_col}} must be character, not {.cls {class(x[[axes_col]])[1]}}.",
+      call = call
+    )
   }
-  
+
   if (!is.numeric(x[[freq_col]])) {
-    rlang::abort(c(
-      paste0("`frequency` column \"", freq_col, "\" must be numeric, not ", class(x[[freq_col]])[1])
-    ), call = call)
+    cli::cli_abort(
+      "{.arg frequency} column {.val {freq_col}} must be numeric, not {.cls {class(x[[freq_col]])[1]}}.",
+      call = call
+    )
   }
 }

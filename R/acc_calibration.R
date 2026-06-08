@@ -163,8 +163,10 @@ acc_calibration <- function(manufacturer = NULL,
 #'
 #' @rdname acc_calibration
 as_acc_calibration <- function(df) {
-  assertthat::assert_that(is.data.frame(df))
-
+  if (!is.data.frame(df)) {
+    cli::cli_abort("{.arg df} must be a data frame.")
+  }
+  
   args <- list(
     tag_id = df[["tag_id"]],
     manufacturer = df[["manufacturer"]],
@@ -212,13 +214,10 @@ build_calibrations <- function(args) {
   n_na <- sum(vctrs::vec_detect_missing(cals))
   
   if (n_na > 0) {
-    rlang::warn(
+    cli::cli_warn(
       c(
-        paste0(
-          "Returning `NA` for ", n_na, " of ", length(cals), 
-          " calibrations that could not be resolved."
-        ),
-        i = "See `?acc_calibration` for details about accepted calibration inputs."
+        "Returning NA for {n_na} calibrations that could not be resolved.",
+        "i" = "See {.help [{.fun acc_calibration}](move2imu::acc_calibration)} for details about accepted calibration inputs."
       ),
       class = "move2imu_unresolved_calibration"
     )

@@ -48,9 +48,9 @@ transform_imu <- function(x, calibration) {
   assert_imu(x)
   
   if (!inherits(calibration, "imu_calibration")) {
-    rlang::abort(c(
-      "`calibration` must be an `imu_calibration` object.",
-      i = "Use e.g. `acc_calibration()` to create one."
+    cli::cli_abort(c(
+      "{.arg calibration} must be an {.cls imu_calibration} object.",
+      "i" = "Use e.g. {.help [{.fn acc_calibration}](move2imu::acc_calibration)} to create one."
     ))
   }
   
@@ -58,12 +58,9 @@ transform_imu <- function(x, calibration) {
   expected <- paste0(sensor, "_calibration")
   
   if (!inherits(calibration, expected)) {
-    rlang::abort(c(
-      paste0(
-        "Cannot apply `", class(calibration)[1],
-        "` to an `", sensor, "` vector."
-      ),
-      i = paste0("Expected an `", expected, "` object.")
+    cli::cli_abort(c(
+      "Cannot apply {.cls {class(calibration)[1]}} to an {.cls {sensor}} vector.",
+      "i" = "Expected an {.cls {expected}} object."
     ))
   }
   
@@ -75,11 +72,8 @@ transform_imu <- function(x, calibration) {
   uncalibrated <- missing_cal & !is.na(x)
   
   if (any(uncalibrated)) {
-    rlang::warn(
-      paste0(
-        "Returning NA for ", sum(uncalibrated), 
-        " bursts with data but no calibration."
-      )
+    cli::cli_warn(
+      "Returning NA for {sum(uncalibrated)} {cli::qty(sum(uncalibrated))}burst{?s} with data but no calibration."
     )
   }
   
@@ -98,7 +92,7 @@ transform_imu <- function(x, calibration) {
         }
         # Refuse to recalibrate values that already carry units.
         if (inherits(.br, "units")) {
-          rlang::warn(
+          cli::cli_warn(
             "Cannot calibrate values that already contain units. Returning input."
           )
           return(.br)
@@ -155,10 +149,9 @@ transform_burst.acc_calibration <- function(calibration, burst, ...) {
   # Warn if any of the burst's axes have no calibration parameters
   na_axes <- active_axes[is.na(offset) | is.na(scale)]
   if (length(na_axes) > 0) {
-    rlang::warn(paste0(
-      "Missing calibration parameters for axis: ",
-      paste0(na_axes, collapse = ", "),
-      ". These axes will produce NA values."
+    cli::cli_warn(c(
+      "Missing calibration parameters for {cli::qty(na_axes)}{?axis/axes} {.val {na_axes}}.",
+      "!" = "{cli::qty(na_axes)}{?This axis/These axes} will produce NA values."
     ))
   }
 

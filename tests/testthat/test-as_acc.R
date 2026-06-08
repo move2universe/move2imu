@@ -188,7 +188,7 @@ test_that("Multi-colset drop = TRUE is subset of drop = FALSE", {
 
 test_that("Correctly error on bad colset specifications", {
   expect_error(as_acc(gulls(), colset = acc_colset_eobs()), "Missing columns")
-  expect_error(as_acc(gulls(), colset = "foobar"), "must be an `imu_colset`")
+  expect_error(as_acc(gulls(), colset = "foobar"), "must be an <imu_colset>")
 })
 
 test_that("Error on a user-supplied colset whose columns are present but empty", {
@@ -425,7 +425,7 @@ test_that("as_acc() checks expanded-format coltypes", {
   
   expect_error(
     as_acc(g, colset = acc_colset_raw_xyz()),
-    "Detected non-numeric columns"
+    "Detected non-numeric column"
   )
   expect_silent(as_acc(g, colset = imu_colset(y = "acceleration_raw_y")))
 })
@@ -433,7 +433,7 @@ test_that("as_acc() checks expanded-format coltypes", {
 test_that("as_acc() rejects plain character vector for colset", {
   expect_error(
     as_acc(albatrosses(), colset = c("eobs_accelerations_raw")),
-    "must be an `imu_colset`"
+    "must be an <imu_colset>"
   )
 })
 

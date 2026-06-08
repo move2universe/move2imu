@@ -61,20 +61,20 @@ imu_colset <- function(x = NULL,
   has_compact <- length(compact_args) > 0
   
   if (has_expanded && has_compact) {
-    rlang::abort(c(
+    cli::cli_abort(c(
       "Cannot mix expanded-format and compact-format columns in a single imu_colset.",
-      i = "Use either `x`/`y`/`z` (expanded-format) or `bursts`/`axes`/`frequency` (compact-format)."
+      "i" = "Use either {.code x}/{.code y}/{.code z} (expanded-format) or {.code bursts}/{.code axes}/{.code frequency} (compact-format)."
     ))
   }
-  
+
   if (!has_expanded && !has_compact) {
-    rlang::abort("No IMU data columns specified.")
+    cli::cli_abort("No IMU data columns specified.")
   }
-  
+
   if (has_compact) {
     if (length(compact_args) != 3) {
-      rlang::abort(
-        "Compact format requires `bursts`, `axes`, and `frequency` columns."
+      cli::cli_abort(
+        "Compact-format {.fun imu_colset} requires {.code bursts}, {.code axes}, and {.code frequency} columns."
       )
     }
     
@@ -555,10 +555,10 @@ assert_all_cols_present <- function(x, cols, call = rlang::caller_env()) {
   if (!all(cols %in% colnames(x))) {
     cols <- cols[which(!cols %in% colnames(x))]
     
-    rlang::abort(
+    cli::cli_abort(
       c(
         "Missing columns provided.",
-        x = paste0("Could not find columns \"", paste(cols, collapse = "\", \""), "\"")
+        "x" = "Could not find column{?s} {.val {cols}}."
       ),
       call = call
     )
@@ -566,12 +566,11 @@ assert_all_cols_present <- function(x, cols, call = rlang::caller_env()) {
 }
 
 abort_missing_colset <- function(sensor, call = rlang::caller_env()) {
-  rlang::abort(
+  fn <- paste0("movebank_", sensor, "_colsets")
+  cli::cli_abort(
     c(
-      paste0("Could not identify a full ", sensor, " column set in the input data."),
-      "i" = paste0(
-        "Use `movebank_", sensor, "_colsets()` to see supported ", sensor, " column sets."
-      )
+      "Could not identify a full {sensor} column set in the input data.",
+      "i" = "Use {.fn {fn}} to see supported {sensor} column sets."
     ),
     class = "move2imu_no_active_colset",
     call = call

@@ -242,7 +242,7 @@ select_panels <- function(panels, which_panel) {
 
   if (is.numeric(which_panel)) {
     if (any(which_panel > length(available)) || any(which_panel <= 0)) {
-      rlang::abort(paste0("`which_panel` must be between 1 and ", length(available)))
+      cli::cli_abort("{.arg which_panel} must be between 1 and {length(available)}.")
     }
 
     sel <- available[which_panel]

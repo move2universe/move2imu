@@ -26,7 +26,7 @@
 #' odba(a)
 vedba <- function(x) {
   if (!is_acc(x)) {
-    rlang::abort("`x` must be an `acc` vector.")
+    cli::cli_abort("{.arg x} must be an {.cls acc} vector.")
   }
   dba_(x, .f = function(.br) vedba_(.br))
 }
@@ -35,7 +35,7 @@ vedba <- function(x) {
 #' @export
 odba <- function(x) {
   if (!is_acc(x)) {
-    rlang::abort("`x` must be an `acc` vector.")
+    cli::cli_abort("{.arg x} must be an {.cls acc} vector.")
   }
   dba_(x, .f = function(.br) odba_(.br))
 }

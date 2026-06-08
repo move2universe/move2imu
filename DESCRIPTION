@@ -15,8 +15,8 @@ Description: Standardized vector representation of bursted
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
-Imports: 
-    assertthat,
+Imports:
+    cli,
     pillar,
     purrr,
     rlang,

@@ -17,7 +17,7 @@ imu <- function(sensor,
   if (!inherits(frequency, "units")) {
     frequency <- units::set_units(frequency, "Hz")
   } else if (!units::ud_are_convertible(units::deparse_unit(frequency), "Hz")) {
-    rlang::abort("`frequency` must be convertible to a frequency unit.")
+    cli::cli_abort("{.arg frequency} must be convertible to a frequency unit.")
   }
   
   start <- start %||% NA_real_
@@ -73,7 +73,7 @@ burst_list <- function(x, sensor) {
   )
   
   if (any(!is_valid)) {
-    rlang::abort("Burst matrix columns must be named \"X\", \"Y\", or \"Z\".")
+    cli::cli_abort("Burst matrix columns must be named {.val X}, {.val Y}, or {.val Z}.")
   }
   
   new_burst_list(x, sensor)
@@ -94,27 +94,17 @@ assert_imu <- function(x,
                        arg = rlang::caller_arg(x),
                        call = rlang::caller_env()) {
   if (inherits(x, "imu")) return(invisible(x))
-  
+
   types <- valid_imu_types()
-  names <- paste0("`", types, "`")
-  
-  msg <- paste0(
-    "`", arg, "` must be ",
-    if (length(types) == 1) {
-      paste0("an ", names, " vector.")
-    } else if (length(types) == 2) {
-      paste0("an ", names[1], " or ", names[2], " vector.")
-    } else {
-      # Oxford-comma list for three or more: "an `a`, `b`, or `c` vector."
-      paste0(
-        "an ",
-        paste0(names[-length(names)], collapse = ", "),
-        ", or ", names[length(names)], " vector."
-      )
-    }
+  types_fmt <- paste0(
+    vapply(types, function(t) cli::format_inline("{.cls {t}}"), character(1)),
+    collapse = "/"
   )
-  
-  rlang::abort(msg, call = call)
+
+  cli::cli_abort(
+    "{.arg {arg}} must be an IMU vector ({types_fmt}).",
+    call = call
+  )
 }
 
 #' @export

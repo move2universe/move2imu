@@ -119,14 +119,16 @@ drop_units.gyro <- function(x, ...) {
 }
 
 set_imu_units_ <- function(x, value, reference, sensor) {
-  assertthat::assert_that(is.character(value), length(value) == 1)
-  
+  if (!is.character(value) || length(value) != 1) {
+    cli::cli_abort("{.arg value} must be a character string of length 1.")
+  }
+
   can_convert <- units::ud_are_convertible(reference, value)
-  
+
   if (!can_convert) {
-    rlang::abort(c(
-      paste0(value, " units not valid for `", sensor, "` vector."),
-      i = paste0("Units must be convertible to ", reference)
+    cli::cli_abort(c(
+      "{value} units not valid for {.cls {sensor}} vector.",
+      "i" = "Units must be convertible to {reference}."
     ))
   }
   
