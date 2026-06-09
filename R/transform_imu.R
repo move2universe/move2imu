@@ -1,16 +1,15 @@
-#' Apply sensor calibration functions to an IMU vector
+#' Apply a sensor calibration to an IMU vector
 #'
 #' @description
 #' Transforms raw values from an IMU sensor to physical units (e.g., meters
-#' per second squared) using a specified calibration function or set of 
-#' calibration functions.
-#' 
-#' Use [acc_calibration()] to specify calibration functions for `acc` vectors.
+#' per second squared) using a specified calibration.
+#'
+#' Use [acc_calibration()] to create a calibration for `acc` vectors.
 #'
 #' @param x An IMU vector (`acc`, `mag`, or `gyro`).
 #' @param calibration An `imu_calibration` object whose subclass matches the
 #'   sensor type of `x`. Must be the same length as `x` or length 1, in which
-#'   case the calibration function is recycled to all elements of `x`.
+#'   case the calibration is recycled to all elements of `x`.
 #'
 #'   Currently, only [acc_calibration()] is supported.
 #'
@@ -21,7 +20,7 @@
 #' calibration specifications.
 #' 
 #' @return An IMU vector of the same length as `x`, with each burst transformed
-#'   by the corresponding calibration function.
+#'   by the corresponding calibration.
 #'   
 #' @seealso [acc_calibration()] to construct an accelerometer calibration.
 #'
@@ -33,7 +32,7 @@
 #' # Transform values using the standard Ornitela calibration formula
 #' transform_imu(a, acc_calibration("ornitela"))
 #'
-#' # Transform values using a set of custom acc calibration functions.
+#' # Transform values using a set of custom acc calibrations.
 #' # Calibrations will be mapped to the input IMU vector by index.
 #' transform_imu(
 #'   a,
@@ -81,12 +80,24 @@ transform_imu <- function(x, calibration) {
   bursts(x) <- new_burst_list(
     purrr::map2(
       bursts(x),
-      vctrs::vec_data(calibration),
-      function(.br, .calibrate) {
-        if (is.null(.calibrate)) {
+      vctrs::vec_chop(calibration),
+      function(.br, .cal) {
+        # No calibration for this element: drop the burst (becomes NA).
+        if (vctrs::vec_detect_missing(.cal)) {
           return(NULL)
         }
-        .calibrate(.br)
+        # Nothing to calibrate (empty/NA burst): pass through unchanged.
+        if (rlang::is_empty(.br) || rlang::is_na(.br)) {
+          return(.br)
+        }
+        # Refuse to recalibrate values that already carry units.
+        if (inherits(.br, "units")) {
+          rlang::warn(
+            "Cannot calibrate values that already contain units. Returning input."
+          )
+          return(.br)
+        }
+        transform_burst(.cal, .br)
       }
     ),
     sensor = sensor
@@ -98,4 +109,61 @@ transform_imu <- function(x, calibration) {
   }
   
   x
+}
+
+# Apply a single calibration to a single burst.
+#
+# `transform_burst()` is the intermediary that handles heterogeneity in the
+# way parameters stored in a calibration object are converted into a
+# function that maps raw values to physical units. Different sensors can
+# implement different methods to convert calibrations for those sensors into
+# functions that will be applied to an individual burst to convert values.
+#
+# transform_imu() facilitates the dispatch of these transformations across all
+# bursts in an imu object.
+#
+# `calibration` is a length-1 calibration record and `burst` is a numeric matrix
+# of raw values with axis columns (e.g. "X", "Y", "Z").
+transform_burst <- function(calibration, burst, ...) {
+  UseMethod("transform_burst")
+}
+
+# Apply accelerometer calibration to a burst. Acc calibrations are linear
+# transformations of the form (raw - offset) * slope * orientation
+# `calibration` is a length-1 `acc_calibration`; `burst` is a raw numeric matrix
+# with axis columns. Only the axes named in `axes` and present in the burst 
+# are calibrated.
+#' @export
+transform_burst.acc_calibration <- function(calibration, burst, ...) {
+  f <- vctrs::vec_data(calibration)
+
+  offset <- c(X = f$offset_x, Y = f$offset_y, Z = f$offset_z)
+  scale <- c(X = f$slope_x, Y = f$slope_y, Z = f$slope_z) *
+    c(X = f$orientation_x, Y = f$orientation_y, Z = f$orientation_z)
+  axes <- strsplit(f$axes, "")[[1]]
+
+  # Resolve requested axes against what's actually in the burst
+  active_axes <- intersect(axes, colnames(burst))
+  offset <- offset[active_axes]
+  scale <- scale[active_axes]
+
+  # Warn if any active axes have no calibration parameters
+  na_axes <- active_axes[is.na(offset) | is.na(scale)]
+  if (length(na_axes) > 0) {
+    rlang::warn(paste0(
+      "Missing calibration parameters for axis: ",
+      paste0(na_axes, collapse = ", "),
+      ". These axes will produce NA values."
+    ))
+  }
+
+  # Apply calibration
+  xt <- sweep(burst[, active_axes, drop = FALSE], 2, offset, `-`)
+  xt <- sweep(xt, 2, scale, `*`)
+  if (f$units == "m/s^2") {
+    xt <- xt * GRAV_CONST
+  }
+
+  colnames(xt) <- active_axes
+  units::set_units(xt, f$units, mode = "standard")
 }

@@ -6,14 +6,52 @@ test_that("acc_calibration() returns an acc_calibration object", {
   cal <- acc_calibration(offset = 2048, slope = 0.001)
   expect_s3_class(cal, "acc_calibration")
   expect_s3_class(cal, "imu_calibration")
-  expect_s3_class(cal, "vctrs_vctr")
-  expect_true(is.list(cal))
-  expect_true(all(purrr::map_lgl(cal, is.function)))
+  expect_s3_class(cal, "vctrs_rcrd")
+  expect_length(cal, 1)
+  expect_named(
+    vctrs::vec_data(cal),
+    c("offset_x", "offset_y", "offset_z", "slope_x", "slope_y", "slope_z",
+      "orientation_x", "orientation_y", "orientation_z", "axes", "units")
+  )
 })
 
 test_that("acc_calibration() prints with its sensor-specific class", {
   cal <- acc_calibration(offset = 2048, slope = 0.001)
   expect_output(print(cal), "<acc_calibration\\[1\\]>")
+})
+
+test_that("format() collapses uniform axes and hides default orientation", {
+  cal <- acc_calibration(offset = 2048, slope = 0.001)
+  expect_identical(format(cal), "{offset=[2048] slope=[0.001]}")
+  expect_false(grepl("orient", format(cal)))
+})
+
+test_that("format() expands differing axes and shows a flipped orientation", {
+  cal <- acc_calibration(offset_x = 2048, offset_y = 2046, slope = 1 / 512, orientation_y = -1)
+  out <- format(cal)
+  expect_match(out, "offset=[2048, 2046, NA]", fixed = TRUE)
+  expect_match(out, "slope=[0.00195]", fixed = TRUE)
+  expect_match(out, "orientation=[1, -1, 1]", fixed = TRUE)
+})
+
+test_that("format() renders a missing calibration as NA", {
+  cal <- suppressWarnings(as_acc_calibration(
+    data.frame(manufacturer = c("ornitela", "foobar"), offset = c(NA, 1), slope = c(NA, 1))
+  ))
+  expect_false(is.na(format(cal)[1]))
+  expect_identical(format(cal)[2], NA_character_)
+})
+
+test_that("acc_calibration abbreviates and renders compactly in columns", {
+  skip_if_not_installed("pillar")
+  cal <- suppressWarnings(as_acc_calibration(
+    data.frame(manufacturer = c("ornitela", "foobar"), offset = c(NA, 1), slope = c(NA, 1))
+  ))
+  expect_equal(vctrs::vec_ptype_abbr(cal), "acc_cal")
+
+  cells <- format(pillar::pillar_shaft(cal), width = 12)
+  expect_match(cells[1], "acc_cal")
+  expect_match(cells[2], "NA")
 })
 
 test_that("as_acc_calibration() returns an acc_calibration object", {
@@ -27,31 +65,42 @@ test_that("acc_calibration() vectorizes arguments", {
   expect_length(cal, 2)
 })
 
+test_that("acc_calibration() with no specs returns a length-0 vector", {
+  expect_silent(cal <- acc_calibration())
+  expect_s3_class(cal, "acc_calibration")
+  expect_length(cal, 0)
+})
+
+test_that("format() of a length-0 calibration is character(0)", {
+  expect_identical(format(acc_calibration()), character(0))
+  expect_output(print(acc_calibration()), "<acc_calibration\\[0\\]>")
+})
+
 test_that("acc_calibration() applies offset and slope correctly (m/s^2)", {
   cal <- acc_calibration(offset = 2048, slope = 0.001)
-  result <- cal[[1]](b)
+  result <- transform_burst(cal[1], b)
   manual <- units::set_units(((b - 2048) * 0.001) * GRAV_CONST, "m/s^2")
   expect_identical(result, manual)
 })
 
 test_that("acc_calibration() applies offset and slope correctly (gravity)", {
   cal <- acc_calibration(offset = 2048, slope = 0.001, units = "standard_free_fall")
-  result <- cal[[1]](b)
+  result <- transform_burst(cal[1], b)
   manual <- units::set_units(((b - 2048) * 0.001), "standard_free_fall")
   expect_identical(result, manual)
 })
 
 test_that("acc_calibration() applies different calibrations when vectorized", {
   cal <- acc_calibration(offset = c(2048, 0), slope = c(0.001, 1))
-  r1 <- cal[[1]](b)
-  r2 <- cal[[2]](b)
+  r1 <- transform_burst(cal[1], b)
+  r2 <- transform_burst(cal[2], b)
   expect_identical(r1, units::set_units(((b - 2048) * 0.001) * GRAV_CONST, "m/s^2"))
   expect_identical(r2, units::set_units(((b - 0) * 1) * GRAV_CONST, "m/s^2"))
 })
 
 test_that("acc_calibration() applies scalar orientation correctly", {
   cal <- acc_calibration(offset = 2048, slope = 0.001, orientation = -1)
-  result <- cal[[1]](b)
+  result <- transform_burst(cal[1], b)
   manual <- units::set_units(((b - 2048) * 0.001) * GRAV_CONST, "m/s^2")
 
   expect_identical(result[, 1], manual[, 1] * -1)
@@ -61,7 +110,7 @@ test_that("acc_calibration() applies scalar orientation correctly", {
 
 test_that("acc_calibration() applies per-axis orientation", {
   cal <- acc_calibration(offset = 2048, slope = 0.001, orientation_y = -1)
-  result <- cal[[1]](b)
+  result <- transform_burst(cal[1], b)
   manual <- units::set_units(((b - 2048) * 0.001) * GRAV_CONST, "m/s^2")
 
   expect_identical(result[, "X"], manual[, "X"])
@@ -74,7 +123,7 @@ test_that("acc_calibration() applies per-axis offset and slope", {
     offset_x = 0, offset_y = 2048, offset_z = 2000,
     slope_x = 1, slope_y = 0.001, slope_z = 0.001
   )
-  result <- cal[[1]](b)
+  result <- transform_burst(cal[1], b)
 
   expect_identical(
     result[, "X"],
@@ -92,55 +141,78 @@ test_that("acc_calibration() applies per-axis offset and slope", {
 
 test_that("acc_calibration() output has units class attached", {
   cal <- acc_calibration(offset = 0, slope = 1)
-  result <- cal[[1]](b)
+  result <- transform_burst(cal[1], b)
   expect_true(inherits(result, "units"))
 })
 
-test_that("acc_calibration() warns on already-calibrated data", {
-  cal <- acc_calibration(offset = 2048, slope = 0.001)
-  calibrated <- cal[[1]](b)
-  expect_warning(cal[[1]](calibrated), "already contain units")
-})
-
-test_that("acc_calibration() handles NULL/empty burst", {
-  cal <- acc_calibration(offset = 2048, slope = 0.001)
-  expect_null(cal[[1]](NULL))
-})
-
-test_that("acc_calibration() errors on invalid units", {
-  expect_error(
-    acc_calibration(offset = 0, slope = 1, units = "feet"),
-    "units"
+test_that("acc_calibration() warns and returns NA on invalid units", {
+  expect_warning(
+    cal <- acc_calibration(offset = 0, slope = 1, units = "feet"),
+    "could not be resolved"
   )
+  expect_true(is.na(cal))
 })
 
-test_that("acc_calibration() errors when no manufacturer and no offset", {
-  expect_error(
-    acc_calibration(slope = 0.001),
-    "offset.*required"
+test_that("acc_calibration() warns and returns NA when no manufacturer and no offset", {
+  expect_warning(
+    cal <- acc_calibration(slope = 0.001),
+    "could not be resolved"
   )
+  expect_true(is.na(cal))
 })
 
-test_that("acc_calibration() errors when no manufacturer and no slope", {
-  expect_error(
-    acc_calibration(offset = 2048),
-    "slope.*required"
+test_that("acc_calibration() warns and returns NA when no manufacturer and no slope", {
+  expect_warning(
+    cal <- acc_calibration(offset = 2048),
+    "could not be resolved"
   )
+  expect_true(is.na(cal))
 })
 
-test_that("acc_calibration() errors on invalid orientation value", {
-  expect_error(acc_calibration(offset = 2048, slope = 0.001, orientation = 0))
-})
-
-test_that("acc_calibration() errors on unrecognized manufacturer", {
-  expect_error(
-    acc_calibration(manufacturer = "foobar", offset = 1, slope = 1),
-    "Unrecognized manufacturer"
+test_that("acc_calibration() needs offset and slope on the same axis", {
+  # offset on X but slope on Y calibrates nothing -> NA, not a usable cal
+  expect_warning(
+    cal <- acc_calibration(offset_x = 10, slope_y = 1),
+    "could not be resolved"
   )
+  expect_true(is.na(cal))
+
+  # both on the same axis is a usable (partial) calibration
+  expect_false(is.na(acc_calibration(offset_x = 10, slope_x = 1)))
 })
 
-test_that("acc_calibration() eobs requires tag_id", {
-  expect_error(acc_calibration(manufacturer = "eobs"), "tag_id")
+test_that("acc_calibration() axis pairing is scoped to requested axes", {
+  # complete Y spec, but only X requested -> nothing to calibrate -> NA
+  expect_warning(
+    cal <- acc_calibration(offset_y = 1, slope_y = 1, axes = "X"),
+    "could not be resolved"
+  )
+  expect_true(is.na(cal))
+  expect_false(is.na(acc_calibration(offset_x = 1, slope_x = 1, axes = "X")))
+})
+
+test_that("acc_calibration() warns and returns NA on invalid orientation value", {
+  expect_warning(
+    cal <- acc_calibration(offset = 2048, slope = 0.001, orientation = 0),
+    "could not be resolved"
+  )
+  expect_true(is.na(cal))
+})
+
+test_that("acc_calibration() warns and returns NA on unrecognized manufacturer", {
+  expect_warning(
+    cal <- acc_calibration(manufacturer = "foobar", offset = 1, slope = 1),
+    "could not be resolved"
+  )
+  expect_true(is.na(cal))
+})
+
+test_that("acc_calibration() eobs warns and returns NA without tag_id", {
+  expect_warning(
+    cal <- acc_calibration(manufacturer = "eobs"),
+    "could not be resolved"
+  )
+  expect_true(is.na(cal))
 })
 
 # --- Manufacturer defaults ---------------------------------------------------
@@ -153,15 +225,27 @@ test_that("acc_calibration() with eobs uses correct defaults per generation", {
 
   # Gen 1 (1000) has orientation_y = 1, gen 3 (5000) has orientation_y = -1
   # Y axis should have opposite signs
-  y1 <- as.numeric(cal[[1]](b)[1, "Y"])
-  y3 <- as.numeric(cal[[2]](b)[1, "Y"])
+  y1 <- as.numeric(transform_burst(cal[1], b)[1, "Y"])
+  y3 <- as.numeric(transform_burst(cal[2], b)[1, "Y"])
   expect_true(sign(y1) != sign(y3))
+})
+
+test_that("eobs_specs() resolves a factor tag_id by label, not integer code", {
+  expect_identical(eobs_specs(factor(c("1000", "5000"))), eobs_specs(c(1000, 5000)))
+
+  fac <- suppressWarnings(as_acc_calibration(
+    data.frame(manufacturer = "eobs", tag_id = factor(c("1000", "5000")))
+  ))
+  num <- suppressWarnings(as_acc_calibration(
+    data.frame(manufacturer = "eobs", tag_id = c(1000, 5000))
+  ))
+  expect_identical(fac, num)
 })
 
 test_that("acc_calibration() with ornitela uses correct defaults", {
   cal <- acc_calibration(manufacturer = "ornitela")
   sp <- ornitela_specs()
-  result <- cal[[1]](b)
+  result <- transform_burst(cal[1], b)
   manual <- units::set_units(((b - sp$offset) * sp$slope) * GRAV_CONST, "m/s^2")
   expect_identical(result, manual)
 })
@@ -171,7 +255,7 @@ test_that("acc_calibration() with ornitela uses correct defaults", {
 test_that("user-provided offset overrides manufacturer default", {
   cal <- acc_calibration(manufacturer = "eobs", tag_id = 1000, offset_x = 9999)
   sp <- eobs_specs(1000)
-  r <- cal[[1]](b)
+  r <- transform_burst(cal[1], b)
   # X should use custom offset 9999, Y/Z should use eobs default
   expect_identical(
     r[, "X"],
@@ -187,45 +271,45 @@ test_that("user-provided orientation overrides manufacturer default", {
   # eobs gen 2 default orientation_y = -1; override to 1
   cal <- acc_calibration(manufacturer = "eobs", tag_id = 3000, orientation_y = 1)
   sp <- eobs_specs(3000)
-  r <- cal[[1]](b)
+  r <- transform_burst(cal[1], b)
   # Y should use orientation 1 (not the gen 2 default of -1)
   expect_identical(
     r[, "Y"],
     units::set_units((b[, "Y"] - sp$offset) * sp$slope * 1 * GRAV_CONST, "m/s^2")
   )
   # Confirm this differs from the default (orientation_y = -1)
-  r_default <- acc_calibration(manufacturer = "eobs", tag_id = 3000)[[1]](b)
+  r_default <- transform_burst(acc_calibration(manufacturer = "eobs", tag_id = 3000)[1], b)
   expect_identical(r[, "Y"], r_default[, "Y"] * -1)
 })
 
 test_that("NA values fall through to manufacturer default", {
   cal <- acc_calibration(manufacturer = "eobs", tag_id = 3000, orientation_y = NA)
   cal_default <- acc_calibration(manufacturer = "eobs", tag_id = 3000)
-  expect_identical(cal[[1]](b), cal_default[[1]](b))
+  expect_identical(transform_burst(cal[1], b), transform_burst(cal_default[1], b))
 })
 
 # --- axes parameter -----------------------------------------------------------
 
 test_that("axes restricts output to specified axes", {
   cal <- acc_calibration(offset = 2048, slope = 0.001, axes = "XY")
-  result <- cal[[1]](b)
+  result <- transform_burst(cal[1], b)
   expect_equal(colnames(result), c("X", "Y"))
   expect_equal(ncol(result), 2)
 })
 
 test_that("axes suppresses NA warnings for excluded axes", {
   cal <- acc_calibration(offset_x = 2048, slope = 0.001, axes = "X")
-  expect_no_warning(cal[[1]](b))
+  expect_no_warning(transform_burst(cal[1], b))
 })
 
 test_that("axes warns on missing params for included axes", {
   cal <- acc_calibration(offset_x = 2048, slope = 0.001, axes = "XY")
-  expect_warning(cal[[1]](b), "Missing calibration parameters")
+  expect_warning(transform_burst(cal[1], b), "Missing calibration parameters")
 })
 
 test_that("axes accepts lowercase and whitespace", {
   cal <- acc_calibration(offset = 2048, slope = 0.001, axes = "x y")
-  result <- cal[[1]](b)
+  result <- transform_burst(cal[1], b)
   expect_equal(colnames(result), c("X", "Y"))
 })
 
@@ -235,7 +319,7 @@ test_that("per-axis params with omitted axes calibrate correctly", {
     slope_x = 0.001, slope_y = 0.002
   )
 
-  result <- suppressWarnings(cal[[1]](b))
+  result <- suppressWarnings(transform_burst(cal[1], b))
 
   # X and Y are calibrated
   expect_equal(as.numeric(result[, "X"]), (b[, "X"] - 1000) * 0.001 * GRAV_CONST)
@@ -251,36 +335,38 @@ test_that("axes vectorizes across elements", {
     slope = 0.001,
     axes = c("XYZ", "XY")
   )
-  expect_equal(ncol(cal[[1]](b)), 3)
-  expect_equal(ncol(cal[[2]](b)), 2)
+  expect_equal(ncol(transform_burst(cal[1], b)), 3)
+  expect_equal(ncol(transform_burst(cal[2], b)), 2)
 })
 
-test_that("invalid axes error", {
-  expect_error(acc_calibration(offset = 1, slope = 1, axes = NA), "axes")
-  expect_error(acc_calibration(offset = 1, slope = 1, axes = "ABC"), "axes")
-  expect_error(acc_calibration(offset = 1, slope = 1, axes = ""), "axes")
+test_that("invalid axes warns and returns NA", {
+  expect_warning(a1 <- acc_calibration(offset = 1, slope = 1, axes = "ABC"), "could not be resolved")
+  expect_warning(a2 <- acc_calibration(offset = 1, slope = 1, axes = ""), "could not be resolved")
+  expect_true(is.na(a1))
+  expect_true(is.na(a2))
 })
 
 # --- as_acc_calibration() ------------------------------------------------
 
-test_that("as_acc_calibration() creates functions from data.frame", {
+test_that("as_acc_calibration() creates a calibration from a data.frame", {
   df <- data.frame(tag_id = c(1000, NA), manufacturer = c("eobs", "ornitela"))
   cal <- as_acc_calibration(df)
+  expect_s3_class(cal, "acc_calibration")
   expect_length(cal, 2)
-  expect_true(all(purrr::map_lgl(cal, is.function)))
+  expect_false(any(is.na(cal)))
 })
 
 test_that("as_acc_calibration() scalar col fills missing axis cols", {
   df <- data.frame(tag_id = 1, offset = 2048, offset_x = NA_real_, slope = 0.001)
   cal <- as_acc_calibration(df)
   cal_ref <- acc_calibration(offset = 2048, slope = 0.001)
-  expect_identical(cal[[1]](b), cal_ref[[1]](b))
+  expect_identical(transform_burst(cal[1], b), transform_burst(cal_ref[1], b))
 })
 
 test_that("as_acc_calibration() axis-specific col overrides scalar", {
   df <- data.frame(tag_id = 1, offset = 2048, offset_x = 9999, slope = 0.001)
   cal <- as_acc_calibration(df)
-  r <- cal[[1]](b)
+  r <- transform_burst(cal[1], b)
   # X should use axis-specific 9999, Y/Z should use scalar 2048
   expect_identical(
     r[, "X"],
@@ -296,7 +382,7 @@ test_that("as_acc_calibration() NA orientation falls back to manufacturer defaul
   df <- data.frame(tag_id = 3000, manufacturer = "eobs", orientation_y = NA_real_)
   cal <- as_acc_calibration(df)
   cal_default <- acc_calibration(manufacturer = "eobs", tag_id = 3000)
-  expect_identical(cal[[1]](b), cal_default[[1]](b))
+  expect_identical(transform_burst(cal[1], b), transform_burst(cal_default[1], b))
 })
 
 test_that("as_acc_calibration() silently ignores unrecognized columns", {
@@ -304,17 +390,50 @@ test_that("as_acc_calibration() silently ignores unrecognized columns", {
   expect_silent(as_acc_calibration(df))
 })
 
-test_that("as_acc_calibration() returns NA for a row it cannot build", {
-  cal <- as_acc_calibration(
-    data.frame(
-      manufacturer = c("ornitela", "foobar", NA),
-      offset = c(NA, 1, NA), slope = c(NA, 1, NA)
-    )
+test_that("as_acc_calibration() warns and returns NA for rows it cannot build", {
+  expect_warning(
+    cal <- as_acc_calibration(
+      data.frame(
+        manufacturer = c("ornitela", "foobar", NA),
+        offset = c(NA, 1, NA), slope = c(NA, 1, NA)
+      )
+    ),
+    "for 2 of 3 calibrations"
   )
   expect_length(cal, 3)
   expect_false(is.na(cal)[1])
   expect_true(is.na(cal)[2])
   expect_true(is.na(cal)[3])
+})
+
+test_that("as_acc_calibration() keeps its type when every row is unresolved", {
+  # All-NA results must still be an `acc_calibration`, not collapse to logical
+  cal <- suppressWarnings(as_acc_calibration(data.frame(notes = c("a", "b"))))
+  expect_s3_class(cal, "acc_calibration")
+  expect_length(cal, 2)
+  expect_true(all(is.na(cal)))
+})
+
+test_that("acc_calibration() and as_acc_calibration() agree on unresolved entries", {
+  vec <- suppressWarnings(
+    acc_calibration(manufacturer = c("eobs", "eobs"), tag_id = c(1000, NA))
+  )
+  df <- suppressWarnings(
+    as_acc_calibration(data.frame(manufacturer = "eobs", tag_id = c(1000, NA)))
+  )
+  expect_identical(is.na(vec), is.na(df))
+  expect_identical(
+    transform_burst(vec[1], b),
+    transform_burst(df[1], b)
+  )
+})
+
+test_that("acc_calibration() warns once for multiple unresolved entries", {
+  expect_warning(
+    cal <- acc_calibration(manufacturer = "eobs", tag_id = c(NA, NA, 1000)),
+    "for 2 of 3 calibrations"
+  )
+  expect_equal(is.na(cal), c(TRUE, TRUE, FALSE))
 })
 
 test_that("as_acc_calibration() handles mixed manufacturer and custom rows", {
@@ -328,7 +447,7 @@ test_that("as_acc_calibration() handles mixed manufacturer and custom rows", {
   cal <- as_acc_calibration(df)
   expect_length(cal, 4)
 
-  r <- lapply(cal, function(f) f(b))
+  r <- lapply(seq_along(cal), function(i) transform_burst(cal[i], b))
 
   # Row 1: eobs gen 1 defaults, orientation_y = 1
   sp1 <- eobs_specs(1000)
@@ -351,8 +470,8 @@ test_that("as_acc_calibration() works with no manufacturer column", {
   cal <- as_acc_calibration(df)
   expect_length(cal, 2)
 
-  r1 <- cal[[1]](b)
-  r2 <- cal[[2]](b)
+  r1 <- transform_burst(cal[1], b)
+  r2 <- transform_burst(cal[2], b)
   expect_identical(r1, units::set_units(((b - 2048) * 0.001) * GRAV_CONST, "m/s^2"))
   expect_identical(r2, units::set_units(((b - 100) * 0.5) * GRAV_CONST, "m/s^2"))
 })
@@ -360,21 +479,21 @@ test_that("as_acc_calibration() works with no manufacturer column", {
 test_that("as_acc_calibration() does 1:1 row-to-calibration conversion", {
   cal <- as_acc_calibration(
     data.frame(
-      tag_id = c(1000, 1000), 
+      tag_id = c(1000, 1000),
       manufacturer = "eobs",
-      offset = c(2048, 2100), 
+      offset = c(2048, 2100),
       slope = 0.001
     )
   )
-  
+
   expect_length(cal, 2)
   expect_identical(
-    cal[[1]](b),
-    acc_calibration("eobs", tag_id = 1000, offset = 2048, slope = 0.001)[[1]](b)
+    transform_burst(cal[1], b),
+    transform_burst(acc_calibration("eobs", tag_id = 1000, offset = 2048, slope = 0.001)[1], b)
   )
   expect_identical(
-    cal[[2]](b),
-    acc_calibration("eobs", tag_id = 1000, offset = 2100, slope = 0.001)[[1]](b)
+    transform_burst(cal[2], b),
+    transform_burst(acc_calibration("eobs", tag_id = 1000, offset = 2100, slope = 0.001)[1], b)
   )
 })
 
@@ -383,11 +502,14 @@ test_that("as_acc_calibration() treats NA units/axes as defaults", {
   # an otherwise complete calibration spec.
   cal_u <- as_acc_calibration(data.frame(offset = 2048, slope = 0.001, units = NA))
   expect_false(is.na(cal_u)[1])
-  expect_identical(cal_u[[1]](b), acc_calibration(offset = 2048, slope = 0.001)[[1]](b))
-  
+  expect_identical(
+    transform_burst(cal_u[1], b),
+    transform_burst(acc_calibration(offset = 2048, slope = 0.001)[1], b)
+  )
+
   cal_a <- as_acc_calibration(data.frame(offset = 2048, slope = 0.001, axes = NA))
   expect_false(is.na(cal_a)[1])
-  expect_equal(ncol(cal_a[[1]](b)), 3)
+  expect_equal(ncol(transform_burst(cal_a[1], b)), 3)
 })
 
 # --- eobs_specs() -------------------------------------------------------------

@@ -2,7 +2,7 @@
 % Please edit documentation in R/transform_imu.R
 \name{transform_imu}
 \alias{transform_imu}
-\title{Apply sensor calibration functions to an IMU vector}
+\title{Apply a sensor calibration to an IMU vector}
 \usage{
 transform_imu(x, calibration)
 }
@@ -11,20 +11,19 @@ transform_imu(x, calibration)
 
 \item{calibration}{An \code{imu_calibration} object whose subclass matches the
 sensor type of \code{x}. Must be the same length as \code{x} or length 1, in which
-case the calibration function is recycled to all elements of \code{x}.
+case the calibration is recycled to all elements of \code{x}.
 
 Currently, only \code{\link[=acc_calibration]{acc_calibration()}} is supported.}
 }
 \value{
 An IMU vector of the same length as \code{x}, with each burst transformed
-by the corresponding calibration function.
+by the corresponding calibration.
 }
 \description{
 Transforms raw values from an IMU sensor to physical units (e.g., meters
-per second squared) using a specified calibration function or set of
-calibration functions.
+per second squared) using a specified calibration.
 
-Use \code{\link[=acc_calibration]{acc_calibration()}} to specify calibration functions for \code{acc} vectors.
+Use \code{\link[=acc_calibration]{acc_calibration()}} to create a calibration for \code{acc} vectors.
 }
 \details{
 An \code{acc_calibration} object may contain missing (\code{NA}) elements (e.g. if
@@ -38,7 +37,7 @@ a <- acc_example()
 # Transform values using the standard Ornitela calibration formula
 transform_imu(a, acc_calibration("ornitela"))
 
-# Transform values using a set of custom acc calibration functions.
+# Transform values using a set of custom acc calibrations.
 # Calibrations will be mapped to the input IMU vector by index.
 transform_imu(
   a,

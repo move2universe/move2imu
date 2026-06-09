@@ -74,7 +74,7 @@ vec_ptype_full.gyro <- function(x, ...) {
   "gyroscope"
 }
 
-# todo does this need export?
+#' @export
 pillar_shaft.imu <- function(x, ...) {
   out <- format(x)
   pillar::new_pillar_shaft_simple(out, align = "right")

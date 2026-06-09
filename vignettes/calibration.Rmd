@@ -17,6 +17,20 @@ knitr::opts_chunk$set(
   out.width = "80%"
 )
 
+local({
+  hook_output <- knitr::knit_hooks$get("output")
+  knitr::knit_hooks$set(output = function(x, options) {
+    n <- options$out.lines
+    if (!is.null(n)) {
+      lines <- strsplit(x, "\n", fixed = TRUE)[[1]]
+      if (length(lines) > n) {
+        x <- paste(c(lines[seq_len(n)], "#> ..."), collapse = "\n")
+      }
+    }
+    hook_output(x, options)
+  })
+})
+
 Sys.setlocale("LC_TIME", "en_US.utf8")
 ```
 
@@ -113,7 +127,7 @@ cal <- acc_calibration(manufacturer = "eobs", tag_id = 4266)
 cal
 ```
 
-Then, we simply use `imu_transform()` to apply this transformation to
+Then, we simply use `transform_imu()` to apply this transformation to
 the albatross acceleration bursts:
 
 ```{r}
@@ -157,19 +171,28 @@ ADC values to meaningful units using the provided calibration. Otherwise,
 you will end up simply assigning units to raw values without changing the 
 values themselves.
 
+```{r}
+alb$acceleration[2]
+
+set_imu_units(alb$acceleration[2], "standard_free_fall")
+```
+
 ## Vectorized calibration
 
 The problem with the above approach is that it assumes that *all* tags used
-in the study had ID `4266` (generation 3). If all the albatrosses tagged in the study used generation 3 e-obs tags, then this wouldn't be a problem.
+in the study had ID `4266` (generation 3). If all the albatrosses tagged in the 
+study used generation 3 e-obs tags, then this wouldn't be a problem.
 
 However, e-obs has revised the default calibration over time, so earlier 
 generations of tags don't necessarily have the same transformation function.
 (You can see the default calibration specifications for e-obs tags with 
 `eobs_default_specs()`.)
 
-In these cases, you can provide a set of per-burst calibrations.
+In these cases, you can build a vector of per-burst calibration specifications,
+which when passed to `transform_imu()` will be matched to bursts by index.
 
-For instance, imagine that the e-obs tag IDs were stored in the original `move2` object like so:
+For instance, imagine that the e-obs tag IDs were stored in the original 
+`move2` object like so:
 
 ```{r}
 # Example IDs that span e-obs generations
@@ -181,26 +204,45 @@ alb <- mt_set_track_data(
   mutate(mt_track_data(alb), tag_id = fake_ids)
 )
 
-# Expand tag IDs to per-row event data
-alb <- mt_as_event_attribute(alb, tag_id)
-
-head(alb[, "tag_id"])
+mt_track_data(alb)
 ```
 
-We could use this per-row metadata to build a vectorized set of calibration
+We could use this track-level metadata to build a vectorized set of calibration
 functions based on the tag ID:
 
 ```{r}
-cal <- acc_calibration("eobs", tag_id = alb$tag_id)
-cal
+cals <- acc_calibration("eobs", tag_id = mt_track_data(alb)$tag_id)
+
+# Reattach calibrations to each track
+alb <- mt_set_track_data(
+  alb,
+  mutate(mt_track_data(alb), cal = cals)
+)
+
+mt_track_data(alb)$cal
 ```
 
-Then, when we transform, calibration functions will be mapped by index to the
-corresponding bursts:
+The only issue is that these calibrations are linked to each track, but our
+acceleration bursts are stored as individual events in the *event* data of our
+`move2` object.
+
+To expand each calibration to its corresponding bursts (linking by track ID), 
+we can use move2's `mt_as_event_attribute()`:
+
+```{r, out.lines=10}
+mt_as_event_attribute(alb, cal)$cal
+```
+
+Passing this to `transform_imu()` maps each burst to its corresponding
+calibration function by index:
 
 ```{r}
-transform_imu(alb$acceleration, cal)
+transform_imu(alb$acceleration, mt_as_event_attribute(alb, cal)$cal)
 ```
+
+In general, expanding within the call to `transform_imu()` is ideal, as the 
+calibrations that are duplicated across bursts do not need to persist in 
+memory afterwards.
 
 ## Custom calibration
 
@@ -241,15 +283,19 @@ defaults.
 
 ## External calibration specification
 
-For studies with many tags, manually specifying detailed per-axis offset, slope, and orientation values quickly becomes tedious. Instead, these
+For studies with many tags, manually specifying detailed per-axis offset, slope,
+and orientation values quickly becomes tedious. Instead, these
 values can be generated once by a calibration procedure and
 saved to an external file for later reuse.
 
 move2imu supports the conversion of a `data.frame` that contains these calibration
-parameters to an `acc_calibration` vector on a per-row basis. 
+parameters to an `acc_calibration` vector on a per-row basis 
+with `as_acc_calibration()`.
 Any columns in the `data.frame` that
 correspond to the available arguments to `acc_calibration()` will be used
 to build calibration functions.
+
+For instance, for the following set of calibration specifications:
 
 ```{r cal_table_setup, include = FALSE}
 cal_table <- tibble::tribble(
@@ -274,26 +320,32 @@ cal_table <- read.csv("calibration.csv")
 cal_table
 ```
 
-The calibration table records records per tag, but each tag in our data records
-multiple bursts. Thus, we need to associate each burst with its corresponding
-tag calibration parameters. We can join the calibration table with the albatross
-data on `tag_id` to link each burst to the calibration of the tag that
-recorded it:
+We can generate a vector of `acc_calibration` objects linked to their
+corresponding `tag_id` like so:
 
-```{r cal_join}
-alb_w_cal <- left_join(alb, cal_table, by = "tag_id")
+```{r}
+cals_df <- cal_table |> 
+  mutate(cals = as_acc_calibration(cal_table)) |> 
+  select(tag_id, cals)
+
+cals_df
 ```
 
-Now every row of `alb_w_cal` carries the calibration parameters for
-its tag. `as_acc_calibration()` reads those columns directly and
-returns one calibration function per row. This can then be passed to 
-`transform_imu()`:
+Then, we can join these calibrations onto our `move2` track data, matching by
+tag ID:
 
-```{r cal_apply_external}
-cal <- as_acc_calibration(alb_w_cal)
-cal
+```{r}
+alb <- mt_set_track_data(
+  alb,
+  left_join(mt_track_data(alb), cals_df, by = "tag_id")
+)
+```
 
-transform_imu(alb_w_cal$acceleration, cal)
+And transform by expanding our track-level calibrations to each of the
+corresponding bursts in the event data:
+
+```{r}
+transform_imu(alb$acceleration, mt_as_event_attribute(alb, cals)$cals)
 ```
 
 Now, each burst has been transformed specifically with the detailed calibration

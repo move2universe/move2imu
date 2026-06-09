@@ -1,35 +1,44 @@
-#' Create calibration functions for raw acceleration values
+#' Create calibrations for raw acceleration values
 #'
 #' @description
-#' Generate an `acc_calibration` object containing a list of functions
-#' with various calibration parameters to be used in [transform_imu()].
+#' Generate an `acc_calibration` object holding the per-burst calibration
+#' parameters to be applied by [transform_imu()].
 #'
 #'   - Use `acc_calibration()` to specify calibration parameters manually.
 #'     Arguments are vectorized and matched by index.
 #'   - Use `as_acc_calibration()` to convert a data.frame containing row-wise
 #'     burst calibration parameters to an `acc_calibration` object.
 #'
-#' This allows you to specify burst-specific calibration functions to
+#' This allows you to provide burst-specific calibration parameters to
 #' flexibly convert raw acceleration values to physical units in `acc` vectors
 #' that contain data from heterogeneous sources.
 #'
 #' @details
-#' Tags from e-obs have default calibration functions that vary depending on the
-#' tag's generation. Use [eobs_default_specs()] for a summary table showing the
+#' An `acc_calibration` can either be built from a `manufacturer` and `tag_id`
+#' combination or from manual inputs of the `offset` and `slope` parameters.
+#' If neither of these options is provided in full, then a calibration cannot
+#' be built and `NA` is returned for that element. Passing missing calibrations
+#' to [transform_imu()] returns `NA` for that burst.
+#' 
+#' Currently if `manufacturer` is provided, it must be either `"ornitela"` or
+#' `"eobs"`. If `"eobs"`, then a corresponding `tag_id` must also be provided.
+#' 
+#' This is because e-obs tags have default calibration parameters that vary 
+#' depending on the tag's generation. Use [eobs_default_specs()] for a 
+#' summary table showing the
 #' default offset, slope, and orientation parameters used for each e-obs
 #' tag ID. The tag ID defines the tag generation. Note that tags from generation
 #' 1 could be set either to low or high sensitivity, each with their own
 #' default calibration parameters.
+#' 
+#' If no manufacturer is provided, then both `offset_*` and `slope_*` must be
+#' provided for at least one of the axes specified in `axes`.
+#' 
+#' If both `manufacturer` and a custom `offset` or `slope`, and/or `orientation`
+#' are provided, then
+#' the value of the custom parameters will override the manufacturer defaults
+#' for that calibration entry.
 #'
-#' `acc_calibration()` errors if the provided arguments are not sufficient
-#' to identify a unique calibration function (e.g. if `manufacturer = "eobs"`
-#' but no `tag_id` is provided).
-#' 
-#' In contrast, `as_acc_calibration()` converts rows with invalid calibration
-#' parameter specifications to missing (`NA`) calibration objects. 
-#' A missing `acc_calibration` passed to [transform_imu()] applies no
-#' calibration and returns `NA` for the corresponding burst.
-#' 
 #' @param manufacturer Manufacturer of the tag. Currently, `"eobs"` and
 #'   `"ornitela"` are supported. For other manufacturers, leave `NULL` and
 #'   manually specify the calibration parameters below.
@@ -59,10 +68,10 @@
 #'   `"XYZ"` (default), `"XY"`, `"Z"`, etc. Only these axes will appear in the
 #'   calibrated output.
 #'
-#' @returns An `acc_calibration` object.
+#' @returns An `acc_calibration` vector.
 #' @export
 #'
-#' @seealso [transform_imu()] to apply calibration functions to the entries
+#' @seealso [transform_imu()] to apply a calibration to the entries
 #'   in an `acc` vector.
 #'
 #' @examples
@@ -117,29 +126,31 @@ acc_calibration <- function(manufacturer = NULL,
                             orientation_z = orientation,
                             units = "m/s^2",
                             axes = "XYZ") {
-  args <- list(
-    tag_id = tag_id %||% NA,
-    manufacturer = manufacturer %||% NA,
-    sensitivity = sensitivity %||% NA,
-    offset_x = offset_x %||% NA,
-    offset_y = offset_y %||% NA,
-    offset_z = offset_z %||% NA,
-    slope_x = slope_x %||% NA,
-    slope_y = slope_y %||% NA,
-    slope_z = slope_z %||% NA,
-    orientation_x = orientation_x %||% NA,
-    orientation_y = orientation_y %||% NA,
-    orientation_z = orientation_z %||% NA,
-    units = units,
-    axes = axes
+  specs <- list(
+    tag_id = tag_id,
+    manufacturer = manufacturer,
+    sensitivity = sensitivity,
+    offset_x = offset_x,
+    offset_y = offset_y,
+    offset_z = offset_z,
+    slope_x = slope_x,
+    slope_y = slope_y,
+    slope_z = slope_z,
+    orientation_x = orientation_x,
+    orientation_y = orientation_y,
+    orientation_z = orientation_z
   )
+
+  # Don't recycle units and axes to avoid converting length-0 vector to length-1
+  # since these args are always present.
+  args <- c(specs, list(units = units, axes = axes))
+  args <- recycle_args(args, vctrs::vec_size_common(!!!specs))
   
-  new_imu_calibration(purrr::pmap(args, acc_calibration_), sensor = "acc")
+  build_calibrations(args)
 }
 
 #' @param df data.frame containing columns with names corresponding to the
 #'   available arguments in `acc_calibration()`. Each row produces a single
-#'   calibration. Rows with invalid argument combinations produce a `NA`
 #'   calibration.
 #'
 #' @export
@@ -165,24 +176,50 @@ as_acc_calibration <- function(df) {
     axes = resolve_scalar_col(df, "axes", "XYZ")
   )
   
-  # Coerce NULL to NA so each row recycles to length 1
-  args <- purrr::map(args, function(x) if (is.null(x)) NA else x)
-  
-  # If calibration can't be built because of an invalid spec, return NULL
-  # This is because intention is to use it with heterogeneous data frames where
-  # not all rows may be intended to be calibrated (e.g. if cal specs are in a
-  # move2 where some rows aren't even acc data)
-  fns <- purrr::pmap(
-    args, 
+  # Recycle each argument to the nrow of the dataframe
+  args <- recycle_args(args, nrow(df))
+  build_calibrations(args)
+}
+
+# Build a vector of `acc_calibration`s from a named list of equal-length,
+# per-field argument vectors. Each entry is resolved independently. An entry 
+# whose calibration can't be resolved becomes a missing (`NA`) calibration.
+# This standardizes build behavior across acc_calibration()/as_acc_calibration()
+build_calibrations <- function(args) {
+  if (vctrs::vec_size(args[[1]]) == 0) {
+    return(new_acc_calibration())
+  }
+
+  # For failed calibration builds, return NA calibration
+  cals <- purrr::pmap(
+    args,
     function(...) {
       tryCatch(
-        acc_calibration_(...), 
-        error = function(cnd) NULL
+        acc_calibration_(...),
+        error = function(cnd) vctrs::vec_init(new_acc_calibration(), 1L)
       )
     }
   )
   
-  new_imu_calibration(fns, sensor = "acc")
+  cals <- vctrs::vec_c(!!!cals)
+  
+  # If any calibration specs failed to build, throw a warning directing to docs
+  n_na <- sum(vctrs::vec_detect_missing(cals))
+  
+  if (n_na > 0) {
+    rlang::warn(
+      c(
+        paste0(
+          "Returning `NA` for ", n_na, " of ", length(cals), 
+          " calibrations that could not be resolved."
+        ),
+        i = "See `?acc_calibration` for details about accepted calibration inputs."
+      ),
+      class = "move2imu_unresolved_calibration"
+    )
+  }
+  
+  cals
 }
 
 acc_calibration_ <- function(manufacturer = NULL,
@@ -200,25 +237,31 @@ acc_calibration_ <- function(manufacturer = NULL,
                              units = "m/s^2",
                              axes = "XYZ") {
   rlang::arg_match(units, c("m/s^2", "standard_free_fall"))
-  axes <- strsplit(toupper(gsub("\\s", "", axes)), "")[[1]]
-  if (length(axes) == 0 || anyNA(axes) || !all(axes %in% c("X", "Y", "Z"))) {
-    rlang::abort('`axes` must be a string containing only "X", "Y", and/or "Z".')
+  
+  axes <- toupper(gsub("\\s", "", axes))
+  axis_chars <- strsplit(axes, "")[[1]]
+  
+  if (length(axis_chars) == 0 || anyNA(axis_chars) ||
+      !all(axis_chars %in% c("X", "Y", "Z"))) {
+    # Note: use stop() rather than rlang to improve processing time since these
+    # errors are caught by build_calibrations() in the user-facing API anyway
+    stop('`axes` must be a string containing only "X", "Y", and/or "Z".')
   }
   
   # Resolve manufacturer defaults, then let user-provided values override
   if (!rlang::is_null(manufacturer) && !rlang::is_na(manufacturer)) {
     if (manufacturer == "eobs") {
-      if (rlang::is_null(tag_id)) {
-        rlang::abort("`tag_id` must be provided when `manufacturer = \"eobs\"`")
+      if (rlang::is_null(tag_id) || rlang::is_na(tag_id)) {
+        stop("`tag_id` must be provided when `manufacturer = \"eobs\"`")
       }
       
       specs <- eobs_specs(tag_id, first_valid(sensitivity, "low"))
     } else if (manufacturer == "ornitela") {
       specs <- ornitela_specs()
     } else {
-      rlang::abort(c(
-        paste0("Unrecognized manufacturer: \"", manufacturer, "\""),
-        i = "If provided, `manufacturer` must be \"eobs\" or \"ornitela\""
+      stop(paste0(
+        "Unrecognized manufacturer: \"", manufacturer,
+        "\". Must be \"eobs\" or \"ornitela\"."
       ))
     }
     
@@ -235,12 +278,15 @@ acc_calibration_ <- function(manufacturer = NULL,
     orientation_y <- first_valid(orientation_y, specs$orientation_y, 1)
     orientation_z <- first_valid(orientation_z, specs$orientation_z, 1)
   } else {
-    # Custom path: offset and slope are required
-    if (null_or_na(offset_x) && null_or_na(offset_y) && null_or_na(offset_z)) {
-      rlang::abort("`offset` is required when no `manufacturer` is provided")
-    }
-    if (null_or_na(slope_x) && null_or_na(slope_y) && null_or_na(slope_z)) {
-      rlang::abort("`slope` is required when no `manufacturer` is provided")
+    # An axis can only be calibrated with both offset/slope
+    # At least one axis must be present for both.
+    complete_axis <- c(
+      X = !null_or_na(offset_x) && !null_or_na(slope_x),
+      Y = !null_or_na(offset_y) && !null_or_na(slope_y),
+      Z = !null_or_na(offset_z) && !null_or_na(slope_z)
+    )
+    if (!any(complete_axis[axis_chars])) {
+      stop("a custom calibration needs both an `offset` and a `slope` on at least one of its `axes`")
     }
   }
   
@@ -249,48 +295,54 @@ acc_calibration_ <- function(manufacturer = NULL,
   orientation_y <- first_valid(orientation_y, 1L)
   orientation_z <- first_valid(orientation_z, 1L)
   
-  assertthat::assert_that(orientation_x == -1L || orientation_x == 1L)
-  assertthat::assert_that(orientation_y == -1L || orientation_y == 1L)
-  assertthat::assert_that(orientation_z == -1L || orientation_z == 1L)
-  
-  # Restructure for `sweep()` later
-  offset <- c(X = offset_x, Y = offset_y, Z = offset_z)
-  slope <- c(X = slope_x, Y = slope_y, Z = slope_z)
-  orientation <- c(X = orientation_x, Y = orientation_y, Z = orientation_z)
-  
-  scale <- slope * orientation
-  
-  cal <- function(x) {
-    # Resolve axes against what's actually in the data
-    active_axes <- intersect(axes, colnames(x))
-    
-    offset <- offset[active_axes]
-    scale <- scale[active_axes]
-    
-    # Warn if any active axes have no calibration parameters
-    na_axes <- active_axes[is.na(offset) | is.na(scale)]
-    
-    if (length(na_axes) > 0) {
-      rlang::warn(paste0(
-        "Missing calibration parameters for axis: ",
-        paste0(na_axes, collapse = ", "),
-        ". These axes will produce NA values."
-      ))
-    }
-    
-    # Apply calibration
-    xt <- sweep(x[, active_axes, drop = FALSE], 2, offset, `-`)
-    xt <- sweep(xt, 2, scale, `*`)
-    
-    if (units == "m/s^2") {
-      xt <- xt * GRAV_CONST
-    }
-    
-    colnames(xt) <- active_axes
-    units::set_units(xt, units, mode = "standard")
+  if (!all(c(orientation_x, orientation_y, orientation_z) %in% c(-1L, 1L))) {
+    stop("`orientation` must be 1 or -1.")
   }
   
-  imu_calibration_fn(cal)
+  new_acc_calibration(
+    offset_x = offset_x %||% NA,
+    offset_y = offset_y %||% NA,
+    offset_z = offset_z %||% NA,
+    slope_x = slope_x %||% NA,
+    slope_y = slope_y %||% NA,
+    slope_z = slope_z %||% NA,
+    orientation_x = orientation_x,
+    orientation_y = orientation_y,
+    orientation_z = orientation_z,
+    axes = axes,
+    units = units
+  )
+}
+
+# `acc_calibration` constructor. Stores calibration specifications as
+# fields in a vctrs record.
+new_acc_calibration <- function(offset_x = double(),
+                                offset_y = double(),
+                                offset_z = double(),
+                                slope_x = double(),
+                                slope_y = double(),
+                                slope_z = double(),
+                                orientation_x = double(),
+                                orientation_y = double(),
+                                orientation_z = double(),
+                                axes = character(),
+                                units = character()) {
+  vctrs::new_rcrd(
+    list(
+      offset_x = as.double(offset_x),
+      offset_y = as.double(offset_y),
+      offset_z = as.double(offset_z),
+      slope_x = as.double(slope_x),
+      slope_y = as.double(slope_y),
+      slope_z = as.double(slope_z),
+      orientation_x = as.double(orientation_x),
+      orientation_y = as.double(orientation_y),
+      orientation_z = as.double(orientation_z),
+      axes = as.character(axes),
+      units = as.character(units)
+    ),
+    class = c("acc_calibration", "imu_calibration")
+  )
 }
 
 #' Default e-obs tag configuration table
@@ -338,12 +390,13 @@ eobs_default_specs <- function() {
 #'   tag ID.
 #' @noRd
 eobs_specs <- function(tag_id, sensitivity = "low") {
-  tag_id <- as.numeric(tag_id)
+  # guard against factor tag ID, which as.numeric coerces to its level
+  tag_id <- as.numeric(as.character(tag_id))
   sensitivity <- rep_len(sensitivity, length(tag_id))
   rlang::arg_match(sensitivity, c("low", "high"), multiple = TRUE)
   
-  if (any(is.na(tag_id))) {                                                                                                                                                                                     
-    rlang::abort("Cannot look up eobs tag specs for missing `tag_id`")                                                                                                                                            
+  if (any(is.na(tag_id))) {
+    rlang::abort("Cannot look up eobs tag specs for missing `tag_id`")
   }
   
   config <- eobs_default_specs()
@@ -398,6 +451,62 @@ ornitela_specs <- function() {
   )
 }
 
+#' @export
+format.acc_calibration <- function(x, ...) {
+  if (vctrs::vec_size(x) == 0) {
+    return(character(0))
+  }
+
+  d <- vctrs::vec_data(x)
+
+  body <- sprintf(
+    "offset=%s slope=%s",
+    axis_fmt(d$offset_x, d$offset_y, d$offset_z),
+    axis_fmt(d$slope_x, d$slope_y, d$slope_z)
+  )
+  
+  # Only show orientation if at least one is flipped. Otherwise it's of
+  # no interest.
+  flipped <- (d$orientation_x %in% -1) |
+    (d$orientation_y %in% -1) |
+    (d$orientation_z %in% -1)
+  
+  body <- ifelse(
+    flipped,
+    paste0(body, " orientation=", axis_fmt(d$orientation_x, d$orientation_y, d$orientation_z)),
+    body
+  )
+  
+  out <- paste0("{", body, "}")
+  out[vctrs::vec_detect_missing(x)] <- NA_character_
+  out
+}
+
+# If axes have same values, print only 1. Otherwise print all 3.
+axis_fmt <- function(a, b, c) {
+  same <- function(p, q) (is.na(p) & is.na(q)) | (!is.na(p) & !is.na(q) & p == q)
+  fmt <- function(v) format(v, digits = 3, trim = TRUE)
+  
+  ifelse(
+    same(a, b) & same(b, c),
+    paste0("[", fmt(a), "]"),
+    paste0("[", fmt(a), ", ", fmt(b), ", ", fmt(c), "]")
+  )
+}
+
+#' @export
+vec_ptype_abbr.acc_calibration <- function(x, ...) {
+  "acc_cal"
+}
+
+#' @importFrom pillar pillar_shaft
+#' @export
+pillar_shaft.acc_calibration <- function(x, ...) {
+  out <- rep("<acc_cal>", length(x))
+  out[vctrs::vec_detect_missing(x)] <- NA
+  pillar::new_pillar_shaft_simple(out, align = "left")
+}
+
 # Resolve per-axis column from a data.frame, falling back to scalar column.
 # Axis-specific values take priority; NAs in the axis-specific column are
 # filled from the scalar column where available.
@@ -420,6 +529,11 @@ resolve_scalar_col <- function(df, col, default) {
   v <- df[[col]] %||% default
   v[is.na(v)] <- default
   v
+}
+
+# Recycle every entry in a list to length n
+recycle_args <- function(args, n) {
+  lapply(args, function(x) vctrs::vec_recycle(x %||% NA, n))
 }
 
 GRAV_CONST <- 9.80665

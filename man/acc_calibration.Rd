@@ -3,7 +3,7 @@
 \name{acc_calibration}
 \alias{acc_calibration}
 \alias{as_acc_calibration}
-\title{Create calibration functions for raw acceleration values}
+\title{Create calibrations for raw acceleration values}
 \usage{
 acc_calibration(
   manufacturer = NULL,
@@ -66,15 +66,14 @@ calibrated output.}
 
 \item{df}{data.frame containing columns with names corresponding to the
 available arguments in \code{acc_calibration()}. Each row produces a single
-calibration. Rows with invalid argument combinations produce a \code{NA}
 calibration.}
 }
 \value{
-An \code{acc_calibration} object.
+An \code{acc_calibration} vector.
 }
 \description{
-Generate an \code{acc_calibration} object containing a list of functions
-with various calibration parameters to be used in \code{\link[=transform_imu]{transform_imu()}}.
+Generate an \code{acc_calibration} object holding the per-burst calibration
+parameters to be applied by \code{\link[=transform_imu]{transform_imu()}}.
 \itemize{
 \item Use \code{acc_calibration()} to specify calibration parameters manually.
 Arguments are vectorized and matched by index.
@@ -82,26 +81,35 @@ Arguments are vectorized and matched by index.
 burst calibration parameters to an \code{acc_calibration} object.
 }
 
-This allows you to specify burst-specific calibration functions to
+This allows you to provide burst-specific calibration parameters to
 flexibly convert raw acceleration values to physical units in \code{acc} vectors
 that contain data from heterogeneous sources.
 }
 \details{
-Tags from e-obs have default calibration functions that vary depending on the
-tag's generation. Use \code{\link[=eobs_default_specs]{eobs_default_specs()}} for a summary table showing the
+An \code{acc_calibration} can either be built from a \code{manufacturer} and \code{tag_id}
+combination or from manual inputs of the \code{offset} and \code{slope} parameters.
+If neither of these options is provided in full, then a calibration cannot
+be built and \code{NA} is returned for that element. Passing missing calibrations
+to \code{\link[=transform_imu]{transform_imu()}} returns \code{NA} for that burst.
+
+Currently if \code{manufacturer} is provided, it must be either \code{"ornitela"} or
+\code{"eobs"}. If \code{"eobs"}, then a corresponding \code{tag_id} must also be provided.
+
+This is because e-obs tags have default calibration parameters that vary
+depending on the tag's generation. Use \code{\link[=eobs_default_specs]{eobs_default_specs()}} for a
+summary table showing the
 default offset, slope, and orientation parameters used for each e-obs
 tag ID. The tag ID defines the tag generation. Note that tags from generation
 1 could be set either to low or high sensitivity, each with their own
 default calibration parameters.
 
-\code{acc_calibration()} errors if the provided arguments are not sufficient
-to identify a unique calibration function (e.g. if \code{manufacturer = "eobs"}
-but no \code{tag_id} is provided).
+If no manufacturer is provided, then both \verb{offset_*} and \verb{slope_*} must be
+provided for at least one of the axes specified in \code{axes}.
 
-In contrast, \code{as_acc_calibration()} converts rows with invalid calibration
-parameter specifications to missing (\code{NA}) calibration objects.
-A missing \code{acc_calibration} passed to \code{\link[=transform_imu]{transform_imu()}} applies no
-calibration and returns \code{NA} for the corresponding burst.
+If both \code{manufacturer} and a custom \code{offset} or \code{slope}, and/or \code{orientation}
+are provided, then
+the value of the custom parameters will override the manufacturer defaults
+for that calibration entry.
 }
 \examples{
 # Calibration for ornitela tags:
@@ -140,6 +148,6 @@ cal <- as_acc_calibration(
 )
 }
 \seealso{
-\code{\link[=transform_imu]{transform_imu()}} to apply calibration functions to the entries
+\code{\link[=transform_imu]{transform_imu()}} to apply a calibration to the entries
 in an \code{acc} vector.
 }
