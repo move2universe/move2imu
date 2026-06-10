@@ -368,7 +368,7 @@ eobs_default_specs <- function() {
     max_tag_id = c(2241, 2241, 4117, Inf),
     sensitivity = c("low", "high", "low", "low"),
     orientation_x = c(1, 1, 1, 1),
-    orientation_y = c(1, 1, -1, -1),
+    orientation_y = c(-1, -1, 1, 1),
     orientation_z = c(1, 1, 1, 1),
     offset = c(2048, 2048, 2048, 2048),
     slope = c(0.0027, 0.001, 0.0022, 1/512)

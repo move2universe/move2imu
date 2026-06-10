@@ -223,7 +223,7 @@ test_that("acc_calibration() with eobs uses correct defaults per generation", {
 
   cal <- acc_calibration(manufacturer = "eobs", tag_id = c(1000, 5000))
 
-  # Gen 1 (1000) has orientation_y = 1, gen 3 (5000) has orientation_y = -1
+  # Gen 1 (1000) has orientation_y = -1, gen 3 (5000) has orientation_y = 1
   # Y axis should have opposite signs
   y1 <- as.numeric(transform_burst(cal[1], b)[1, "Y"])
   y3 <- as.numeric(transform_burst(cal[2], b)[1, "Y"])
@@ -263,21 +263,21 @@ test_that("user-provided offset overrides manufacturer default", {
   )
   expect_identical(
     r[, "Y"],
-    units::set_units((b[, "Y"] - sp$offset) * sp$slope * GRAV_CONST, "m/s^2")
+    units::set_units((b[, "Y"] - sp$offset) * sp$slope * sp$orientation_y * GRAV_CONST, "m/s^2")
   )
 })
 
 test_that("user-provided orientation overrides manufacturer default", {
-  # eobs gen 2 default orientation_y = -1; override to 1
-  cal <- acc_calibration(manufacturer = "eobs", tag_id = 3000, orientation_y = 1)
+  # eobs gen 2 default orientation_y = 1; override to -1
+  cal <- acc_calibration(manufacturer = "eobs", tag_id = 3000, orientation_y = -1)
   sp <- eobs_specs(3000)
   r <- transform_burst(cal[1], b)
-  # Y should use orientation 1 (not the gen 2 default of -1)
+  # Y should use orientation -1 (not the gen 2 default of 1)
   expect_identical(
     r[, "Y"],
-    units::set_units((b[, "Y"] - sp$offset) * sp$slope * 1 * GRAV_CONST, "m/s^2")
+    units::set_units((b[, "Y"] - sp$offset) * sp$slope * -1 * GRAV_CONST, "m/s^2")
   )
-  # Confirm this differs from the default (orientation_y = -1)
+  # Confirm this differs from the default (orientation_y = 1)
   r_default <- transform_burst(acc_calibration(manufacturer = "eobs", tag_id = 3000)[1], b)
   expect_identical(r[, "Y"], r_default[, "Y"] * -1)
 })
@@ -442,20 +442,20 @@ test_that("as_acc_calibration() handles mixed manufacturer and custom rows", {
     manufacturer = c("eobs", "eobs", "ornitela", NA),
     offset = c(NA, NA, NA, 100),
     slope = c(NA, NA, NA, 0.5),
-    orientation_y = c(NA, 1, NA, -1)
+    orientation_y = c(NA, -1, NA, -1)
   )
   cal <- as_acc_calibration(df)
   expect_length(cal, 4)
 
   r <- lapply(seq_along(cal), function(i) transform_burst(cal[i], b))
 
-  # Row 1: eobs gen 1 defaults, orientation_y = 1
+  # Row 1: eobs gen 1 defaults, orientation_y = -1
   sp1 <- eobs_specs(1000)
-  expect_identical(r[[1]][, "Y"], units::set_units((b[, "Y"] - sp1$offset) * sp1$slope * GRAV_CONST, "m/s^2"))
+  expect_identical(r[[1]][, "Y"], units::set_units((b[, "Y"] - sp1$offset) * sp1$slope * sp1$orientation_y * GRAV_CONST, "m/s^2"))
 
-  # Row 2: eobs gen 2, orientation_y overridden to 1 (default is -1)
+  # Row 2: eobs gen 2, orientation_y overridden to -1 (default is 1)
   sp2 <- eobs_specs(3000)
-  expect_identical(r[[2]][, "Y"], units::set_units((b[, "Y"] - sp2$offset) * sp2$slope * 1 * GRAV_CONST, "m/s^2"))
+  expect_identical(r[[2]][, "Y"], units::set_units((b[, "Y"] - sp2$offset) * sp2$slope * -1 * GRAV_CONST, "m/s^2"))
 
   # Row 3: ornitela defaults
   sp3 <- ornitela_specs()
@@ -518,28 +518,28 @@ test_that("eobs_specs() returns correct defaults for gen 1 low sensitivity", {
   sp <- eobs_specs(100)
   expect_equal(sp$offset, 2048)
   expect_equal(sp$slope, 0.0027)
-  expect_equal(sp$orientation_y, 1)
+  expect_equal(sp$orientation_y, -1)
 })
 
 test_that("eobs_specs() returns correct defaults for gen 1 high sensitivity", {
   sp <- eobs_specs(100, sensitivity = "high")
   expect_equal(sp$offset, 2048)
   expect_equal(sp$slope, 0.001)
-  expect_equal(sp$orientation_y, 1)
+  expect_equal(sp$orientation_y, -1)
 })
 
 test_that("eobs_specs() returns correct defaults for gen 2", {
   sp <- eobs_specs(3000)
   expect_equal(sp$offset, 2048)
   expect_equal(sp$slope, 0.0022)
-  expect_equal(sp$orientation_y, -1)
+  expect_equal(sp$orientation_y, 1)
 })
 
 test_that("eobs_specs() returns correct defaults for gen 3", {
   sp <- eobs_specs(5000)
   expect_equal(sp$offset, 2048)
   expect_equal(sp$slope, 1 / 512)
-  expect_equal(sp$orientation_y, -1)
+  expect_equal(sp$orientation_y, 1)
 })
 
 test_that("eobs_specs() works with multiple tag_ids", {
@@ -547,7 +547,7 @@ test_that("eobs_specs() works with multiple tag_ids", {
   expect_equal(nrow(sp), 3)
   expect_equal(sp$offset, c(2048, 2048, 2048))
   expect_equal(sp$slope, c(0.0027, 0.0022, 1 / 512))
-  expect_equal(sp$orientation_y, c(1, -1, -1))
+  expect_equal(sp$orientation_y, c(-1, 1, 1))
 })
 
 test_that("eobs_specs() works with mixed sensitivities", {
