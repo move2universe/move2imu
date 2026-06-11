@@ -30,6 +30,12 @@ An \code{acc_calibration} object may contain missing (\code{NA}) elements (e.g. 
 produced by \code{\link[=as_acc_calibration]{as_acc_calibration()}}). \code{transform_imu()} returns \code{NA} in such
 cases and emits a warning if any bursts are lost because of missing
 calibration specifications.
+
+If an \code{acc_calibration} only has calibration parameters for certain
+axes (e.g. \code{offset_x = 2048} and \code{slope_x = 0.001}), then only those axes
+will be transformed by \code{\link[=transform_imu]{transform_imu()}}. Values for other axes will be
+converted to \code{NA}. The dimension of the input burst matrices therefore
+remains the same.
 }
 \examples{
 a <- acc_example()

@@ -11,7 +11,7 @@ test_that("acc_calibration() returns an acc_calibration object", {
   expect_named(
     vctrs::vec_data(cal),
     c("offset_x", "offset_y", "offset_z", "slope_x", "slope_y", "slope_z",
-      "orientation_x", "orientation_y", "orientation_z", "axes", "units")
+      "orientation_x", "orientation_y", "orientation_z", "units")
   )
 })
 
@@ -181,16 +181,6 @@ test_that("acc_calibration() needs offset and slope on the same axis", {
   expect_false(is.na(acc_calibration(offset_x = 10, slope_x = 1)))
 })
 
-test_that("acc_calibration() axis pairing is scoped to requested axes", {
-  # complete Y spec, but only X requested -> nothing to calibrate -> NA
-  expect_warning(
-    cal <- acc_calibration(offset_y = 1, slope_y = 1, axes = "X"),
-    "could not be resolved"
-  )
-  expect_true(is.na(cal))
-  expect_false(is.na(acc_calibration(offset_x = 1, slope_x = 1, axes = "X")))
-})
-
 test_that("acc_calibration() warns and returns NA on invalid orientation value", {
   expect_warning(
     cal <- acc_calibration(offset = 2048, slope = 0.001, orientation = 0),
@@ -288,29 +278,28 @@ test_that("NA values fall through to manufacturer default", {
   expect_identical(transform_burst(cal[1], b), transform_burst(cal_default[1], b))
 })
 
-# --- axes parameter -----------------------------------------------------------
+# --- output axes (dimension-preserving) ---------------------------------------
 
-test_that("axes restricts output to specified axes", {
-  cal <- acc_calibration(offset = 2048, slope = 0.001, axes = "XY")
+test_that("transform preserves the burst's columns", {
+  cal <- acc_calibration(offset = 2048, slope = 0.001)
   result <- transform_burst(cal[1], b)
-  expect_equal(colnames(result), c("X", "Y"))
-  expect_equal(ncol(result), 2)
+  expect_equal(colnames(result), colnames(b))
+  expect_equal(ncol(result), ncol(b))
 })
 
-test_that("axes suppresses NA warnings for excluded axes", {
-  cal <- acc_calibration(offset_x = 2048, slope = 0.001, axes = "X")
+test_that("transform does not warn when every burst axis is calibrated", {
+  cal <- acc_calibration(offset = 2048, slope = 0.001)
   expect_no_warning(transform_burst(cal[1], b))
 })
 
-test_that("axes warns on missing params for included axes", {
-  cal <- acc_calibration(offset_x = 2048, slope = 0.001, axes = "XY")
-  expect_warning(transform_burst(cal[1], b), "Missing calibration parameters")
-})
-
-test_that("axes accepts lowercase and whitespace", {
-  cal <- acc_calibration(offset = 2048, slope = 0.001, axes = "x y")
-  result <- transform_burst(cal[1], b)
-  expect_equal(colnames(result), c("X", "Y"))
+test_that("transform warns and NA-fills burst axes with no calibration params", {
+  # Only X has both offset and slope; Y/Z have no params
+  cal <- acc_calibration(offset_x = 2048, slope_x = 0.001)
+  expect_warning(result <- transform_burst(cal[1], b), "Missing calibration parameters")
+  expect_equal(colnames(result), colnames(b)) # dims preserved
+  expect_false(any(is.na(result[, "X"])))
+  expect_true(all(is.na(result[, "Y"])))
+  expect_true(all(is.na(result[, "Z"])))
 })
 
 test_that("per-axis params with omitted axes calibrate correctly", {
@@ -329,21 +318,39 @@ test_that("per-axis params with omitted axes calibrate correctly", {
   expect_true(all(is.na(result[, "Z"])))
 })
 
-test_that("axes vectorizes across elements", {
+# --- units --------------------------------------------------------------------
+
+test_that("units vectorizes independently of scalar specs", {
+  # Regression: scalar specs + vectorized units must not error on recycling
   cal <- acc_calibration(
-    offset = c(2048, 2048),
+    offset = 2048,
     slope = 0.001,
-    axes = c("XYZ", "XY")
+    units = c("m/s^2", "standard_free_fall")
   )
-  expect_equal(ncol(transform_burst(cal[1], b)), 3)
-  expect_equal(ncol(transform_burst(cal[2], b)), 2)
+  expect_length(cal, 2)
+  expect_identical(
+    transform_burst(cal[1], b),
+    units::set_units((b - 2048) * 0.001 * GRAV_CONST, "m/s^2")
+  )
+  expect_identical(
+    transform_burst(cal[2], b),
+    units::set_units((b - 2048) * 0.001, "standard_free_fall")
+  )
 })
 
-test_that("invalid axes warns and returns NA", {
-  expect_warning(a1 <- acc_calibration(offset = 1, slope = 1, axes = "ABC"), "could not be resolved")
-  expect_warning(a2 <- acc_calibration(offset = 1, slope = 1, axes = ""), "could not be resolved")
-  expect_true(is.na(a1))
-  expect_true(is.na(a2))
+test_that("units alone (no specs) returns a length-0 vector", {
+  expect_silent(cal <- acc_calibration(units = c("m/s^2", "standard_free_fall")))
+  expect_length(cal, 0)
+})
+
+test_that("an explicit NA units warns and returns NA", {
+  # Unlike a stray NA in an `as_acc_calibration()` column, an explicit
+  # `units = NA` is an unclear request and is treated as invalid.
+  expect_warning(
+    cal <- acc_calibration(offset = 2048, slope = 0.001, units = NA),
+    "could not be resolved"
+  )
+  expect_true(is.na(cal))
 })
 
 # --- as_acc_calibration() ------------------------------------------------
@@ -497,19 +504,32 @@ test_that("as_acc_calibration() does 1:1 row-to-calibration conversion", {
   )
 })
 
-test_that("as_acc_calibration() treats NA units/axes as defaults", {
-  # A stray NA in a units/axes column (e.g. after a join) must not invalidate
-  # an otherwise complete calibration spec.
+test_that("as_acc_calibration() treats NA units as the default", {
+  # A stray NA in a units column (e.g. after a join) must not invalidate an
+  # otherwise complete calibration spec.
   cal_u <- as_acc_calibration(data.frame(offset = 2048, slope = 0.001, units = NA))
   expect_false(is.na(cal_u)[1])
   expect_identical(
     transform_burst(cal_u[1], b),
     transform_burst(acc_calibration(offset = 2048, slope = 0.001)[1], b)
   )
+})
 
-  cal_a <- as_acc_calibration(data.frame(offset = 2048, slope = 0.001, axes = NA))
-  expect_false(is.na(cal_a)[1])
-  expect_equal(ncol(transform_burst(cal_a[1], b)), 3)
+test_that("as_acc_calibration() reads per-row units from a column", {
+  cal <- as_acc_calibration(data.frame(
+    offset = 2048,
+    slope = 0.001,
+    units = c("m/s^2", "standard_free_fall")
+  ))
+  expect_length(cal, 2)
+  expect_identical(
+    transform_burst(cal[1], b),
+    units::set_units((b - 2048) * 0.001 * GRAV_CONST, "m/s^2")
+  )
+  expect_identical(
+    transform_burst(cal[2], b),
+    units::set_units((b - 2048) * 0.001, "standard_free_fall")
+  )
 })
 
 # --- eobs_specs() -------------------------------------------------------------

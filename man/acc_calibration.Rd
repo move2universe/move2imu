@@ -21,8 +21,7 @@ acc_calibration(
   orientation_x = orientation,
   orientation_y = orientation,
   orientation_z = orientation,
-  units = "m/s^2",
-  axes = "XYZ"
+  units = "m/s^2"
 )
 
 as_acc_calibration(df)
@@ -58,11 +57,8 @@ and/or \code{orientation_z}. Defaults to \code{1}.
 This is useful to standardize orientations across tags of different
 manufacturers or generations.}
 
-\item{units}{Output units. Either \code{"m/s^2"} (default) or \code{"standard_free_fall"}.}
-
-\item{axes}{Character string specifying which axes to calibrate, e.g.,
-\code{"XYZ"} (default), \code{"XY"}, \code{"Z"}, etc. Only these axes will appear in the
-calibrated output.}
+\item{units}{Output units. Either \code{"m/s^2"} (default) or
+\code{"standard_free_fall"}.}
 
 \item{df}{data.frame containing columns with names corresponding to the
 available arguments in \code{acc_calibration()}. Each row produces a single
@@ -104,7 +100,12 @@ tag ID. The tag ID defines the tag generation. Note that tags from generation
 default calibration parameters.
 
 If no manufacturer is provided, then both \verb{offset_*} and \verb{slope_*} must be
-provided for at least one of the axes specified in \code{axes}.
+provided for at least one axis.
+
+If calibration parameters are provided for some axes and not others
+(e.g. \code{offset_x = 2048} and \code{slope_x = 0.001}), then only those axes will
+be transformed by \code{\link[=transform_imu]{transform_imu()}}. Values for other axes will be converted
+to \code{NA}.
 
 If both \code{manufacturer} and a custom \code{offset} or \code{slope}, and/or \code{orientation}
 are provided, then

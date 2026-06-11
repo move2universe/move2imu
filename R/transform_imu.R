@@ -19,6 +19,12 @@
 #' cases and emits a warning if any bursts are lost because of missing 
 #' calibration specifications.
 #' 
+#' If an `acc_calibration` only has calibration parameters for certain
+#' axes (e.g. `offset_x = 2048` and `slope_x = 0.001`), then only those axes
+#' will be transformed by [transform_imu()]. Values for other axes will be
+#' converted to `NA`. The dimension of the input burst matrices therefore
+#' remains the same.
+#' 
 #' @return An IMU vector of the same length as `x`, with each burst transformed
 #'   by the corresponding calibration.
 #'   
@@ -131,8 +137,8 @@ transform_burst <- function(calibration, burst, ...) {
 # Apply accelerometer calibration to a burst. Acc calibrations are linear
 # transformations of the form (raw - offset) * slope * orientation
 # `calibration` is a length-1 `acc_calibration`; `burst` is a raw numeric matrix
-# with axis columns. Only the axes named in `axes` and present in the burst 
-# are calibrated.
+# with axis columns. The output preserves the burst's columns: only values and
+# units change. Columns the calibration has no parameters for become NA.
 #' @export
 transform_burst.acc_calibration <- function(calibration, burst, ...) {
   f <- vctrs::vec_data(calibration)
@@ -140,14 +146,13 @@ transform_burst.acc_calibration <- function(calibration, burst, ...) {
   offset <- c(X = f$offset_x, Y = f$offset_y, Z = f$offset_z)
   scale <- c(X = f$slope_x, Y = f$slope_y, Z = f$slope_z) *
     c(X = f$orientation_x, Y = f$orientation_y, Z = f$orientation_z)
-  axes <- strsplit(f$axes, "")[[1]]
 
-  # Resolve requested axes against what's actually in the burst
-  active_axes <- intersect(axes, colnames(burst))
+  # Preserve the burst's columns; align calibration params to them by axis name
+  active_axes <- colnames(burst)
   offset <- offset[active_axes]
   scale <- scale[active_axes]
 
-  # Warn if any active axes have no calibration parameters
+  # Warn if any of the burst's axes have no calibration parameters
   na_axes <- active_axes[is.na(offset) | is.na(scale)]
   if (length(na_axes) > 0) {
     rlang::warn(paste0(

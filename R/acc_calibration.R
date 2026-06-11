@@ -32,7 +32,12 @@
 #' default calibration parameters.
 #' 
 #' If no manufacturer is provided, then both `offset_*` and `slope_*` must be
-#' provided for at least one of the axes specified in `axes`.
+#' provided for at least one axis.
+#'
+#' If calibration parameters are provided for some axes and not others
+#' (e.g. `offset_x = 2048` and `slope_x = 0.001`), then only those axes will
+#' be transformed by [transform_imu()]. Values for other axes will be converted
+#' to `NA`.
 #' 
 #' If both `manufacturer` and a custom `offset` or `slope`, and/or `orientation`
 #' are provided, then
@@ -63,10 +68,8 @@
 #'   
 #'   This is useful to standardize orientations across tags of different
 #'   manufacturers or generations.
-#' @param units Output units. Either `"m/s^2"` (default) or `"standard_free_fall"`.
-#' @param axes Character string specifying which axes to calibrate, e.g.,
-#'   `"XYZ"` (default), `"XY"`, `"Z"`, etc. Only these axes will appear in the
-#'   calibrated output.
+#' @param units Output units. Either `"m/s^2"` (default) or
+#'   `"standard_free_fall"`.
 #'
 #' @returns An `acc_calibration` vector.
 #' @export
@@ -124,8 +127,7 @@ acc_calibration <- function(manufacturer = NULL,
                             orientation_x = orientation,
                             orientation_y = orientation,
                             orientation_z = orientation,
-                            units = "m/s^2",
-                            axes = "XYZ") {
+                            units = "m/s^2") {
   specs <- list(
     tag_id = tag_id,
     manufacturer = manufacturer,
@@ -141,11 +143,15 @@ acc_calibration <- function(manufacturer = NULL,
     orientation_z = orientation_z
   )
 
-  # Don't recycle units and axes to avoid converting length-0 vector to length-1
-  # since these args are always present.
-  args <- c(specs, list(units = units, axes = axes))
-  args <- recycle_args(args, vctrs::vec_size_common(!!!specs))
-  
+  if (vctrs::vec_size_common(!!!specs) == 0L) {
+    return(new_acc_calibration())
+  }
+
+  # As long as there is at least one set of cal params, we can recycle
+  # units to match length
+  args <- c(specs, list(units = units))
+  args <- recycle_args(args, vctrs::vec_size_common(!!!args))
+
   build_calibrations(args)
 }
 
@@ -158,7 +164,7 @@ acc_calibration <- function(manufacturer = NULL,
 #' @rdname acc_calibration
 as_acc_calibration <- function(df) {
   assertthat::assert_that(is.data.frame(df))
-  
+
   args <- list(
     tag_id = df[["tag_id"]],
     manufacturer = df[["manufacturer"]],
@@ -172,10 +178,9 @@ as_acc_calibration <- function(df) {
     orientation_x = resolve_axis_col(df, "orientation", "x"),
     orientation_y = resolve_axis_col(df, "orientation", "y"),
     orientation_z = resolve_axis_col(df, "orientation", "z"),
-    units = resolve_scalar_col(df, "units", "m/s^2"),
-    axes = resolve_scalar_col(df, "axes", "XYZ")
+    units = resolve_scalar_col(df, "units", "m/s^2")
   )
-  
+
   # Recycle each argument to the nrow of the dataframe
   args <- recycle_args(args, nrow(df))
   build_calibrations(args)
@@ -234,24 +239,15 @@ acc_calibration_ <- function(manufacturer = NULL,
                              orientation_x = NULL,
                              orientation_y = NULL,
                              orientation_z = NULL,
-                             units = "m/s^2",
-                             axes = "XYZ") {
+                             units = "m/s^2") {
   rlang::arg_match(units, c("m/s^2", "standard_free_fall"))
-  
-  axes <- toupper(gsub("\\s", "", axes))
-  axis_chars <- strsplit(axes, "")[[1]]
-  
-  if (length(axis_chars) == 0 || anyNA(axis_chars) ||
-      !all(axis_chars %in% c("X", "Y", "Z"))) {
-    # Note: use stop() rather than rlang to improve processing time since these
-    # errors are caught by build_calibrations() in the user-facing API anyway
-    stop('`axes` must be a string containing only "X", "Y", and/or "Z".')
-  }
-  
+
   # Resolve manufacturer defaults, then let user-provided values override
   if (!rlang::is_null(manufacturer) && !rlang::is_na(manufacturer)) {
     if (manufacturer == "eobs") {
       if (rlang::is_null(tag_id) || rlang::is_na(tag_id)) {
+        # Note: use stop() rather than rlang to improve processing time since these
+        # errors are caught by build_calibrations() in the user-facing API anyway
         stop("`tag_id` must be provided when `manufacturer = \"eobs\"`")
       }
       
@@ -278,15 +274,15 @@ acc_calibration_ <- function(manufacturer = NULL,
     orientation_y <- first_valid(orientation_y, specs$orientation_y, 1)
     orientation_z <- first_valid(orientation_z, specs$orientation_z, 1)
   } else {
-    # An axis can only be calibrated with both offset/slope
-    # At least one axis must be present for both.
+    # An axis can only be calibrated with both an offset and a slope.
+    # At least one axis must have both.
     complete_axis <- c(
       X = !null_or_na(offset_x) && !null_or_na(slope_x),
       Y = !null_or_na(offset_y) && !null_or_na(slope_y),
       Z = !null_or_na(offset_z) && !null_or_na(slope_z)
     )
-    if (!any(complete_axis[axis_chars])) {
-      stop("a custom calibration needs both an `offset` and a `slope` on at least one of its `axes`")
+    if (!any(complete_axis)) {
+      stop("a custom calibration needs both an `offset` and a `slope` on at least one axis")
     }
   }
   
@@ -309,7 +305,6 @@ acc_calibration_ <- function(manufacturer = NULL,
     orientation_x = orientation_x,
     orientation_y = orientation_y,
     orientation_z = orientation_z,
-    axes = axes,
     units = units
   )
 }
@@ -325,7 +320,6 @@ new_acc_calibration <- function(offset_x = double(),
                                 orientation_x = double(),
                                 orientation_y = double(),
                                 orientation_z = double(),
-                                axes = character(),
                                 units = character()) {
   vctrs::new_rcrd(
     list(
@@ -338,7 +332,6 @@ new_acc_calibration <- function(offset_x = double(),
       orientation_x = as.double(orientation_x),
       orientation_y = as.double(orientation_y),
       orientation_z = as.double(orientation_z),
-      axes = as.character(axes),
       units = as.character(units)
     ),
     class = c("acc_calibration", "imu_calibration")
