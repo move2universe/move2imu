@@ -5,6 +5,7 @@
 \alias{n_axis}
 \alias{n_samples}
 \alias{burst_dur}
+\alias{burst_intervals}
 \alias{imu_units}
 \alias{is_uniform}
 \title{Burst properties of an IMU vector}
@@ -15,12 +16,23 @@ n_samples(x)
 
 burst_dur(x)
 
+burst_intervals(x, ids = NULL, from = "end")
+
 imu_units(x)
 
 is_uniform(x)
 }
 \arguments{
 \item{x}{An IMU vector (\code{acc}, \code{mag}, or \code{gyro})}
+
+\item{ids}{For \code{burst_intervals()}, an optional sorted vector the same
+length as \code{x} giving the group (e.g. animal ID) of each burst. Intervals
+are not measured across changes in \code{ids}.}
+
+\item{from}{For \code{burst_intervals()}, where to measure each interval from:
+\code{"end"} (default) gives the gap between the end of the previous burst and
+the start of the current one, while \code{"start"} gives the time between
+consecutive burst starts.}
 }
 \value{
 \code{is_uniform()} returns a length-1 logical. All others return a
@@ -32,10 +44,26 @@ These functions describe characteristics of the bursts in an IMU vector.
 \item \code{n_axis()} — number of axes (columns) in each burst
 \item \code{n_samples()} — number of samples (rows) in each burst.
 \item \code{burst_dur()} — duration of each burst, in seconds.
+\item \code{burst_intervals()} — interval between each burst and its preceding burst,
+in seconds.
 \item \code{imu_units()} — units for each burst's data values
 \item \code{is_uniform()} — logical indicating whether every burst in a vector shares
 a consistent structure (axes, frequency, sample count, and units)
 }
+}
+\details{
+\code{burst_intervals()} measures intervals between consecutive bursts in vector
+order. Element \code{i} is the interval preceding burst \code{i} (measured against
+burst \code{i - 1}), so the first element is always \code{NA}. An interval is also
+\code{NA} wherever either burst lacks a start time, meaning that missing bursts
+may mask the true intervals between bursts that do exist. To avoid this,
+remove missing bursts from your IMU vector prior to running
+\code{burst_intervals()}.
+
+Pass \code{ids} to measure intervals within groups (e.g. per animal). Intervals
+are not measured across group boundaries. Intervals
+are taken in vector order, so a vector mixing sources should be ordered by
+group.
 }
 \examples{
 x <- acc(
@@ -43,7 +71,8 @@ x <- acc(
     cbind(X = sin(1:30 / 10), Y = cos(1:30 / 10), Z = 1),
     cbind(X = sin(1:20 / 10 + 2), Y = cos(1:20 / 10 + 3))
   ),
-  frequency = units::as_units(c(20, 30), "Hz")
+  frequency = units::as_units(c(20, 30), "Hz"),
+  start = as.POSIXct("2020-01-01 00:00:00", tz = "UTC") + c(0, 60)
 )
 
 # Number of axes for which data was collected
@@ -54,6 +83,12 @@ n_samples(x)
 
 # Time duration of the burst
 burst_dur(x)
+
+# Gap from the end of each burst to the start of the next
+burst_intervals(x)
+
+# Or measure between consecutive burst starts
+burst_intervals(x, from = "start")
 
 # Units for the burst data
 imu_units(x)

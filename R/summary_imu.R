@@ -6,10 +6,10 @@
 #' summary of the burst sample values. Calling [plot()] on the result draws a
 #' multi-panel histogram of those same distributions.
 #'
-#' Intervals between burst start times are computed in vector order. All
-#' bursts are considered together; thus, if bursts come from different
-#' sources (e.g. different tags), there may be large interval artifacts
-#' between some bursts.
+#' Intervals are the gaps between consecutive bursts (end of one to the start
+#' of the next), computed in vector order (see [burst_intervals()]). If bursts 
+#' come from different sources (e.g. different tags), there may be noticeable 
+#' interval artifacts between some bursts where sources change.
 #'
 #' Note that the distribution of sample values considers all axes and units 
 #' simultaneously.
@@ -66,10 +66,6 @@ summary.imu <- function(object, ...) {
   out$durations <- as.numeric(dur)
   out$dur_unit <- units::deparse_unit(dur)
 
-  # Use vector order to calculate inter-burst intervals. If bursts come from
-  # different sources some intervals will be artifacts, but if generated
-  # from a move2, these should be limited as the tracks should already be
-  # ordered.
   st <- starts(x)
   st <- st[!is.na(st)]
 
@@ -81,11 +77,11 @@ summary.imu <- function(object, ...) {
 
   out$start_tz <- attr(st, "tzone") %||% "UTC"
 
-  out$intervals <- if (length(st) > 1) {
-    as.numeric(diff(st), units = "secs")
-  } else {
-    numeric(0)
-  }
+  # Inter-burst intervals. If bursts come from
+  # different sources some intervals will be artifacts, but if generated
+  # from a move2, these should be limited as the tracks should already be
+  # ordered.
+  out$intervals <- as.numeric(stats::na.omit(burst_intervals(x)))
 
   # Units
   unit_strs <- imu_units(x)

@@ -32,38 +32,68 @@ NULL
 #' - `n_axis()` — number of axes (columns) in each burst
 #' - `n_samples()` — number of samples (rows) in each burst.
 #' - `burst_dur()` — duration of each burst, in seconds.
+#' - `burst_intervals()` — interval between each burst and its preceding burst, 
+#'   in seconds.
 #' - `imu_units()` — units for each burst's data values
 #' - `is_uniform()` — logical indicating whether every burst in a vector shares
 #'   a consistent structure (axes, frequency, sample count, and units)
 #'
+#' @details
+#' `burst_intervals()` measures intervals between consecutive bursts in vector
+#' order. Element `i` is the interval preceding burst `i` (measured against
+#' burst `i - 1`), so the first element is always `NA`. An interval is also 
+#' `NA` wherever either burst lacks a start time, meaning that missing bursts
+#' may mask the true intervals between bursts that do exist. To avoid this, 
+#' remove missing bursts from your IMU vector prior to running 
+#' `burst_intervals()`.
+#'
+#' Pass `ids` to measure intervals within groups (e.g. per animal). Intervals
+#' are not measured across group boundaries. Intervals 
+#' are taken in vector order, so a vector mixing sources should be ordered by
+#' group.
+#'
 #' @param x An IMU vector (`acc`, `mag`, or `gyro`)
-#' 
+#' @param from For `burst_intervals()`, where to measure each interval from:
+#'   `"end"` (default) gives the gap between the end of the previous burst and
+#'   the start of the current one, while `"start"` gives the time between
+#'   consecutive burst starts.
+#' @param ids For `burst_intervals()`, an optional sorted vector the same 
+#'   length as `x` giving the group (e.g. animal ID) of each burst. Intervals
+#'   are not measured across changes in `ids`.
+#'
 #' @return `is_uniform()` returns a length-1 logical. All others return a
 #'   vector of `length(x)`
-#' 
+#'
 #' @name imu-properties
-#' 
+#'
 #' @examples
 #' x <- acc(
 #'   bursts = list(
 #'     cbind(X = sin(1:30 / 10), Y = cos(1:30 / 10), Z = 1),
 #'     cbind(X = sin(1:20 / 10 + 2), Y = cos(1:20 / 10 + 3))
 #'   ),
-#'   frequency = units::as_units(c(20, 30), "Hz")
+#'   frequency = units::as_units(c(20, 30), "Hz"),
+#'   start = as.POSIXct("2020-01-01 00:00:00", tz = "UTC") + c(0, 60)
 #' )
-#' 
+#'
 #' # Number of axes for which data was collected
 #' n_axis(x)
-#' 
+#'
 #' # Number of samples in the burst
 #' n_samples(x)
-#' 
+#'
 #' # Time duration of the burst
 #' burst_dur(x)
-#' 
+#'
+#' # Gap from the end of each burst to the start of the next
+#' burst_intervals(x)
+#'
+#' # Or measure between consecutive burst starts
+#' burst_intervals(x, from = "start")
+#'
 #' # Units for the burst data
 #' imu_units(x)
-#' 
+#'
 #' # Check if all bursts have uniform structure
 #' is_uniform(x)
 NULL
@@ -118,6 +148,42 @@ n_samples <- function(x) {
 #' @rdname imu-properties
 burst_dur <- function(x) {
   units::set_units(n_samples(x) / freqs(x), "s")
+}
+
+#' @export
+#' @rdname imu-properties
+burst_intervals <- function(x, ids = NULL, from = "end") {
+  from <- rlang::arg_match(from, c("end", "start"))
+
+  n <- vec_size(x)
+  
+  if (n == 0) {
+    return(units::set_units(numeric(0), "s"))
+  }
+  
+  st <- as.numeric(starts(x))
+  gap <- st - c(NA_real_, utils::head(st, -1L))
+
+  if (from == "end") {
+    dur <- as.numeric(burst_dur(x))
+    gap <- gap - c(NA_real_, utils::head(dur, -1L))
+  }
+  
+  # Don't get interval across an ID boundary
+  if (!is.null(ids)) {
+    if (length(ids) != n) {
+      cli::cli_abort("{.arg ids} must be the same length as {.arg x}.")
+    }
+    same_group <- c(
+      FALSE,
+      (ids[-1] == ids[-n]) | (is.na(ids[-1]) & is.na(ids[-n]))
+    )
+    same_group[is.na(same_group)] <- FALSE
+    gap[!same_group] <- NA_real_
+  }
+
+  # POSIXct as.numeric is seconds since epoch, so differences are seconds.
+  units::set_units(gap, "s")
 }
 
 #' @export

@@ -32,10 +32,10 @@ axis combinations, frequencies, burst sizes, timing, and a coarse quantile
 summary of the burst sample values. Calling \code{\link[=plot]{plot()}} on the result draws a
 multi-panel histogram of those same distributions.
 
-Intervals between burst start times are computed in vector order. All
-bursts are considered together; thus, if bursts come from different
-sources (e.g. different tags), there may be large interval artifacts
-between some bursts.
+Intervals are the gaps between consecutive bursts (end of one to the start
+of the next), computed in vector order (see \code{\link[=burst_intervals]{burst_intervals()}}). If bursts
+come from different sources (e.g. different tags), there may be noticeable
+interval artifacts between some bursts where sources change.
 
 Note that the distribution of sample values considers all axes and units
 simultaneously.

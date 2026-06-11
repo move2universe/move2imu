@@ -231,6 +231,84 @@ test_that("burst_dur converts non-Hz frequencies to seconds", {
   expect_equal(burst_dur(a), units::set_units(30, "s"))
 })
 
+test_that("burst_intervals measures gaps and start-to-start", {
+  b <- acc_burst_example(1:20, 1:20, 1:20)
+  
+  a <- acc(
+    rep(b, 3),
+    frequency = units::as_units(20, "Hz"),
+    start = as.POSIXct("2020-01-01", tz = "UTC") + c(0, 60, 120)
+  )
+
+  expect_equal(
+    burst_intervals(a, from = "start"), 
+    units::set_units(c(NA, 60, 60), "s")
+  )
+
+  expect_equal(
+    burst_intervals(a), 
+    units::set_units(c(NA, 59, 59), "s")
+  )
+})
+
+test_that("burst_intervals is NA where a neighbouring start is missing", {
+  b <- acc_burst_example(1:20, 1:20, 1:20)
+  
+  a <- acc(
+    rep(b, 4),
+    frequency = units::as_units(20, "Hz"),
+    start = as.POSIXct(c("2020-01-01 00:00:00", NA, "2020-01-01 00:02:00", "2020-01-01 00:03:00"), tz = "UTC")
+  )
+  
+  expect_equal(
+    burst_intervals(a, from = "start"),
+    units::set_units(c(NA, NA, NA, 60), "s")
+  )
+  expect_equal(
+    burst_intervals(a, from = "end"),
+    units::set_units(c(NA, NA, NA, 59), "s")
+  )
+})
+
+test_that("burst_intervals does not measure across ID boundaries", {
+  b <- acc_burst_example(1:20, 1:20, 1:20)
+  
+  a <- acc(
+    rep(b, 4),
+    frequency = units::as_units(20, "Hz"),
+    start = as.POSIXct("2020-01-01", tz = "UTC") + c(0, 60, 120, 180)
+  )
+
+  # First burst of each group has no preceding burst within the group -> NA
+  expect_equal(
+    burst_intervals(a, from = "start", ids = c("a", "a", "b", "b")),
+    units::set_units(c(NA, 60, NA, 60), "s")
+  )
+
+  expect_error(
+    burst_intervals(a, ids = c("a", "b")),
+    "same length"
+  )
+})
+
+test_that("burst_intervals does not bridge across an interleaved group", {
+  b <- acc_burst_example(1:20, 1:20, 1:20)
+
+  a <- acc(
+    rep(b, 3),
+    frequency = units::as_units(20, "Hz"),
+    start = as.POSIXct("2020-01-01", tz = "UTC") + c(0, 60, 120)
+  )
+
+  # Intervals are measured against the immediate neighbour in vector order,
+  # never the nearest same-group burst, so the third "a" is not measured
+  # across the intervening "b".
+  expect_equal(
+    burst_intervals(a, from = "start", ids = c("a", "b", "a")),
+    units::set_units(c(NA, NA, NA), "s")
+  )
+})
+
 test_that("imu_units are safely extracted", {
   a <- acc_example()
 
