@@ -443,6 +443,36 @@ test_that("acc_calibration() warns once for multiple unresolved entries", {
   expect_equal(is.na(cal), c(TRUE, TRUE, FALSE))
 })
 
+test_that("unresolved warning lists each distinct reason as a bullet", {
+  w <- tryCatch(
+    as_acc_calibration(data.frame(
+      manufacturer = c("ornitela", "foobar", NA),
+      offset = c(NA, 1, NA), slope = c(NA, 1, NA)
+    )),
+    warning = function(w) w
+  )
+  msg <- cli::ansi_strip(conditionMessage(w))
+  expect_match(msg, "Unrecognized manufacturer")
+  expect_match(msg, "needs both an `offset` and a `slope`")
+})
+
+test_that("unresolved warning collapses identical reasons", {
+  w <- tryCatch(acc_calibration(slope = rep(0.001, 50)), warning = function(w) w)
+  msg <- cli::ansi_strip(conditionMessage(w))
+  expect_equal(lengths(regmatches(msg, gregexpr("offset.*slope", msg)))[1], 1L)
+})
+
+test_that("unresolved warning caps the reason list with an overflow line", {
+  w <- tryCatch(
+    as_acc_calibration(data.frame(
+      manufacturer = letters[1:7], offset = 1, slope = 1
+    )),
+    warning = function(w) w
+  )
+  msg <- cli::ansi_strip(conditionMessage(w))
+  expect_match(msg, "and 2 more reasons")
+})
+
 test_that("as_acc_calibration() handles mixed manufacturer and custom rows", {
   df <- data.frame(
     tag_id = c(1000, 3000, NA, 1),

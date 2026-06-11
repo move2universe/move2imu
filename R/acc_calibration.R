@@ -197,32 +197,35 @@ build_calibrations <- function(args) {
     return(new_acc_calibration())
   }
 
-  # For failed calibration builds, return NA calibration
-  cals <- purrr::pmap(
+  # Build each spec independently; one that can't be resolved becomes a missing
+  # (`NA`) calibration. Capture the failure reason so they can be summarized
+  # rather than silently dropped.
+  results <- purrr::pmap(
     args,
     function(...) {
       tryCatch(
-        acc_calibration_(...),
-        error = function(cnd) vctrs::vec_init(new_acc_calibration(), 1L)
+        list(cal = acc_calibration_(...), reason = NA_character_),
+        error = function(cnd) {
+          list(
+            cal = vctrs::vec_init(new_acc_calibration(), 1L),
+            # Keep only the leading line so multi-line condition messages (e.g.
+            # an arg_match "Did you mean?" hint) read cleanly as one bullet.
+            reason = sub("\n.*$", "", conditionMessage(cnd))
+          )
+        }
       )
     }
   )
-  
-  cals <- vctrs::vec_c(!!!cals)
-  
-  # If any calibration specs failed to build, throw a warning directing to docs
-  n_na <- sum(vctrs::vec_detect_missing(cals))
-  
-  if (n_na > 0) {
-    cli::cli_warn(
-      c(
-        "Returning NA for {n_na} calibrations that could not be resolved.",
-        "i" = "See {.help [{.fun acc_calibration}](move2imu::acc_calibration)} for details about accepted calibration inputs."
-      ),
-      class = "move2imu_unresolved_calibration"
-    )
+
+  cals <- vctrs::vec_c(!!!purrr::map(results, "cal"))
+
+  reasons <- purrr::map_chr(results, "reason")
+  reasons <- reasons[!is.na(reasons)]
+
+  if (length(reasons) > 0) {
+    warn_unresolved_calibrations(reasons)
   }
-  
+
   cals
 }
 
@@ -392,36 +395,54 @@ eobs_specs <- function(tag_id, sensitivity = "low") {
   }
   
   config <- eobs_default_specs()
-  
-  purrr::map2_dfr(
-    tag_id,
-    sensitivity,
-    function(tid, sens) {
-      matches <- config[tid >= config$min_tag_id &
-                          tid <= config$max_tag_id &
-                          config$sensitivity == sens, ]
-      
-      if (nrow(matches) == 0) {
-        rlang::abort(c(
-          paste0("Could not find an e-obs tag matching ID \"", tid, "\" and sensitivity \"", sens, "\"."),
-          i = "See `eobs_default_specs()` for expected e-obs tag config parameters."
-        ))
-      } else if (nrow(matches) > 1) {
-        rlang::abort(c(
-          paste0("Multiple tags matched ID ", tid, " and sensitivity \"", sens, "\"."),
-          i = "See `eobs_default_specs()` for expected e-obs tag config parameters."
-        ))
-      }
-      
-      data.frame(
-        tag_id = tid,
-        offset = matches$offset,
-        slope = matches$slope,
-        orientation_x = matches$orientation_x,
-        orientation_y = matches$orientation_y,
-        orientation_z = matches$orientation_z
+
+  # Match each tag to its config row by ID range and sensitivity.
+  row <- vapply(
+    seq_along(tag_id),
+    function(k) {
+      hit <- which(
+        tag_id[k] >= config$min_tag_id &
+          tag_id[k] <= config$max_tag_id &
+          config$sensitivity == sensitivity[k]
       )
-    }
+      if (length(hit) == 1L) hit else NA_integer_
+    },
+    integer(1)
+  )
+
+  if (anyNA(row)) {
+    bad <- which(is.na(row))
+
+    # Distinguish an out-of-range ID from a valid ID that has no configuration
+    # for the requested sensitivity, so the message points at the real problem.
+    in_range <- vapply(
+      bad,
+      function(k) any(tag_id[k] >= config$min_tag_id & tag_id[k] <= config$max_tag_id),
+      logical(1)
+    )
+
+    msgs <- ifelse(
+      in_range,
+      sprintf(
+        "No \"%s\" sensitivity configuration for e-obs tag ID %s. See `eobs_default_specs()` for valid configurations.",
+        sensitivity[bad], tag_id[bad]
+      ),
+      sprintf(
+        "Could not find an e-obs tag matching ID \"%s\". See `eobs_default_specs()` for valid e-obs tag IDs.",
+        tag_id[bad]
+      )
+    )
+
+    rlang::abort(unique(msgs))
+  }
+
+  data.frame(
+    tag_id = tag_id,
+    offset = config$offset[row],
+    slope = config$slope[row],
+    orientation_x = config$orientation_x[row],
+    orientation_y = config$orientation_y[row],
+    orientation_z = config$orientation_z[row]
   )
 }
 
@@ -497,6 +518,36 @@ pillar_shaft.acc_calibration <- function(x, ...) {
   out <- rep("<acc_cal>", length(x))
   out[vctrs::vec_detect_missing(x)] <- NA
   pillar::new_pillar_shaft_simple(out, align = "left")
+}
+
+# Maximum number of distinct failure reasons to list before collapsing the rest.
+max_calibration_reasons <- 5L
+
+# Warn about calibrations that resolved to NA, listing why. Identical reasons
+# collapse to a single bullet, and the list is capped, so a large
+# or heterogeneous batch of failures stays compact rather than flooding output.
+warn_unresolved_calibrations <- function(reasons) {
+  n_na <- length(reasons)
+  
+  # Glue-escape so a stray `{`/`}` in a reason can't break cli interpolation.
+  bullets <- gsub("}", "}}", gsub("{", "{{", unique(reasons), fixed = TRUE), fixed = TRUE)
+
+  overflow <- length(bullets) - max_calibration_reasons
+  if (overflow > 0L) {
+    bullets <- c(
+      bullets[seq_len(max_calibration_reasons)],
+      sprintf("... and %d more reason%s", overflow, if (overflow == 1L) "" else "s")
+    )
+  }
+  
+  cli::cli_warn(
+    c(
+      "Returning NA for {n_na} calibration{?s} that could not be resolved:",
+      rlang::set_names(bullets, rep("*", length(bullets))),
+      "i" = "See {.help [{.fun acc_calibration}](move2imu::acc_calibration)} for details about accepted calibration inputs."
+    ),
+    class = "move2imu_unresolved_calibration"
+  )
 }
 
 # Resolve per-axis column from a data.frame, falling back to scalar column.
