@@ -14,20 +14,20 @@
 #'   Currently, only [acc_calibration()] is supported.
 #'
 #' @details
-#' An `acc_calibration` object may contain missing (`NA`) elements (e.g. if 
-#' produced by [as_acc_calibration()]). `transform_imu()` returns `NA` in such 
-#' cases and emits a warning if any bursts are lost because of missing 
+#' An `acc_calibration` object may contain missing (`NA`) elements (e.g. if
+#' produced by [as_acc_calibration()]). `transform_imu()` returns `NA` in such
+#' cases and emits a warning if any bursts are lost because of missing
 #' calibration specifications.
-#' 
+#'
 #' If an `acc_calibration` only has calibration parameters for certain
 #' axes (e.g. `offset_x = 2048` and `slope_x = 0.001`), then only those axes
 #' will be transformed by [transform_imu()]. Values for other axes will be
 #' converted to `NA`. The dimension of the input burst matrices therefore
 #' remains the same.
-#' 
+#'
 #' @return An IMU vector of the same length as `x`, with each burst transformed
 #'   by the corresponding calibration.
-#'   
+#'
 #' @seealso [acc_calibration()] to construct an accelerometer calibration.
 #'
 #' @export
@@ -46,37 +46,37 @@
 #' )
 transform_imu <- function(x, calibration) {
   assert_imu(x)
-  
+
   if (!inherits(calibration, "imu_calibration")) {
     cli::cli_abort(c(
       "{.arg calibration} must be an {.cls imu_calibration} object.",
       "i" = "Use e.g. {.help [{.fn acc_calibration}](move2imu::acc_calibration)} to create one."
     ))
   }
-  
+
   sensor <- class(x)[1]
   expected <- paste0(sensor, "_calibration")
-  
+
   if (!inherits(calibration, expected)) {
     cli::cli_abort(c(
       "Cannot apply {.cls {class(calibration)[1]}} to an {.cls {sensor}} vector.",
       "i" = "Expected an {.cls {expected}} object."
     ))
   }
-  
+
   calibration <- vctrs::vec_recycle(calibration, length(x))
   missing_cal <- vctrs::vec_detect_missing(calibration)
-  
+
   # Burst with data but no calibration becomes NA. Warn to avoid this
   # going unnoticed.
   uncalibrated <- missing_cal & !is.na(x)
-  
+
   if (any(uncalibrated)) {
     cli::cli_warn(
       "Returning NA for {sum(uncalibrated)} {cli::qty(sum(uncalibrated))}burst{?s} with data but no calibration."
     )
   }
-  
+
   bursts(x) <- new_burst_list(
     purrr::map2(
       bursts(x),
@@ -102,12 +102,12 @@ transform_imu <- function(x, calibration) {
     ),
     sensor = sensor
   )
-  
+
   # Sync metadata so uncalibrated elements are fully missing (`is.na()` agrees)
   if (any(missing_cal)) {
     x <- vctrs::vec_assign(x, which(missing_cal), vctrs::vec_init(x, 1L))
   }
-  
+
   x
 }
 

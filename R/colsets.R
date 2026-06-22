@@ -17,7 +17,7 @@
 #'   an associated column that indicates the axes present in the burst.
 #'   A further column provides the sampling frequency of the burst. All three
 #'   of these columns must be present to form a valid compact-format column set.
-#'   
+#'
 #' @param x,y,z (Expanded-format) Column name(s) for the X, Y, and/or Z axes.
 #' @param bursts (Compact-format) Column name containing the raw burst strings.
 #' @param axes (Compact-format) Column name containing the axis labels for
@@ -29,10 +29,10 @@
 #'
 #' @seealso [as_acc()], [as_mag()], [as_gyro()] to extract IMU data from a move2
 #'   object.
-#'   
+#'
 #'   [active_acc_colsets()], [active_mag_colsets()], [active_gyro_colsets()] to
 #'   identify IMU colsets present in a move2 object.
-#'   
+#'
 #'   [movebank_acc_colsets()], [movebank_mag_colsets()], [movebank_gyro_colsets()]
 #'   to see column sets provided by Movebank.
 #'
@@ -45,7 +45,7 @@
 #'
 #' # Compact-format: all three columns required
 #' imu_colset(bursts = "my_raw", axes = "my_axes", frequency = "my_freq")
-#' 
+#'
 #' # Use a colset to extract IMU data from those columns in a move2 object
 #' as_acc(gulls(), colset = imu_colset(x = "acceleration_raw_x"))
 imu_colset <- function(x = NULL,
@@ -56,10 +56,10 @@ imu_colset <- function(x = NULL,
                        frequency = NULL) {
   expanded_args <- purrr::compact(list(X = x, Y = y, Z = z))
   compact_args <- purrr::compact(list(bursts = bursts, axes = axes, frequency = frequency))
-  
+
   has_expanded <- length(expanded_args) > 0
   has_compact <- length(compact_args) > 0
-  
+
   if (has_expanded && has_compact) {
     cli::cli_abort(c(
       "Cannot mix expanded-format and compact-format columns in a single imu_colset.",
@@ -77,14 +77,14 @@ imu_colset <- function(x = NULL,
         "Compact-format {.fun imu_colset} requires {.code bursts}, {.code axes}, and {.code frequency} columns."
       )
     }
-    
+
     cols <- unlist(compact_args)
     type <- "compact"
   } else {
     cols <- unlist(expanded_args)
     type <- "expanded"
   }
-  
+
   new_imu_colset(cols = cols, type = type)
 }
 
@@ -113,7 +113,7 @@ print.imu_colset <- function(x, ...) {
 #' - `movebank_gyro_colsets()` — standard column sets for [as_gyro()].
 #'
 #' To extract IMU data from a `move2` with column names that don't correspond to
-#' Movebank's conventions, provide a custom set of IMU columns with 
+#' Movebank's conventions, provide a custom set of IMU columns with
 #' [imu_colset()].
 #'
 #' @details
@@ -127,9 +127,9 @@ print.imu_colset <- function(x, ...) {
 #'   an associated column that indicates the axes present in the burst.
 #'   A further column provides the sampling frequency of the burst. All three
 #'   of these columns must be present to form a valid compact-format column set.
-#'   
+#'
 #' @returns A named list of `imu_colset` objects.
-#' 
+#'
 #' @seealso [active_acc_colsets()], [active_mag_colsets()], [active_gyro_colsets()]
 #'   to identify column sets present in a given `move2` object.
 #'
@@ -137,9 +137,9 @@ print.imu_colset <- function(x, ...) {
 #'
 #' @examples
 #' movebank_acc_colsets()
-#' 
+#'
 #' movebank_mag_colsets()
-#' 
+#'
 #' movebank_gyro_colsets()
 NULL
 
@@ -173,8 +173,8 @@ movebank_gyro_colsets <- function() {
 #' - `active_acc_colsets()` — column sets used by [as_acc()].
 #' - `active_mag_colsets()` — column sets used by [as_mag()].
 #' - `active_gyro_colsets()` — column sets used by [as_gyro()].
-#' 
-#' If no active colsets are found, you can use [imu_colset()] to specify 
+#'
+#' If no active colsets are found, you can use [imu_colset()] to specify
 #' a custom set of columns that contain IMU data.
 #'
 #' @param x A `move2` object.
@@ -182,12 +182,12 @@ movebank_gyro_colsets <- function() {
 #' @returns A list of `imu_colset` objects.
 #'
 #' @name active_colsets
-#' 
+#'
 #' @inherit movebank_colsets details
 #'
-#' @seealso [movebank_acc_colsets()], [movebank_mag_colsets()], 
+#' @seealso [movebank_acc_colsets()], [movebank_mag_colsets()],
 #'   [movebank_gyro_colsets()] for the supported default colsets.
-#'   
+#'
 #'   [as_acc()], [as_mag()], [as_gyro()] to extract IMU data from a
 #'   `move2` object.
 #'
@@ -211,7 +211,7 @@ movebank_gyro_colsets <- function() {
 #' alb$eobs_acceleration_axes <- NULL
 #'
 #' \dontrun{
-#'   active_acc_colsets(alb)
+#' active_acc_colsets(alb)
 #' }
 NULL
 
@@ -237,20 +237,19 @@ active_gyro_colsets <- function(x) {
 # are fully present (if compact-format) and contain data.
 active_colsets_ <- function(x, sensor) {
   force(x)
-  config <- switch(
-    sensor,
+  config <- switch(sensor,
     acc = acc_colset_config(),
     mag = mag_colset_config(),
     gyro = gyro_colset_config()
   )
   i <- which(purrr::map_lgl(config, function(colset) colset$is_in_(x)))
-  
+
   if (length(i) == 0) {
     abort_missing_colset(sensor)
   }
-  
+
   poss_colsets <- config[i]
-  
+
   colsets <- purrr::compact(
     purrr::map(
       poss_colsets,
@@ -273,11 +272,11 @@ active_colsets_ <- function(x, sensor) {
       }
     )
   )
-  
+
   if (length(colsets) == 0) {
     abort_missing_colset(sensor)
   }
-  
+
   colsets
 }
 
@@ -285,10 +284,10 @@ active_colsets_ <- function(x, sensor) {
 #'
 #' @description
 #' Return the row indices of a `move2` object where more than one column set
-#' for a given sensor contains data. Functions that extract IMU data 
+#' for a given sensor contains data. Functions that extract IMU data
 #' will error if a single timestamp contains multiple sources of IMU data
 #' for the same sensor.
-#' 
+#'
 #' To resolve duplicated rows, pass a specific set of IMU columns to the
 #' `colset` argument of `as_*()` or remove the duplicated data.
 #'
@@ -304,13 +303,13 @@ active_colsets_ <- function(x, sensor) {
 #'   column sets.
 #'
 #' @name duplicated_rows
-#' 
+#'
 #' @keywords internal
 #'
 #' @seealso [active_acc_colsets()], [active_mag_colsets()],
 #'   [active_gyro_colsets()] to identify available column sets in a `move2`
-#'   object. 
-#'   
+#'   object.
+#'
 #'   [as_acc()], [as_mag()], [as_gyro()] to extract IMU data from a
 #'   `move2` object.
 NULL
@@ -338,14 +337,14 @@ duplicated_imu_rows <- function(x, colsets = NULL) {
   if (!rlang::is_list(colsets)) {
     colsets <- list(colsets)
   }
-  
+
   rows <- unlist(
     purrr::map(
       colsets,
       function(cols) which_imu_vals(x, colset = cols)
     )
   )
-  
+
   # Would be nice to return duplicated groups too so user knows what the issue is...
   sort(unique(rows[duplicated(rows) | duplicated(rows, fromLast = TRUE)]))
 }
@@ -357,7 +356,7 @@ duplicated_imu_rows <- function(x, colsets = NULL) {
 # the IMU class is determined by which converter you call, not by the colset.
 new_imu_colset <- function(cols, type) {
   type <- rlang::arg_match(type, c("expanded", "compact"))
-  
+
   structure(
     cols,
     type = type,
@@ -554,7 +553,7 @@ cols_empty <- function(x, cols) {
 assert_all_cols_present <- function(x, cols, call = rlang::caller_env()) {
   if (!all(cols %in% colnames(x))) {
     cols <- cols[which(!cols %in% colnames(x))]
-    
+
     cli::cli_abort(
       c(
         "Missing columns provided.",

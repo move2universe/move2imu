@@ -46,9 +46,11 @@ plot_time <- function(x, ylab = "Value") {
     # Convert to seconds before stripping units — otherwise non-Hz
     # frequencies (e.g. stored as "1/min") would yield offsets in minutes
     # that POSIXct silently treats as seconds.
-    function(x, n) c(units::drop_units(
-      units::set_units((c(0, seq_len(n))) / x, "s")
-    )),
+    function(x, n) {
+      c(units::drop_units(
+        units::set_units((c(0, seq_len(n))) / x, "s")
+      ))
+    },
     x = freqs(x)[keep],
     n = n_samples(x)[keep],
     SIMPLIFY = F

@@ -47,7 +47,7 @@ test_that("Can find active colsets in move2 object with multiple colsets", {
   skip_if_not_installed("move2")
   cols <- active_acc_colsets(move2::mt_stack(albatrosses(), gulls()))
   expect_identical(
-    cols, 
+    cols,
     list(eobs = acc_colset_eobs(), raw_xyz = acc_colset_raw_xyz())
   )
 })
@@ -55,10 +55,10 @@ test_that("Can find active colsets in move2 object with multiple colsets", {
 test_that("Error if no colset detected", {
   skip_if_not_installed("move2")
   alb_data <- albatrosses()
-  
+
   col_subset <- setdiff(colnames(alb_data), "eobs_acceleration_axes")
   alb_data <- alb_data[, col_subset]
-  
+
   expect_error(
     active_acc_colsets(alb_data),
     "Could not identify a full acc column set"
@@ -68,27 +68,27 @@ test_that("Error if no colset detected", {
 test_that("Use data values to determine active colset if multiple present", {
   skip_if_not_installed("move2")
   m <- move2::mt_stack(gulls(), albatrosses())
-  
+
   # Missing data shouldn't matter if at least one of the set still contains data
   m[["acceleration_raw_x"]] <- NA
   m[["acceleration_raw_y"]] <- NA
-  
+
   colsets <- active_acc_colsets(m)
   expect_identical(
     colsets$raw_xyz,
     new_imu_colset(c(Z = "acceleration_raw_z"), type = "expanded")
   )
-  
+
   # If all cols in a set are missing, then the next colset will be used
   m[["acceleration_raw_z"]] <- NA
-  
+
   expect_identical(active_acc_colsets(m), list(eobs = acc_colset_eobs()))
-  
+
   # Unless neither have data, in which case first is used
   m[["eobs_acceleration_axes"]] <- NA
   m[["eobs_acceleration_sampling_frequency_per_axis"]] <- NA
   m[["eobs_accelerations_raw"]] <- NA
-  
+
   expect_error(active_acc_colsets(m), "Could not identify a full")
 })
 
@@ -97,10 +97,10 @@ test_that("Correctly identify that a non-full compact-format colset is invalid",
   alb <- albatrosses()
   alb$eobs_acceleration_axes <- NA
   expect_error(active_acc_colsets(alb))
-  
+
   alb$eobs_acceleration_axes <- rep(list(NULL), nrow(alb))
   expect_error(active_acc_colsets(alb))
-  
+
   alb$eobs_acceleration_axes <- NULL
   expect_error(active_acc_colsets(alb))
 })
@@ -145,7 +145,7 @@ test_that("is_unique_named_subset correctly identifies subsets", {
 
   # Empty input
   expect_false(is_unique_named_subset(character(0), tgt))
-  
+
   # Names are not required if not present in both
   expect_true(is_unique_named_subset(c("A", "B"), c("A", "B", "C")))
   expect_false(is_unique_named_subset(c("A", "B"), c(A = "A", B = "B", C = "C")))

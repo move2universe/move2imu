@@ -20,9 +20,9 @@
 #'
 #' @examples
 #' a <- acc_example()
-#' 
+#'
 #' vedba(a)
-#' 
+#'
 #' odba(a)
 vedba <- function(x) {
   if (!is_acc(x)) {
@@ -45,11 +45,11 @@ vedba_ <- function(b, ...) {
     u <- units(b)
     b <- t(b) - units::set_units(colMeans(b), u, mode = "standard")
 
-    vedba <- mean(sqrt(colSums(b ^ 2)))
+    vedba <- mean(sqrt(colSums(b^2)))
     vedba <- units::set_units(vedba, u, mode = "standard")
   } else {
     b <- t(b) - colMeans(b)
-    vedba <- mean(sqrt(colSums(b ^ 2)))
+    vedba <- mean(sqrt(colSums(b^2)))
   }
 
   vedba
@@ -85,22 +85,22 @@ dba_ <- function(x, .f) {
   }
 
   dba_non_na <- purrr::list_simplify(purrr::map(bursts(x[!x_na]), .f))
-  
+
   if (all(!x_na)) {
     return(dba_non_na)
   }
-  
+
   if (inherits(dba_non_na, "units")) {
     dba <- units::set_units(
-      rep(NA_real_, length(x)), 
-      units(dba_non_na), 
+      rep(NA_real_, length(x)),
+      units(dba_non_na),
       mode = "standard"
     )
   } else {
     dba <- rep(NA_real_, length(x))
   }
-  
+
   dba[!x_na] <- dba_non_na
-  
+
   dba
 }

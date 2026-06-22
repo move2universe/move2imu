@@ -144,7 +144,7 @@ test_that("drop_imu_units preserves imu structure", {
 test_that("drop_imu_units ignores unitless bursts", {
   a <- acc_example()
   a_bare <- drop_imu_units(a)
-  
+
   expect_identical(a, a_bare)
 })
 

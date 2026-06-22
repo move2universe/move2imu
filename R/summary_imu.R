@@ -7,11 +7,11 @@
 #' multi-panel histogram of those same distributions.
 #'
 #' Intervals are the gaps between consecutive bursts (end of one to the start
-#' of the next), computed in vector order (see [burst_intervals()]). If bursts 
-#' come from different sources (e.g. different tags), there may be noticeable 
+#' of the next), computed in vector order (see [burst_intervals()]). If bursts
+#' come from different sources (e.g. different tags), there may be noticeable
 #' interval artifacts between some bursts where sources change.
 #'
-#' Note that the distribution of sample values considers all axes and units 
+#' Note that the distribution of sample values considers all axes and units
 #' simultaneously.
 #'
 #' @param object An `imu` object.
@@ -103,42 +103,42 @@ summary.imu <- function(object, ...) {
 print.imu_summary <- function(x, ...) {
   # Header
   if (x$n_na > 0) {
-    na_note <- paste0(" (", format_count(x$n_na), " NA)") 
+    na_note <- paste0(" (", format_count(x$n_na), " NA)")
   } else {
-    na_note <- "" 
+    na_note <- ""
   }
-  
+
   cat(format_count(x$n), " ", x$sensor, " bursts", na_note, "\n", sep = "")
-  
+
   if (is.null(x$axes)) {
     return(invisible(x))
   }
-  
+
   # Time range
   if (!is.null(x$start_range)) {
-    if (nzchar(x$start_tz)) { 
+    if (nzchar(x$start_tz)) {
       tz_label <- paste0(" ", x$start_tz)
     } else {
-      tz_label <- "" 
+      tz_label <- ""
     }
-    
+
     cat(paste0("from ", format(x$start_range[1]), " to ", format(x$start_range[2]), tz_label), "\n")
   }
-  
+
   cat("\n")
-  
+
   # Axes
   axis_parts <- paste0(
     names(x$axes), " (", format_count(as.integer(x$axes)), ")"
   )
   cat("Axes:", paste(axis_parts, collapse = ", "), "\n")
-  
+
   # Frequency
   cat("Frequencies:", format_range(x$freqs, x$freq_unit), "\n")
-  
+
   # Samples
   cat("Samples per burst:", format_range(x$samples), "\n")
-  
+
   # Duration
   cat("Durations:", format_range(x$durations, x$dur_unit), "\n")
 
@@ -153,7 +153,7 @@ print.imu_summary <- function(x, ...) {
   if (isTRUE(x$has_unitless)) labels <- c(labels, "[no units]")
   if (length(labels) == 0) labels <- "[no units]"
   cat("Units:  ", paste(labels, collapse = ", "), "\n")
-  
+
   invisible(x)
 }
 
@@ -206,10 +206,10 @@ plot.imu_summary <- function(x, panel = NULL, ...) {
   np <- length(panels)
   nc <- min(np, 2)
   nr <- ceiling(np / nc)
-  
+
   oldpar <- graphics::par(mfrow = c(nr, nc), mar = c(4, 4, 2, 1))
   on.exit(graphics::par(oldpar))
-  
+
   for (nm in names(panels)) {
     p <- panels[[nm]]
     if (length(p$data) == 0) {
@@ -227,7 +227,7 @@ plot.imu_summary <- function(x, panel = NULL, ...) {
       ...
     )
   }
-  
+
   invisible(x)
 }
 

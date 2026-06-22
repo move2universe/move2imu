@@ -1,7 +1,7 @@
 #' Manage units in IMU burst data
 #'
 #' @description
-#' Set, convert, or drop units in burst matrices of `acc`, `mag`, and `gyro` 
+#' Set, convert, or drop units in burst matrices of `acc`, `mag`, and `gyro`
 #' vectors.
 #'
 #' `set_imu_units()` attaches units to unitless bursts or converts between
@@ -131,22 +131,22 @@ set_imu_units_ <- function(x, value, reference, sensor) {
       "i" = "Units must be convertible to {reference}."
     ))
   }
-  
+
   bursts_converted <- purrr::map(
-    bursts(x), 
+    bursts(x),
     function(b) {
       if (is.null(b)) {
         return(NULL)
       }
-      
+
       nms <- colnames(b)
       b <- units::set_units(b, value, mode = "standard")
       colnames(b) <- nms
       b
     }
   )
-  
+
   bursts(x) <- new_burst_list(bursts_converted, sensor = sensor)
-  
+
   x
 }

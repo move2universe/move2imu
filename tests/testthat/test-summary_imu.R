@@ -81,12 +81,17 @@ test_that("single-burst summary prints 'no data' for intervals", {
 mixed_unit_acc <- function() {
   b1 <- cbind(X = c(1, 2, 3))
   units(b1) <- units::as_units("m/s^2")
-  b2 <- cbind(X = c(2000, 2010, 2020))   # unitless
+  b2 <- cbind(X = c(2000, 2010, 2020)) # unitless
   acc(
     list(b1, b2),
     frequency = units::set_units(c(20, 20), "Hz"),
-    start = as.POSIXct(c("2026-01-01 00:00:00",
-                         "2026-01-01 00:00:10"), tz = "UTC")
+    start = as.POSIXct(
+      c(
+        "2026-01-01 00:00:00",
+        "2026-01-01 00:00:10"
+      ),
+      tz = "UTC"
+    )
   )
 }
 
@@ -146,15 +151,17 @@ test_that("plot.imu_summary `panel` selects by name and by integer", {
 
 test_that("plot.imu_summary errors on unknown panel name", {
   s <- summary(acc_example())
-  pdf(tempfile()); on.exit(dev.off())
+  pdf(tempfile())
+  on.exit(dev.off())
   expect_error(plot(s, panel = "NotAPanel"))
 })
 
 test_that("plot.imu_summary errors on out-of-range integer `panel`", {
   s <- summary(acc_example())
-  pdf(tempfile()); on.exit(dev.off())
+  pdf(tempfile())
+  on.exit(dev.off())
   expect_error(plot(s, panel = 99), "between 1 and")
-  expect_error(plot(s, panel = 0),  "between 1 and")
+  expect_error(plot(s, panel = 0), "between 1 and")
 })
 
 test_that("plot.imu_summary forwards extra args to hist()", {

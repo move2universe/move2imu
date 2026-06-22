@@ -104,33 +104,33 @@ gyro_example_compact <- function(id = "compact") {
 albatrosses_messy <- function() {
   d <- albatrosses()
   d <- d[d$sensor_type_id == 2365683, ]
-  
+
   # Fake time series with some records that represent continuous data along
   # with some longer gaps
   ts1 <- seq(
-    min(move2::mt_time(d)), 
+    min(move2::mt_time(d)),
     by = "12 s",
     length.out = 10
   )
-  
+
   ts2 <- seq(
     ts1[length(ts1)] + units::as_difftime(units::set_units(5, "min")),
     by = "5 min",
     length.out = 2
   )
-  
+
   ts3 <- seq(
-    ts2[length(ts2)] + units::as_difftime(units::set_units(5, "min")),,
+    ts2[length(ts2)] + units::as_difftime(units::set_units(5, "min")),
     by = "12 s",
     length.out = nrow(d) - (length(ts1) + length(ts2))
   )
-  
+
   move2::mt_time(d) <- c(ts1, ts2, ts3)
-  
+
   # Should not collapse continuous data across different axes
   levels(d$eobs_acceleration_axes) <- c("XY", "XZ", "XYZ")
   d[c(4, 5, 6), "eobs_acceleration_axes"] <- "XYZ"
-  
+
   d[c(44, 45), "eobs_acceleration_axes"] <- "XZ"
 
   # Adjust so that the duration of the burst is the same:
@@ -143,6 +143,6 @@ albatrosses_messy <- function() {
   d[c(31, 32), "eobs_accelerations_raw"] <- paste0(
     d[c(31, 32), ][["eobs_accelerations_raw"]], " ", paste0(rep(1, 120), collapse = " ")
   )
-  
+
   d
 }

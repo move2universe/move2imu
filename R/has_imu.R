@@ -3,7 +3,7 @@
 #' @description
 #' These functions return logical vectors indicating the rows of an input
 #' `move2` object that contain IMU data for the specified sensor.
-#' 
+#'
 #' @details
 #' If `x` has data in more than one active IMU column set, `has_*()` will return
 #' `TRUE`. However, these rows cannot be parsed by [as_acc()], [as_mag()], etc.
@@ -20,7 +20,7 @@
 #'
 #' @param x A `move2` object.
 #' @param colset An `imu_colset` object or list of `imu_colset` objects
-#'   specifying the columns to check for IMU data. By default, all active 
+#'   specifying the columns to check for IMU data. By default, all active
 #'   colsets detected in `x` are considered (see [active_acc_colsets()]).
 #'
 #' @returns A logical vector the same length as `nrow(x)`. `TRUE` values
@@ -28,8 +28,8 @@
 #'
 #' @seealso [as_acc()], [as_mag()], [as_gyro()] to extract IMU data from a
 #'   `move2` object.
-#'   
-#'   [active_acc_colsets()], [active_mag_colsets()], [active_gyro_colsets()] 
+#'
+#'   [active_acc_colsets()], [active_mag_colsets()], [active_gyro_colsets()]
 #'   to inspect which colsets are detected in `x`.
 #'
 #' @name has_imu
@@ -69,7 +69,7 @@ has_imu_ <- function(x, sensor, colset = NULL) {
     parse_colsets(x, colset, sensor, quiet = TRUE),
     move2imu_no_active_colset = function(e) NULL
   )
-  
+
   out <- logical(nrow(x))
 
   if (is.null(colsets)) {

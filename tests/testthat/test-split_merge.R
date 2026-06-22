@@ -35,7 +35,9 @@ test_that("Can merge with drop = FALSE", {
   d <- albatrosses()
   d <- move2::mt_set_track_id(d, rep("tmp", nrow(d)))
   move2::mt_time(d) <- seq(
-    min(move2::mt_time(d)), by = "12 s", length.out = nrow(d)
+    min(move2::mt_time(d)),
+    by = "12 s",
+    length.out = nrow(d)
   )
   a <- as_acc(d, merge_continuous = TRUE, drop = FALSE)
 
@@ -86,10 +88,10 @@ test_that("Can combine adjacent bursts with embedded NA", {
   expect_length(a2, 2)
   expect_equal(n_samples(a2), as.integer(c(60, 60)))
   expect_identical(starts(a2), as.POSIXct(c(0, 20), tz = "UTC"))
-  
+
   # drop = FALSE should only change indexing, not merged values
   a3 <- merge_imu(a, drop = FALSE)
-  
+
   expect_length(a3, length(a))
   expect_identical(which(!is.na(a3)), c(1L, 4L))
   expect_identical(a3[!is.na(a3)], a2)
@@ -100,7 +102,9 @@ test_that("drop = FALSE places merged bursts at correct indices", {
   d <- albatrosses()
   d <- move2::mt_set_track_id(d, rep("tmp", nrow(d)))
   move2::mt_time(d) <- seq(
-    min(move2::mt_time(d)), by = "12 s", length.out = nrow(d)
+    min(move2::mt_time(d)),
+    by = "12 s",
+    length.out = nrow(d)
   )
   a <- as_acc(d, merge_continuous = TRUE, drop = FALSE)
 
@@ -119,7 +123,7 @@ test_that("Non-mergeable bursts ignore merge arg regardless of drop arg", {
   expect_identical(g1, g2)
 })
 
-test_that("Partial merge with drop = FALSE respects ID boundaries", {                                                                                                                           
+test_that("Partial merge with drop = FALSE respects ID boundaries", {
   # 4 adjacent bursts, same freq, but IDs split at position 3
   a <- acc(
     c(
@@ -133,18 +137,18 @@ test_that("Partial merge with drop = FALSE respects ID boundaries", {
   )
 
   merged <- merge_imu(a, ids = c("a", "a", "b", "b"), drop = FALSE)
-  
-  expect_length(merged, 4)                                
+
+  expect_length(merged, 4)
   expect_identical(which(!is.na(merged)), c(1L, 3L))
-  expect_equal(n_samples(merged[1]), as.integer(nrow(bursts(a)[[1]]) + nrow(bursts(a)[[2]])))                                                                                                     
-  expect_equal(n_samples(merged[3]), as.integer(nrow(bursts(a)[[3]]) + nrow(bursts(a)[[4]])))                                                                                                     
-}) 
+  expect_equal(n_samples(merged[1]), as.integer(nrow(bursts(a)[[1]]) + nrow(bursts(a)[[2]])))
+  expect_equal(n_samples(merged[3]), as.integer(nrow(bursts(a)[[3]]) + nrow(bursts(a)[[4]])))
+})
 
 test_that("Do not combine bursts with different axes", {
   # 3 adjacent bursts: XYZ, XY, XYZ. Middle burst has different axes so
   # none should merge despite being temporally adjacent.
   b_xyz1 <- matrix(1:30, ncol = 3, dimnames = list(NULL, c("X", "Y", "Z")))
-  b_xy   <- matrix(1:10, ncol = 2, dimnames = list(NULL, c("X", "Y")))
+  b_xy <- matrix(1:10, ncol = 2, dimnames = list(NULL, c("X", "Y")))
   b_xyz2 <- matrix(31:45, ncol = 3, dimnames = list(NULL, c("X", "Y", "Z")))
 
   a <- acc(
@@ -227,14 +231,14 @@ test_that("Do not combine bursts with different units", {
 
   # Bursts with the same units should still merge among themselves
   a_same <- set_imu_units(a, "m/s^2")
-  
+
   merged_same <- merge_imu(a_same, drop = TRUE)
-  
+
   expect_length(merged_same, 1)
   expect_equal(n_samples(merged_same), 120L)
-  
+
   merged_unitless <- merge_imu(a, drop = TRUE)
-  
+
   expect_length(merged_unitless, 1)
   expect_equal(n_samples(merged_same), n_samples(merged_unitless))
 })
@@ -244,7 +248,7 @@ test_that("Don't combine bursts without start time", {
     c(acc_burst_example(x = 1:10), acc_burst_example(x = 1:10)),
     frequency = units::set_units(1, "Hz")
   )
-  
+
   expect_identical(a, merge_imu(a))
 })
 
@@ -450,13 +454,12 @@ test_that("split_imu() errors on invalid interval", {
 
   expect_error(split_imu(a, 0), "`interval` must be a positive")
   expect_error(split_imu(a, -1), "`interval` must be a positive")
-  
 })
 
 test_that("split_imu() round-trip in dataframe workflow", {
   skip_if_not_installed("dplyr")
   skip_if_not_installed("tidyr")
-  
+
   # Covers normal bursts, adjacent bursts, NA element, and 1-sample burst
   a <- acc(
     c(

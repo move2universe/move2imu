@@ -2,8 +2,8 @@
 #'
 #' @description
 #' Extract `acc` data from a `move2` or convert an object to an `acc` vector.
-#' 
-#' For a `move2`, `acc` data are extracted from the object's 
+#'
+#' For a `move2`, `acc` data are extracted from the object's
 #' [active_acc_colsets()].
 #'
 #' @param x A `move2` containing acceleration data as collected by EOBS,
@@ -47,23 +47,23 @@
 #'   in Movebank.
 #'
 #' @export
-#' 
+#'
 #' @examplesIf rlang::is_installed("move2")
 #' # Example compact-format data: acc bursts stored in strings in individual rows
 #' alb <- albatrosses()
-#' 
+#'
 #' as_acc(alb)
 #'
 #' # Expanded-format data: bursts are constructed from samples stored across rows
 #' g <- gulls()
-#' 
+#'
 #' head(as_acc(g))
 #'
 #' # Specify the columns to extract explicitly with a colset, e.g. to
 #' # pull a single axis from the gulls data:
-#' as_acc(g, colset = imu_colset(x = "acceleration_raw_x")) |> 
+#' as_acc(g, colset = imu_colset(x = "acceleration_raw_x")) |>
 #'   head()
-#' 
+#'
 #' # Output is index-matched to the input move2, so the result can be
 #' # easily attached:
 #' g$a <- as_acc(g)

@@ -1,7 +1,7 @@
 expected_vedba <- function(b) {
   if (inherits(b, "units")) b <- units::drop_units(b)
   b <- t(b) - colMeans(b)
-  mean(sqrt(colSums(b ^ 2)))
+  mean(sqrt(colSums(b^2)))
 }
 
 expected_odba <- function(b) {
@@ -58,11 +58,11 @@ test_that("Can calculate odba (without units)", {
 
 test_that("Single-sample burst returns zero", {
   a <- acc(
-    acc_burst_example(1, 2, 3), 
+    acc_burst_example(1, 2, 3),
     frequency = units::set_units(10, "Hz"),
     start = as.POSIXct(1, tz = "UTC")
   )
-  
+
   # A single sample has colMeans equal to itself, so centered values are all 0
   expect_equal(vedba(a)[[1]], 0)
   expect_equal(odba(a)[[1]], 0)
@@ -108,22 +108,22 @@ test_that("dba uses first available units for output", {
 
   v1 <- vedba(c(a1, a2))
   o1 <- odba(c(a1, a2))
-  
+
   expect_s3_class(v1, "units")
   expect_s3_class(o1, "units")
   expect_equal(units(v1)$numerator, "m")
   expect_equal(units(v1)$denominator, c("s", "s"))
   expect_equal(units(o1)$numerator, "m")
   expect_equal(units(o1)$denominator, c("s", "s"))
-  
+
   v2 <- vedba(c(a2, a1))
   o2 <- odba(c(a2, a1))
-  
+
   expect_true(inherits(v2, "units"))
   expect_true(inherits(o2, "units"))
   expect_equal(units(v2)$numerator, "standard_free_fall")
   expect_equal(units(o2)$numerator, "standard_free_fall")
-  
+
   expect_equal(as.numeric(rev(v2) * 9.80665), as.numeric(v1))
   expect_equal(as.numeric(rev(o2) * 9.80665), as.numeric(o1))
 })

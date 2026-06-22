@@ -32,7 +32,9 @@ null_or_na <- function(x) {
 # as_acc_calibration()
 first_valid <- function(...) {
   for (v in list(...)) {
-    if (!is.null(v) && !rlang::is_na(v)) return(v)
+    if (!is.null(v) && !rlang::is_na(v)) {
+      return(v)
+    }
   }
   NULL
 }

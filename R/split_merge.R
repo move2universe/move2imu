@@ -4,8 +4,8 @@
 #' For a given IMU vector, identify temporally adjacent bursts and
 #' merge them into a single burst. Bursts that end at the same time as the
 #' start time of the next burst are considered adjacent. Bursts with different
-#' frequencies, axes, or burst data units will not be merged. 
-#' 
+#' frequencies, axes, or burst data units will not be merged.
+#'
 #' To merge
 #' bursts with differing units, convert them to a common
 #' unit first with [set_imu_units()].
@@ -38,7 +38,9 @@ merge_imu <- function(x, ids = NULL, drop = FALSE) {
   valid <- which(!is.na(x))
 
   if (length(valid) <= 1) {
-    if (drop) return(x[valid])
+    if (drop) {
+      return(x[valid])
+    }
     return(x)
   }
 
@@ -57,7 +59,9 @@ merge_imu <- function(x, ids = NULL, drop = FALSE) {
 
   # If no adjacent bursts, no need to proceed
   if (!any(is_adjacent_burst, na.rm = TRUE)) {
-    if (drop) return(xv)
+    if (drop) {
+      return(xv)
+    }
     return(x)
   }
 
@@ -156,7 +160,7 @@ merge_imu <- function(x, ids = NULL, drop = FALSE) {
 #' # As the bursts immediately follow one another, they can be remerged:
 #' m <- merge_imu(flat, drop = TRUE)
 #' m
-#' 
+#'
 #' identical(m, a)
 #'
 #' \dontrun{

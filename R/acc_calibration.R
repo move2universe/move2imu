@@ -19,18 +19,18 @@
 #' If neither of these options is provided in full, then a calibration cannot
 #' be built and `NA` is returned for that element. Passing missing calibrations
 #' to [transform_imu()] returns `NA` for that burst.
-#' 
+#'
 #' Currently if `manufacturer` is provided, it must be either `"ornitela"` or
 #' `"eobs"`. If `"eobs"`, then a corresponding `tag_id` must also be provided.
-#' 
-#' This is because e-obs tags have default calibration parameters that vary 
-#' depending on the tag's generation. Use [eobs_default_specs()] for a 
+#'
+#' This is because e-obs tags have default calibration parameters that vary
+#' depending on the tag's generation. Use [eobs_default_specs()] for a
 #' summary table showing the
 #' default offset, slope, and orientation parameters used for each e-obs
 #' tag ID. The tag ID defines the tag generation. Note that tags from generation
 #' 1 could be set either to low or high sensitivity, each with their own
 #' default calibration parameters.
-#' 
+#'
 #' If no manufacturer is provided, then both `offset_*` and `slope_*` must be
 #' provided for at least one axis.
 #'
@@ -38,7 +38,7 @@
 #' (e.g. `offset_x = 2048` and `slope_x = 0.001`), then only those axes will
 #' be transformed by [transform_imu()]. Values for other axes will be converted
 #' to `NA`.
-#' 
+#'
 #' If both `manufacturer` and a custom `offset` or `slope`, and/or `orientation`
 #' are provided, then
 #' the value of the custom parameters will override the manufacturer defaults
@@ -54,18 +54,18 @@
 #' @param offset,offset_x,offset_y,offset_z Custom offset to use when
 #'   calibrating. To specify axis-specific offsets, use `offset_x`,
 #'   `offset_y`, and/or `offset_z`.
-#'   
+#'
 #'   Required if no `manufacturer` is specified.
 #' @param slope,slope_x,slope_y,slope_z Custom slope to use when
 #'   calibrating. To specify axis-specific slope, use `slope_x`,
 #'   `slope_y`, and/or `slope_z`.
-#'   
+#'
 #'   Required if no `manufacturer` is specified.
 #' @param orientation,orientation_x,orientation_y,orientation_z Either `1` or
-#'   `-1` indicating the orientation of the tag's axes. To 
-#'   specify axis-specific orientations, use `orientation_x`, `orientation_y`, 
+#'   `-1` indicating the orientation of the tag's axes. To
+#'   specify axis-specific orientations, use `orientation_x`, `orientation_y`,
 #'   and/or `orientation_z`. Defaults to `1`.
-#'   
+#'
 #'   This is useful to standardize orientations across tags of different
 #'   manufacturers or generations.
 #' @param units Output units. Either `"m/s^2"` (default) or
@@ -80,11 +80,11 @@
 #' @examples
 #' # Calibration for ornitela tags:
 #' acc_calibration(manufacturer = "ornitela")
-#' 
+#'
 #' # E-obs tag defaults vary by tag_id and sensitivity (default `"low"`)
 #' acc_calibration(manufacturer = "eobs", tag_id = 1000, sensitivity = "high")
 #' acc_calibration(manufacturer = "eobs", tag_id = 4000)
-#' 
+#'
 #' # Provide vector arguments to generate element-wise calibrations:
 #' acc_calibration(
 #'   manufacturer = c("eobs", "ornitela"),
@@ -93,16 +93,16 @@
 #'
 #' # Calibration with explicit offset and slope
 #' acc_calibration(offset = 2048, slope = 1 / 512)
-#' 
+#'
 #' # Calibrate specific axes with axis-specific args:
 #' cal <- acc_calibration(
-#'   offset_x = 2048, 
+#'   offset_x = 2048,
 #'   offset_y = 2046,
 #'   offset_z = 2048,
-#'   slope = 1 / 512, 
+#'   slope = 1 / 512,
 #'   orientation_y = -1 # Flip y axis orientation
 #' )
-#' 
+#'
 #' # Apply calibration with transform_imu()
 #' transform_imu(acc_example(), cal)
 #'
@@ -166,7 +166,7 @@ as_acc_calibration <- function(df) {
   if (!is.data.frame(df)) {
     cli::cli_abort("{.arg df} must be a data frame.")
   }
-  
+
   args <- list(
     tag_id = df[["tag_id"]],
     manufacturer = df[["manufacturer"]],
@@ -189,7 +189,7 @@ as_acc_calibration <- function(df) {
 }
 
 # Build a vector of `acc_calibration`s from a named list of equal-length,
-# per-field argument vectors. Each entry is resolved independently. An entry 
+# per-field argument vectors. Each entry is resolved independently. An entry
 # whose calibration can't be resolved becomes a missing (`NA`) calibration.
 # This standardizes build behavior across acc_calibration()/as_acc_calibration()
 build_calibrations <- function(args) {
@@ -252,7 +252,7 @@ acc_calibration_ <- function(manufacturer = NULL,
         # errors are caught by build_calibrations() in the user-facing API anyway
         stop("`tag_id` must be provided when `manufacturer = \"eobs\"`")
       }
-      
+
       specs <- eobs_specs(tag_id, first_valid(sensitivity, "low"))
     } else if (manufacturer == "ornitela") {
       specs <- ornitela_specs()
@@ -262,16 +262,16 @@ acc_calibration_ <- function(manufacturer = NULL,
         "\". Must be \"eobs\" or \"ornitela\"."
       ))
     }
-    
+
     # User-provided values take priority over manufacturer defaults
     offset_x <- first_valid(offset_x, specs$offset)
     offset_y <- first_valid(offset_y, specs$offset)
     offset_z <- first_valid(offset_z, specs$offset)
-    
+
     slope_x <- first_valid(slope_x, specs$slope)
     slope_y <- first_valid(slope_y, specs$slope)
     slope_z <- first_valid(slope_z, specs$slope)
-    
+
     orientation_x <- first_valid(orientation_x, specs$orientation_x, 1)
     orientation_y <- first_valid(orientation_y, specs$orientation_y, 1)
     orientation_z <- first_valid(orientation_z, specs$orientation_z, 1)
@@ -287,16 +287,16 @@ acc_calibration_ <- function(manufacturer = NULL,
       stop("a custom calibration needs both an `offset` and a `slope` on at least one axis")
     }
   }
-  
+
   # Fill remaining missing orientation with default
   orientation_x <- first_valid(orientation_x, 1L)
   orientation_y <- first_valid(orientation_y, 1L)
   orientation_z <- first_valid(orientation_z, 1L)
-  
+
   if (!all(c(orientation_x, orientation_y, orientation_z) %in% c(-1L, 1L))) {
     stop("`orientation` must be 1 or -1.")
   }
-  
+
   new_acc_calibration(
     offset_x = offset_x %||% NA,
     offset_y = offset_y %||% NA,
@@ -353,7 +353,7 @@ new_acc_calibration <- function(offset_x = double(),
 #'   and [transform_imu()] to apply them to eobs acceleration values.
 #'
 #' @export
-#' 
+#'
 #' @examples
 #' eobs_default_specs()
 eobs_default_specs <- function() {
@@ -366,7 +366,7 @@ eobs_default_specs <- function() {
     orientation_y = c(-1, -1, 1, 1),
     orientation_z = c(1, 1, 1, 1),
     offset = c(2048, 2048, 2048, 2048),
-    slope = c(0.0027, 0.001, 0.0022, 1/512)
+    slope = c(0.0027, 0.001, 0.0022, 1 / 512)
   )
 }
 
@@ -389,11 +389,11 @@ eobs_specs <- function(tag_id, sensitivity = "low") {
   tag_id <- as.numeric(as.character(tag_id))
   sensitivity <- rep_len(sensitivity, length(tag_id))
   rlang::arg_match(sensitivity, c("low", "high"), multiple = TRUE)
-  
+
   if (any(is.na(tag_id))) {
     rlang::abort("Cannot look up eobs tag specs for missing `tag_id`")
   }
-  
+
   config <- eobs_default_specs()
 
   # Match each tag to its config row by ID range and sensitivity.
@@ -456,10 +456,10 @@ eobs_specs <- function(tag_id, sensitivity = "low") {
 #' @noRd
 ornitela_specs <- function() {
   data.frame(
-    offset = 0, 
-    slope = 0.001, 
-    orientation_x = 1, 
-    orientation_y = 1, 
+    offset = 0,
+    slope = 0.001,
+    orientation_x = 1,
+    orientation_y = 1,
     orientation_z = 1
   )
 }
@@ -477,19 +477,19 @@ format.acc_calibration <- function(x, ...) {
     axis_fmt(d$offset_x, d$offset_y, d$offset_z),
     axis_fmt(d$slope_x, d$slope_y, d$slope_z)
   )
-  
+
   # Only show orientation if at least one is flipped. Otherwise it's of
   # no interest.
   flipped <- (d$orientation_x %in% -1) |
     (d$orientation_y %in% -1) |
     (d$orientation_z %in% -1)
-  
+
   body <- ifelse(
     flipped,
     paste0(body, " orientation=", axis_fmt(d$orientation_x, d$orientation_y, d$orientation_z)),
     body
   )
-  
+
   out <- paste0("{", body, "}")
   out[vctrs::vec_detect_missing(x)] <- NA_character_
   out
@@ -499,7 +499,7 @@ format.acc_calibration <- function(x, ...) {
 axis_fmt <- function(a, b, c) {
   same <- function(p, q) (is.na(p) & is.na(q)) | (!is.na(p) & !is.na(q) & p == q)
   fmt <- function(v) format(v, digits = 3, trim = TRUE)
-  
+
   ifelse(
     same(a, b) & same(b, c),
     paste0("[", fmt(a), "]"),
@@ -528,7 +528,7 @@ max_calibration_reasons <- 5L
 # or heterogeneous batch of failures stays compact rather than flooding output.
 warn_unresolved_calibrations <- function(reasons) {
   n_na <- length(reasons)
-  
+
   # Glue-escape so a stray `{`/`}` in a reason can't break cli interpolation.
   bullets <- gsub("}", "}}", gsub("{", "{{", unique(reasons), fixed = TRUE), fixed = TRUE)
 
@@ -539,7 +539,7 @@ warn_unresolved_calibrations <- function(reasons) {
       sprintf("... and %d more reason%s", overflow, if (overflow == 1L) "" else "s")
     )
   }
-  
+
   cli::cli_warn(
     c(
       "Returning NA for {n_na} calibration{?s} that could not be resolved:",
@@ -557,7 +557,7 @@ resolve_axis_col <- function(df, col, axis) {
   axis_col <- paste0(col, "_", tolower(axis))
   v_axis <- df[[axis_col]]
   v_scalar <- df[[col]]
-  
+
   if (!is.null(v_axis) && !is.null(v_scalar)) {
     # Prefer axis-specific; fill NAs from scalar
     ifelse(is.na(v_axis), v_scalar, v_axis)

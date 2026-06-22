@@ -10,8 +10,10 @@ test_that("acc_calibration() returns an acc_calibration object", {
   expect_length(cal, 1)
   expect_named(
     vctrs::vec_data(cal),
-    c("offset_x", "offset_y", "offset_z", "slope_x", "slope_y", "slope_z",
-      "orientation_x", "orientation_y", "orientation_z", "units")
+    c(
+      "offset_x", "offset_y", "offset_z", "slope_x", "slope_y", "slope_z",
+      "orientation_x", "orientation_y", "orientation_z", "units"
+    )
   )
 })
 

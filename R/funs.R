@@ -1,22 +1,22 @@
 #' Check sensor type of an IMU vector
-#' 
+#'
 #' Determine if an IMU vector inherits from a particular class. These functions
 #' return `TRUE` for `imu` vectors of the given subclass and `FALSE` for all
 #' other objects.
 #'
 #' @param x An object
-#' 
+#'
 #' @return `TRUE` if the object inherits from the indicated subclass. `FALSE`
 #'   otherwise.
-#' 
+#'
 #' @name imu-predicates
-#' 
+#'
 #' @examples
 #' x <- acc(
 #'   bursts = list(cbind(X = 1:5, Y = 1:5, Z = 1:5)),
 #'   frequency = units::as_units(20, "Hz")
 #' )
-#' 
+#'
 #' is_acc(x)
 #'
 #' is_mag(x)
@@ -28,11 +28,11 @@ NULL
 #'
 #' @description
 #' These functions describe characteristics of the bursts in an IMU vector.
-#' 
+#'
 #' - `n_axis()` — number of axes (columns) in each burst
 #' - `n_samples()` — number of samples (rows) in each burst.
 #' - `burst_dur()` — duration of each burst, in seconds.
-#' - `burst_intervals()` — interval between each burst and its preceding burst, 
+#' - `burst_intervals()` — interval between each burst and its preceding burst,
 #'   in seconds.
 #' - `imu_units()` — units for each burst's data values
 #' - `is_uniform()` — logical indicating whether every burst in a vector shares
@@ -41,14 +41,14 @@ NULL
 #' @details
 #' `burst_intervals()` measures intervals between consecutive bursts in vector
 #' order. Element `i` is the interval preceding burst `i` (measured against
-#' burst `i - 1`), so the first element is always `NA`. An interval is also 
+#' burst `i - 1`), so the first element is always `NA`. An interval is also
 #' `NA` wherever either burst lacks a start time, meaning that missing bursts
-#' may mask the true intervals between bursts that do exist. To avoid this, 
-#' remove missing bursts from your IMU vector prior to running 
+#' may mask the true intervals between bursts that do exist. To avoid this,
+#' remove missing bursts from your IMU vector prior to running
 #' `burst_intervals()`.
 #'
 #' Pass `ids` to measure intervals within groups (e.g. per animal). Intervals
-#' are not measured across group boundaries. Intervals 
+#' are not measured across group boundaries. Intervals
 #' are taken in vector order, so a vector mixing sources should be ordered by
 #' group.
 #'
@@ -57,7 +57,7 @@ NULL
 #'   `"end"` (default) gives the gap between the end of the previous burst and
 #'   the start of the current one, while `"start"` gives the time between
 #'   consecutive burst starts.
-#' @param ids For `burst_intervals()`, an optional sorted vector the same 
+#' @param ids For `burst_intervals()`, an optional sorted vector the same
 #'   length as `x` giving the group (e.g. animal ID) of each burst. Intervals
 #'   are not measured across changes in `ids`.
 #'
@@ -100,17 +100,17 @@ NULL
 
 #' Access and modify fields of an IMU vector
 #'
-#' Access or update the underlying burst matrices, sampling frequencies, or 
-#' start times for each burst in an IMU vector. 
+#' Access or update the underlying burst matrices, sampling frequencies, or
+#' start times for each burst in an IMU vector.
 #'
 #' @param x An IMU vector (`acc`, `mag`, or `gyro`)
 #' @param value Replacement value.
-#' 
-#' @return For accessors, the corresponding field of `x`. For setters, `x` 
+#'
+#' @return For accessors, the corresponding field of `x`. For setters, `x`
 #'   with the updated value in the indicated field.
-#' 
+#'
 #' @name imu-fields
-#' 
+#'
 #' @examples
 #' x <- acc(
 #'   bursts = list(
@@ -119,13 +119,13 @@ NULL
 #'   frequency = units::as_units(20, "Hz"),
 #'   start = as.POSIXct("2020-01-01 00:00:00", tz = "UTC")
 #' )
-#' 
+#'
 #' bursts(x)
-#' 
+#'
 #' freqs(x)
-#' 
+#'
 #' starts(x)
-#' 
+#'
 #' freqs(x) <- units::as_units(25, "Hz")
 #' freqs(x)
 NULL
@@ -156,11 +156,11 @@ burst_intervals <- function(x, ids = NULL, from = "end") {
   from <- rlang::arg_match(from, c("end", "start"))
 
   n <- vec_size(x)
-  
+
   if (n == 0) {
     return(units::set_units(numeric(0), "s"))
   }
-  
+
   st <- as.numeric(starts(x))
   gap <- st - c(NA_real_, utils::head(st, -1L))
 
@@ -168,7 +168,7 @@ burst_intervals <- function(x, ids = NULL, from = "end") {
     dur <- as.numeric(burst_dur(x))
     gap <- gap - c(NA_real_, utils::head(dur, -1L))
   }
-  
+
   # Don't get interval across an ID boundary
   if (!is.null(ids)) {
     if (length(ids) != n) {

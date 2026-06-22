@@ -24,20 +24,22 @@ format.imu <- function(x, ...) {
 #' @export
 obj_print_data.imu <- function(x, ...) {
   total <- length(x)
-  if (total == 0) return(invisible(x))
+  if (total == 0) {
+    return(invisible(x))
+  }
 
   # Only format the bursts that will actually be displayed
   show_n <- min(total, getOption("max.print", 99999L))
 
   if (show_n < total) {
     print(format(x[seq_len(show_n)]), quote = FALSE)
-    
+
     msg <- paste0(
       " [ reached `getOption(\"max.print\")` -- omitted ",
       format(total - show_n, big.mark = ",", trim = TRUE),
       " entries ]"
     )
-    
+
     cat(pillar::style_subtle(msg), "\n", sep = "")
   } else {
     print(format(x), quote = FALSE)

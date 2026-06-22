@@ -9,15 +9,15 @@ test_that("manipulation", {
   expect_length(x[rep(1, 3)], 3)
 })
 
-test_that("logical",{
+test_that("logical", {
   expect_false(is_acc(NA))
-  expect_false(is_acc(cbind(1,1:3)))
+  expect_false(is_acc(cbind(1, 1:3)))
   expect_true(is_acc(acc()))
   expect_true(is_acc(acc_example()))
   expect_true(is_acc(acc(list(NULL), frequency = NA)))
 })
 
-test_that("properties are correctly calculated",{
+test_that("properties are correctly calculated", {
   xa <- acc(
     c(
       acc_burst_example(x = sin(1:30 / 10), y = cos(1:30 / 10), z = 1),
@@ -26,25 +26,24 @@ test_that("properties are correctly calculated",{
     frequency = units::as_units(c(20, 30), "Hz"),
     start = as.POSIXct(c(1, 2), tz = "UTC")
   )
-  
+
   x <- c(xa, NA)
   expect_true(is_acc(x))
-  expect_length(x,3)
-  expect_identical(is.na(x),c(F,F,T))
-  expect_identical(n_axis(x), c(3L,2L,NA))
-  expect_identical(n_samples(x), c(30L,20L,NA))
+  expect_length(x, 3)
+  expect_identical(is.na(x), c(F, F, T))
+  expect_identical(n_axis(x), c(3L, 2L, NA))
+  expect_identical(n_samples(x), c(30L, 20L, NA))
   expect_false(is_uniform(x))
-  expect_true(is_uniform(x[c(1,3)]))
-  
-  x2 <- vec_c(NA,xa)
-  expect_true(is_acc(x2))
-  expect_length(x2,3)
-  expect_identical(is.na(x2),c(T,F,F))
-  expect_identical(n_axis(x2), c(NA,3L,2L))
-  expect_identical(n_samples(x2), c(NA,30L,20L))
-  expect_false(is_uniform(x2))
-  expect_true(is_uniform(x2[c(1,3)]))
+  expect_true(is_uniform(x[c(1, 3)]))
 
+  x2 <- vec_c(NA, xa)
+  expect_true(is_acc(x2))
+  expect_length(x2, 3)
+  expect_identical(is.na(x2), c(T, F, F))
+  expect_identical(n_axis(x2), c(NA, 3L, 2L))
+  expect_identical(n_samples(x2), c(NA, 30L, 20L))
+  expect_false(is_uniform(x2))
+  expect_true(is_uniform(x2[c(1, 3)]))
 })
 
 test_that("is_uniform checks burst units strictly", {
@@ -97,7 +96,7 @@ test_that("frequency must be in frequency-compatible units", {
     a <- acc(list(cbind(X = 1:3)), frequency = units::set_units(10, "kHz"))
   )
   expect_equal(units::deparse_unit(freqs(a)), "kHz")
-  
+
   # Bare numeric is coerced to Hz
   a <- acc(list(cbind(X = 1:3)), frequency = 10)
   expect_equal(units::deparse_unit(freqs(a)), "Hz")
@@ -207,17 +206,17 @@ test_that("duration is correctly calculated", {
     frequency = units::as_units(c(20, 30), "Hz"),
     start = as.POSIXct(c(1, 2), tz = "UTC")
   )
-  
+
   b <- bursts(a)
   f <- freqs(a)
-  
+
   d <- burst_dur(a)
-  
+
   expect_equal(d[[1]], units::set_units(nrow(b[[1]]) / f[[1]], "s"))
   expect_equal(d[[1]], units::set_units(1.5, "s"))
   expect_equal(d[[2]], units::set_units(nrow(b[[2]]) / f[[2]], "s"))
   expect_equal(d[[2]], units::set_units(2 / 3, "s"))
-  
+
   expect_equal(as.numeric(burst_dur(acc(acc_burst_example(1, 1), 20))), 0.05)
   expect_true(is.na(burst_dur(acc(acc_burst_example(1, 1), NA))))
 })
@@ -233,7 +232,7 @@ test_that("burst_dur converts non-Hz frequencies to seconds", {
 
 test_that("burst_intervals measures gaps and start-to-start", {
   b <- acc_burst_example(1:20, 1:20, 1:20)
-  
+
   a <- acc(
     rep(b, 3),
     frequency = units::as_units(20, "Hz"),
@@ -241,25 +240,25 @@ test_that("burst_intervals measures gaps and start-to-start", {
   )
 
   expect_equal(
-    burst_intervals(a, from = "start"), 
+    burst_intervals(a, from = "start"),
     units::set_units(c(NA, 60, 60), "s")
   )
 
   expect_equal(
-    burst_intervals(a), 
+    burst_intervals(a),
     units::set_units(c(NA, 59, 59), "s")
   )
 })
 
 test_that("burst_intervals is NA where a neighbouring start is missing", {
   b <- acc_burst_example(1:20, 1:20, 1:20)
-  
+
   a <- acc(
     rep(b, 4),
     frequency = units::as_units(20, "Hz"),
     start = as.POSIXct(c("2020-01-01 00:00:00", NA, "2020-01-01 00:02:00", "2020-01-01 00:03:00"), tz = "UTC")
   )
-  
+
   expect_equal(
     burst_intervals(a, from = "start"),
     units::set_units(c(NA, NA, NA, 60), "s")
@@ -272,7 +271,7 @@ test_that("burst_intervals is NA where a neighbouring start is missing", {
 
 test_that("burst_intervals does not measure across ID boundaries", {
   b <- acc_burst_example(1:20, 1:20, 1:20)
-  
+
   a <- acc(
     rep(b, 4),
     frequency = units::as_units(20, "Hz"),

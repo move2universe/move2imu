@@ -13,35 +13,35 @@ imu <- function(sensor,
                 start = NULL) {
   bursts <- burst_list(bursts, sensor)
   n <- vec_size(bursts)
-  
+
   if (!inherits(frequency, "units")) {
     frequency <- units::set_units(frequency, "Hz")
   } else if (!units::ud_are_convertible(units::deparse_unit(frequency), "Hz")) {
     cli::cli_abort("{.arg frequency} must be convertible to a frequency unit.")
   }
-  
+
   start <- start %||% NA_real_
-  
+
   if (inherits(start, "POSIXt")) {
     tz <- attr(start, "tzone")
   } else {
     tz <- "UTC"
   }
-  
+
   start <- as.POSIXct(as.double(start), tz = tz)
-  
+
   frequency <- vec_recycle(frequency, n)
   start <- vec_recycle(start, n)
-  
+
   # Ensure metadata is NA when bursts are missing, so that the record is
   # consistently all-NA and vec_detect_missing() agrees with is.na()
   na_burst <- vec_detect_missing(bursts)
-  
+
   if (any(na_burst)) {
     frequency[na_burst] <- units::set_units(NA, "Hz")
     start[na_burst] <- as.POSIXct(NA, tz = tz)
   }
-  
+
   new_imu(
     sensor,
     bursts = bursts,
@@ -62,20 +62,22 @@ new_imu <- function(sensor,
 
 burst_list <- function(x, sensor) {
   valid_axes <- c("X", "Y", "Z")
-  
+
   is_valid <- purrr::map_lgl(
     x,
     function(b) {
-      if (is.null(b)) return(TRUE)
+      if (is.null(b)) {
+        return(TRUE)
+      }
       nms <- colnames(b)
       !is.null(nms) && length(nms) > 0 && all(nms %in% valid_axes)
     }
   )
-  
+
   if (any(!is_valid)) {
     cli::cli_abort("Burst matrix columns must be named {.val X}, {.val Y}, or {.val Z}.")
   }
-  
+
   new_burst_list(x, sensor)
 }
 
@@ -93,7 +95,9 @@ new_burst_list <- function(x, sensor) {
 assert_imu <- function(x,
                        arg = rlang::caller_arg(x),
                        call = rlang::caller_env()) {
-  if (inherits(x, "imu")) return(invisible(x))
+  if (inherits(x, "imu")) {
+    return(invisible(x))
+  }
 
   types <- valid_imu_types()
   types_fmt <- paste0(
@@ -117,7 +121,7 @@ is.na.imu <- function(x) {
 imu_ptype2 <- function(x, y, ..., x_arg = "", y_arg = "") {
   freq_common <- vctrs::vec_ptype2(freqs(x), freqs(y))
   start_common <- vctrs::vec_ptype2(starts(x), starts(y))
-  
+
   new_imu(
     class(x)[1],
     frequency = freq_common,

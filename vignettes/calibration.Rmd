@@ -154,8 +154,8 @@ Alternatively, we could have also specified the units in the calibration itself:
 
 ```{r}
 acc_calibration(
-  manufacturer = "eobs", 
-  tag_id = 4266, 
+  manufacturer = "eobs",
+  tag_id = 4266,
   units = "standard_free_fall"
 )
 ```
@@ -299,16 +299,16 @@ For instance, for the following set of calibration specifications:
 
 ```{r cal_table_setup, include = FALSE}
 cal_table <- tibble::tribble(
-  ~tag_id, ~offset_x, ~offset_y, ~offset_z, ~slope_x,  ~slope_y,  ~slope_z,  ~orientation_y,
-  1000,    2049,      2047,      2050,      0.00271,   0.00269,   0.00270,   -1,
-  2000,    2048,      2050,      2046,      0.00270,   0.00271,   0.00269,   -1,
-  2500,    2050,      2047,      2052,      0.00221,   0.00220,   0.00219,    1,
-  2501,    2047,      2049,      2048,      0.00220,   0.00219,   0.00220,    1,
-  2502,    2049,      2046,      2051,      0.00219,   0.00221,   0.00220,    1,
-  4200,    2048,      2049,      2047,      0.00195,   0.00196,   0.00196,    1,
-  4201,    2050,      2047,      2049,      0.00196,   0.00195,   0.00195,    1,
-  4202,    2046,      2051,      2048,      0.00196,   0.00196,   0.00197,    1,
-  4203,    2049,      2048,      2050,      0.00195,   0.00197,   0.00196,    1
+  ~tag_id, ~offset_x, ~offset_y, ~offset_z, ~slope_x, ~slope_y, ~slope_z, ~orientation_y,
+  1000, 2049, 2047, 2050, 0.00271, 0.00269, 0.00270, -1,
+  2000, 2048, 2050, 2046, 0.00270, 0.00271, 0.00269, -1,
+  2500, 2050, 2047, 2052, 0.00221, 0.00220, 0.00219, 1,
+  2501, 2047, 2049, 2048, 0.00220, 0.00219, 0.00220, 1,
+  2502, 2049, 2046, 2051, 0.00219, 0.00221, 0.00220, 1,
+  4200, 2048, 2049, 2047, 0.00195, 0.00196, 0.00196, 1,
+  4201, 2050, 2047, 2049, 0.00196, 0.00195, 0.00195, 1,
+  4202, 2046, 2051, 2048, 0.00196, 0.00196, 0.00197, 1,
+  4203, 2049, 2048, 2050, 0.00195, 0.00197, 0.00196, 1
 )
 ```
 
@@ -324,8 +324,8 @@ We can generate a vector of `acc_calibration` objects linked to their
 corresponding `tag_id` like so:
 
 ```{r}
-cals_df <- cal_table |> 
-  mutate(cals = as_acc_calibration(cal_table)) |> 
+cals_df <- cal_table |>
+  mutate(cals = as_acc_calibration(cal_table)) |>
   select(tag_id, cals)
 
 cals_df

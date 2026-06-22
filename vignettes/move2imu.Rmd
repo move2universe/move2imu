@@ -154,8 +154,8 @@ missing (`NA`) `acc` bursts. This makes it easy to keep acceleration
 bursts linked to other metadata stored in the `move2`, like GPS location:
 
 ```{r}
-alb |> 
-  mutate(acceleration = a) |> 
+alb |>
+  mutate(acceleration = a) |>
   select(acceleration)
 ```
 

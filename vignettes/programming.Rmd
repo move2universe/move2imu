@@ -79,9 +79,9 @@ gul$acceleration <- transform_imu(
 Then, we extract the VeDBA values:
 
 ```{r}
-gul_v <- gul |> 
-  mutate(vedba = vedba(acceleration)) |> 
-  filter(!is.na(vedba)) |> 
+gul_v <- gul |>
+  mutate(vedba = vedba(acceleration)) |>
+  filter(!is.na(vedba)) |>
   select(vedba)
 ```
 
@@ -144,19 +144,19 @@ library(leaflet)
 
 pal <- colorNumeric("viridis", as.numeric(gul_joined$vedba))
 
-leaflet() |> 
-  addProviderTiles("CartoDB.Positron") |> 
+leaflet() |>
+  addProviderTiles("CartoDB.Positron") |>
   addPolylines(
     data = mt_track_lines(gul_joined),
-    color = "gray", 
+    color = "gray",
     weight = 0.5
-  ) |> 
+  ) |>
   addCircles(
     data = gul_joined,
-    color = ~ pal(as.numeric(vedba)), 
-    opacity = 1, 
+    color = ~ pal(as.numeric(vedba)),
+    opacity = 1,
     radius = 3
-  ) |> 
+  ) |>
   addLegend(
     title = "VeDBA (g)",
     pal = pal,
@@ -189,8 +189,8 @@ technique, computing the mean VeDBA for the prior 5 hours at each time point.
 ```{r}
 library(slider)
 
-gul_v <- gul_v |> 
-  group_by(mt_track_id(gul_v)) |> 
+gul_v <- gul_v |>
+  group_by(mt_track_id(gul_v)) |>
   mutate(
     vedba_smooth = slide_index_dbl(
       as.numeric(vedba),
@@ -199,7 +199,7 @@ gul_v <- gul_v |>
       .before = lubridate::hours(5)
     ),
     vedba_smooth = set_units(vedba_smooth, "standard_free_fall")
-)
+  )
 ```
 
 ```{r}
@@ -391,7 +391,7 @@ variability in VeDBA within each burst by taking the standard deviation of the
 rolling values:
 
 ```{r}
-alb <- alb |> 
+alb <- alb |>
   mutate(v_sd = purrr::map_dbl(v, sd))
 
 alb$v_sd
@@ -410,9 +410,9 @@ alb_gps <- alb[!sf::st_is_empty(alb), ] |>
   select(-a, -v_sd)
 
 # Select only acceleration records
-alb_acc <- alb |> 
-  select(a, v_sd) |> 
-  sf::st_drop_geometry() |> 
+alb_acc <- alb |>
+  select(a, v_sd) |>
+  sf::st_drop_geometry() |>
   filter(!is.na(a))
 ```
 
@@ -424,7 +424,7 @@ doesn't manage to match GPS and acceleration records:
 
 ```{r}
 # Doesn't attach--timestamps don't align in all cases
-left_join(alb_gps, alb_acc) |> 
+left_join(alb_gps, alb_acc) |>
   select(a, v_sd)
 ```
 

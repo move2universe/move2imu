@@ -11,7 +11,7 @@ test_that("has_acc flags rows with raw acc data (expanded format)", {
   gul <- gulls()
 
   h <- has_acc(gul)
-  
+
   expect_identical(h, !is.na(gul$acceleration_raw_x))
   expect_equal(sum(h), sum(n_samples(as_acc(gul, drop = TRUE))))
 })
@@ -28,19 +28,19 @@ test_that("has_acc returns a logical vector parallel to nrow(x)", {
 
 test_that("has_acc respects an explicit colset", {
   gul <- gulls()
-  
+
   gul$acc_x <- gul$acceleration_raw_x
   gul$acc_y <- gul$acceleration_raw_y
   gul$acc_z <- gul$acceleration_raw_z
-  
+
   h_default <- has_acc(gul)
-  
+
   gul$acceleration_raw_x <- NULL
   gul$acceleration_raw_y <- NULL
   gul$acceleration_raw_z <- NULL
-  
+
   h_explicit <- has_acc(
-    gul, 
+    gul,
     colset = imu_colset(x = "acc_x", y = "acc_y", z = "acc_z")
   )
 
