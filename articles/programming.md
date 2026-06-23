@@ -51,7 +51,7 @@ VeDBA is computed by:
 
 First, we need to convert our raw acceleration values into physical
 units. (This is covered in depth in the [calibration
-vignette](https://robe2037.github.io/move2imu/articles/calibration.md).)
+vignette](https://move2universe.github.io/move2imu/articles/calibration.md).)
 We will use the standard transformation for Ornitela tags here (TODO:
 what tags are used here?)
 
@@ -264,7 +264,7 @@ When sampling takes place over a longer time, it may be necessary to
 apply moving window functions across an individual burst.
 
 To illustrate, we’ll switch to the
-[`albatrosses()`](https://robe2037.github.io/move2imu/reference/example_data.md)
+[`albatrosses()`](https://move2universe.github.io/move2imu/reference/example_data.md)
 dataset, which has slightly longer bursts than the gulls above:
 
 ``` r
@@ -289,7 +289,7 @@ n_samples(alb$a)
 These bursts were collected with e-obs tags. For simplicity, we’ll
 calibrate using the third-generation e-obs tag manufacturer defaults.
 See the [calibration
-vignette](https://robe2037.github.io/move2imu/articles/calibration.md)
+vignette](https://move2universe.github.io/move2imu/articles/calibration.md)
 for a more detailed discussion of tag calibration.
 
 ``` r
@@ -378,9 +378,9 @@ ggplot() +
 ![](programming_files/figure-html/unnamed-chunk-14-1.png)
 
 The horizontal line shows the full-burst VeDBA produced by
-[`vedba()`](https://robe2037.github.io/move2imu/reference/dba.md). As
-you can see, the dynamic body acceleration varies quite a bit from this
-value across the burst.
+[`vedba()`](https://move2universe.github.io/move2imu/reference/dba.md).
+As you can see, the dynamic body acceleration varies quite a bit from
+this value across the burst.
 
 ### Scaling up
 

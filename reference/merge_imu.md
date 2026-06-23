@@ -7,7 +7,7 @@ frequencies, axes, or burst data units will not be merged.
 
 To merge bursts with differing units, convert them to a common unit
 first with
-[`set_imu_units()`](https://robe2037.github.io/move2imu/reference/set_imu_units.md).
+[`set_imu_units()`](https://move2universe.github.io/move2imu/reference/set_imu_units.md).
 
 ## Usage
 

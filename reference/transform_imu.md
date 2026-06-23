@@ -4,7 +4,7 @@ Transforms raw values from an IMU sensor to physical units (e.g., meters
 per second squared) using a specified calibration.
 
 Use
-[`acc_calibration()`](https://robe2037.github.io/move2imu/reference/acc_calibration.md)
+[`acc_calibration()`](https://move2universe.github.io/move2imu/reference/acc_calibration.md)
 to create a calibration for `acc` vectors.
 
 ## Usage
@@ -26,7 +26,7 @@ transform_imu(x, calibration)
   calibration is recycled to all elements of `x`.
 
   Currently, only
-  [`acc_calibration()`](https://robe2037.github.io/move2imu/reference/acc_calibration.md)
+  [`acc_calibration()`](https://move2universe.github.io/move2imu/reference/acc_calibration.md)
   is supported.
 
 ## Value
@@ -38,7 +38,7 @@ the corresponding calibration.
 
 An `acc_calibration` object may contain missing (`NA`) elements (e.g. if
 produced by
-[`as_acc_calibration()`](https://robe2037.github.io/move2imu/reference/acc_calibration.md)).
+[`as_acc_calibration()`](https://move2universe.github.io/move2imu/reference/acc_calibration.md)).
 `transform_imu()` returns `NA` in such cases and emits a warning if any
 bursts are lost because of missing calibration specifications.
 
@@ -50,7 +50,7 @@ remains the same.
 
 ## See also
 
-[`acc_calibration()`](https://robe2037.github.io/move2imu/reference/acc_calibration.md)
+[`acc_calibration()`](https://move2universe.github.io/move2imu/reference/acc_calibration.md)
 to construct an accelerometer calibration.
 
 ## Examples

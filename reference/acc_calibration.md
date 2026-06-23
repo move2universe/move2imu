@@ -2,7 +2,7 @@
 
 Generate an `acc_calibration` object holding the per-burst calibration
 parameters to be applied by
-[`transform_imu()`](https://robe2037.github.io/move2imu/reference/transform_imu.md).
+[`transform_imu()`](https://move2universe.github.io/move2imu/reference/transform_imu.md).
 
 - Use `acc_calibration()` to specify calibration parameters manually.
   Arguments are vectorized and matched by index.
@@ -100,7 +100,7 @@ An `acc_calibration` can either be built from a `manufacturer` and
 parameters. If neither of these options is provided in full, then a
 calibration cannot be built and `NA` is returned for that element.
 Passing missing calibrations to
-[`transform_imu()`](https://robe2037.github.io/move2imu/reference/transform_imu.md)
+[`transform_imu()`](https://move2universe.github.io/move2imu/reference/transform_imu.md)
 returns `NA` for that burst.
 
 Currently if `manufacturer` is provided, it must be either `"ornitela"`
@@ -109,7 +109,7 @@ provided.
 
 This is because e-obs tags have default calibration parameters that vary
 depending on the tag's generation. Use
-[`eobs_default_specs()`](https://robe2037.github.io/move2imu/reference/eobs_default_specs.md)
+[`eobs_default_specs()`](https://move2universe.github.io/move2imu/reference/eobs_default_specs.md)
 for a summary table showing the default offset, slope, and orientation
 parameters used for each e-obs tag ID. The tag ID defines the tag
 generation. Note that tags from generation 1 could be set either to low
@@ -121,7 +121,7 @@ be provided for at least one axis.
 If calibration parameters are provided for some axes and not others
 (e.g. `offset_x = 2048` and `slope_x = 0.001`), then only those axes
 will be transformed by
-[`transform_imu()`](https://robe2037.github.io/move2imu/reference/transform_imu.md).
+[`transform_imu()`](https://move2universe.github.io/move2imu/reference/transform_imu.md).
 Values for other axes will be converted to `NA`.
 
 If both `manufacturer` and a custom `offset` or `slope`, and/or
@@ -130,7 +130,7 @@ override the manufacturer defaults for that calibration entry.
 
 ## See also
 
-[`transform_imu()`](https://robe2037.github.io/move2imu/reference/transform_imu.md)
+[`transform_imu()`](https://move2universe.github.io/move2imu/reference/transform_imu.md)
 to apply a calibration to the entries in an `acc` vector.
 
 ## Examples

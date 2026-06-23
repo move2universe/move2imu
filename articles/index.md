@@ -3,8 +3,8 @@
 ### All vignettes
 
 - [Calibrating acceleration
-  bursts](https://robe2037.github.io/move2imu/articles/calibration.md):
+  bursts](https://move2universe.github.io/move2imu/articles/calibration.md):
 - [Introduction to
-  move2imu](https://robe2037.github.io/move2imu/articles/move2imu.md):
+  move2imu](https://move2universe.github.io/move2imu/articles/move2imu.md):
 - [Programming with IMU
-  bursts](https://robe2037.github.io/move2imu/articles/programming.md):
+  bursts](https://move2universe.github.io/move2imu/articles/programming.md):

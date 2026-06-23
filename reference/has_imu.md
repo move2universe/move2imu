@@ -24,7 +24,7 @@ has_gyro(x, colset = NULL)
   An `imu_colset` object or list of `imu_colset` objects specifying the
   columns to check for IMU data. By default, all active colsets detected
   in `x` are considered (see
-  [`active_acc_colsets()`](https://robe2037.github.io/move2imu/reference/active_colsets.md)).
+  [`active_acc_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md)).
 
 ## Value
 
@@ -35,8 +35,8 @@ rows where IMU data is present under at least one active colset.
 
 If `x` has data in more than one active IMU column set, `has_*()` will
 return `TRUE`. However, these rows cannot be parsed by
-[`as_acc()`](https://robe2037.github.io/move2imu/reference/as_acc.md),
-[`as_mag()`](https://robe2037.github.io/move2imu/reference/as_mag.md),
+[`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md),
+[`as_mag()`](https://move2universe.github.io/move2imu/reference/as_mag.md),
 etc. as they contain duplicated IMU data. To ensure that `has_*()` only
 considers certain column sets, use the `colset` argument.
 
@@ -51,14 +51,14 @@ burst.
 
 ## See also
 
-[`as_acc()`](https://robe2037.github.io/move2imu/reference/as_acc.md),
-[`as_mag()`](https://robe2037.github.io/move2imu/reference/as_mag.md),
-[`as_gyro()`](https://robe2037.github.io/move2imu/reference/as_gyro.md)
+[`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md),
+[`as_mag()`](https://move2universe.github.io/move2imu/reference/as_mag.md),
+[`as_gyro()`](https://move2universe.github.io/move2imu/reference/as_gyro.md)
 to extract IMU data from a `move2` object.
 
-[`active_acc_colsets()`](https://robe2037.github.io/move2imu/reference/active_colsets.md),
-[`active_mag_colsets()`](https://robe2037.github.io/move2imu/reference/active_colsets.md),
-[`active_gyro_colsets()`](https://robe2037.github.io/move2imu/reference/active_colsets.md)
+[`active_acc_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md),
+[`active_mag_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md),
+[`active_gyro_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md)
 to inspect which colsets are detected in `x`.
 
 ## Examples

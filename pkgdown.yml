@@ -5,7 +5,7 @@ articles:
   calibration: calibration.html
   move2imu: move2imu.html
   programming: programming.html
-last_built: 2026-06-23T08:16Z
+last_built: 2026-06-23T08:52Z
 urls:
-  reference: https://robe2037.github.io/move2imu/reference
-  article: https://robe2037.github.io/move2imu/articles
+  reference: https://move2universe.github.io/move2imu/reference
+  article: https://move2universe.github.io/move2imu/articles

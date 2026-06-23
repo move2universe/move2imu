@@ -10,15 +10,15 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/robe2037/move2imu/blob/main/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/move2universe/move2imu/blob/main/DESCRIPTION)
 
 Kranstauber B, Roberts F (2026). *move2imu: Handling Bursted IMU Data*.
-R package version 0.1.0, <https://github.com/robe2037/move2imu>.
+R package version 0.1.0, <https://github.com/move2universe/move2imu>.
 
     @Manual{,
       title = {move2imu: Handling Bursted IMU Data},
       author = {Bart Kranstauber and Finn Roberts},
       year = {2026},
       note = {R package version 0.1.0},
-      url = {https://github.com/robe2037/move2imu},
+      url = {https://github.com/move2universe/move2imu},
     }

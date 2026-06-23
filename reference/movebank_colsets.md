@@ -5,18 +5,18 @@ These functions show the recognized columns for each sensor that can be
 extracted from a `move2` object by default.
 
 - `movebank_acc_colsets()` — standard column sets for
-  [`as_acc()`](https://robe2037.github.io/move2imu/reference/as_acc.md).
+  [`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md).
 
 - `movebank_mag_colsets()` — standard column sets for
-  [`as_mag()`](https://robe2037.github.io/move2imu/reference/as_mag.md).
+  [`as_mag()`](https://move2universe.github.io/move2imu/reference/as_mag.md).
 
 - `movebank_gyro_colsets()` — standard column sets for
-  [`as_gyro()`](https://robe2037.github.io/move2imu/reference/as_gyro.md).
+  [`as_gyro()`](https://move2universe.github.io/move2imu/reference/as_gyro.md).
 
 To extract IMU data from a `move2` with column names that don't
 correspond to Movebank's conventions, provide a custom set of IMU
 columns with
-[`imu_colset()`](https://robe2037.github.io/move2imu/reference/imu_colset.md).
+[`imu_colset()`](https://move2universe.github.io/move2imu/reference/imu_colset.md).
 
 ## Usage
 
@@ -48,9 +48,9 @@ A named list of `imu_colset` objects.
 
 ## See also
 
-[`active_acc_colsets()`](https://robe2037.github.io/move2imu/reference/active_colsets.md),
-[`active_mag_colsets()`](https://robe2037.github.io/move2imu/reference/active_colsets.md),
-[`active_gyro_colsets()`](https://robe2037.github.io/move2imu/reference/active_colsets.md)
+[`active_acc_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md),
+[`active_mag_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md),
+[`active_gyro_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md)
 to identify column sets present in a given `move2` object.
 
 ## Examples

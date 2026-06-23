@@ -15,10 +15,10 @@ development version directly:
 ``` r
 
 # install.packages("pak")
-pak::pak("robe2037/move2imu")
+pak::pak("move2universe/move2imu")
 
 # Or, if remotes is already installed:
-remotes::install_github("robe2037/move2imu")
+remotes::install_github("move2universe/move2imu")
 ```
 
 ## Usage
@@ -57,4 +57,4 @@ vedba(acceleration)
 
 We welcome feedback and contributions. If you encounter a bug or have
 specific feature requests, please create an issue on
-[GitHub](https://github.com/robe2037/move2imu).
+[GitHub](https://github.com/move2universe/move2imu).

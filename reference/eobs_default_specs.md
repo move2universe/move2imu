@@ -17,9 +17,9 @@ A data.frame with columns `tag_gen`, `min_tag_id`, `max_tag_id`,
 
 ## See also
 
-[`acc_calibration()`](https://robe2037.github.io/move2imu/reference/acc_calibration.md)
+[`acc_calibration()`](https://move2universe.github.io/move2imu/reference/acc_calibration.md)
 to set up tag-specific calibration specifications and
-[`transform_imu()`](https://robe2037.github.io/move2imu/reference/transform_imu.md)
+[`transform_imu()`](https://move2universe.github.io/move2imu/reference/transform_imu.md)
 to apply them to eobs acceleration values.
 
 ## Examples

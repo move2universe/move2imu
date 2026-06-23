@@ -6,16 +6,16 @@ but a single `move2` may contain multiple active column sets for one IMU
 sensor.
 
 - `active_acc_colsets()` — column sets used by
-  [`as_acc()`](https://robe2037.github.io/move2imu/reference/as_acc.md).
+  [`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md).
 
 - `active_mag_colsets()` — column sets used by
-  [`as_mag()`](https://robe2037.github.io/move2imu/reference/as_mag.md).
+  [`as_mag()`](https://move2universe.github.io/move2imu/reference/as_mag.md).
 
 - `active_gyro_colsets()` — column sets used by
-  [`as_gyro()`](https://robe2037.github.io/move2imu/reference/as_gyro.md).
+  [`as_gyro()`](https://move2universe.github.io/move2imu/reference/as_gyro.md).
 
 If no active colsets are found, you can use
-[`imu_colset()`](https://robe2037.github.io/move2imu/reference/imu_colset.md)
+[`imu_colset()`](https://move2universe.github.io/move2imu/reference/imu_colset.md)
 to specify a custom set of columns that contain IMU data.
 
 ## Usage
@@ -54,14 +54,14 @@ A list of `imu_colset` objects.
 
 ## See also
 
-[`movebank_acc_colsets()`](https://robe2037.github.io/move2imu/reference/movebank_colsets.md),
-[`movebank_mag_colsets()`](https://robe2037.github.io/move2imu/reference/movebank_colsets.md),
-[`movebank_gyro_colsets()`](https://robe2037.github.io/move2imu/reference/movebank_colsets.md)
+[`movebank_acc_colsets()`](https://move2universe.github.io/move2imu/reference/movebank_colsets.md),
+[`movebank_mag_colsets()`](https://move2universe.github.io/move2imu/reference/movebank_colsets.md),
+[`movebank_gyro_colsets()`](https://move2universe.github.io/move2imu/reference/movebank_colsets.md)
 for the supported default colsets.
 
-[`as_acc()`](https://robe2037.github.io/move2imu/reference/as_acc.md),
-[`as_mag()`](https://robe2037.github.io/move2imu/reference/as_mag.md),
-[`as_gyro()`](https://robe2037.github.io/move2imu/reference/as_gyro.md)
+[`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md),
+[`as_mag()`](https://move2universe.github.io/move2imu/reference/as_mag.md),
+[`as_gyro()`](https://move2universe.github.io/move2imu/reference/as_gyro.md)
 to extract IMU data from a `move2` object.
 
 ## Examples

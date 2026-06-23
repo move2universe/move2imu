@@ -4,7 +4,7 @@ Extract `gyro` data from a `move2` or convert an object to a `gyro`
 vector.
 
 For a `move2`, `gyro` data are extracted from the object's
-[`active_gyro_colsets()`](https://robe2037.github.io/move2imu/reference/active_colsets.md).
+[`active_gyro_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md).
 
 ## Usage
 
@@ -45,12 +45,12 @@ as_gyro(
   columns of `x` that contain gyroscope data. By default, constructs
   bursts for all column sets that are detected in `x` that also contain
   data (see
-  [`active_gyro_colsets()`](https://robe2037.github.io/move2imu/reference/active_colsets.md)).
+  [`active_gyro_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md)).
 
   Several common colsets are listed under
-  [`movebank_gyro_colsets()`](https://robe2037.github.io/move2imu/reference/movebank_colsets.md).
+  [`movebank_gyro_colsets()`](https://move2universe.github.io/move2imu/reference/movebank_colsets.md).
   To specify a custom set of columns, use
-  [`imu_colset()`](https://robe2037.github.io/move2imu/reference/imu_colset.md).
+  [`imu_colset()`](https://move2universe.github.io/move2imu/reference/imu_colset.md).
 
 - min_freq:
 
@@ -86,5 +86,5 @@ rows of a `data.frame`.
 
 ## See also
 
-[`movebank_gyro_colsets()`](https://robe2037.github.io/move2imu/reference/movebank_colsets.md)
+[`movebank_gyro_colsets()`](https://move2universe.github.io/move2imu/reference/movebank_colsets.md)
 for supported gyroscope column sets in Movebank.

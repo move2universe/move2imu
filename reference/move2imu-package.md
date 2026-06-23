@@ -10,11 +10,11 @@ Movebank.
 
 Useful links:
 
-- <https://github.com/robe2037/move2imu>
+- <https://github.com/move2universe/move2imu>
 
-- <https://robe2037.github.io/move2imu/>
+- <https://move2universe.github.io/move2imu/>
 
-- Report bugs at <https://github.com/robe2037/move2imu/issues>
+- Report bugs at <https://github.com/move2universe/move2imu/issues>
 
 ## Author
 

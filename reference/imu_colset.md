@@ -2,10 +2,10 @@
 
 Define which columns in a `move2` object contain IMU data. Pass the
 result as the `colset` argument of
-[`as_acc()`](https://robe2037.github.io/move2imu/reference/as_acc.md),
-[`as_mag()`](https://robe2037.github.io/move2imu/reference/as_mag.md),
+[`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md),
+[`as_mag()`](https://move2universe.github.io/move2imu/reference/as_mag.md),
 or
-[`as_gyro()`](https://robe2037.github.io/move2imu/reference/as_gyro.md)
+[`as_gyro()`](https://move2universe.github.io/move2imu/reference/as_gyro.md)
 to convert those columns into an IMU vector.
 
 `move2` objects store IMU data in two ways:
@@ -59,19 +59,19 @@ An `imu_colset` object of type `"expanded"` or `"compact"`.
 
 ## See also
 
-[`as_acc()`](https://robe2037.github.io/move2imu/reference/as_acc.md),
-[`as_mag()`](https://robe2037.github.io/move2imu/reference/as_mag.md),
-[`as_gyro()`](https://robe2037.github.io/move2imu/reference/as_gyro.md)
+[`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md),
+[`as_mag()`](https://move2universe.github.io/move2imu/reference/as_mag.md),
+[`as_gyro()`](https://move2universe.github.io/move2imu/reference/as_gyro.md)
 to extract IMU data from a move2 object.
 
-[`active_acc_colsets()`](https://robe2037.github.io/move2imu/reference/active_colsets.md),
-[`active_mag_colsets()`](https://robe2037.github.io/move2imu/reference/active_colsets.md),
-[`active_gyro_colsets()`](https://robe2037.github.io/move2imu/reference/active_colsets.md)
+[`active_acc_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md),
+[`active_mag_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md),
+[`active_gyro_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md)
 to identify IMU colsets present in a move2 object.
 
-[`movebank_acc_colsets()`](https://robe2037.github.io/move2imu/reference/movebank_colsets.md),
-[`movebank_mag_colsets()`](https://robe2037.github.io/move2imu/reference/movebank_colsets.md),
-[`movebank_gyro_colsets()`](https://robe2037.github.io/move2imu/reference/movebank_colsets.md)
+[`movebank_acc_colsets()`](https://move2universe.github.io/move2imu/reference/movebank_colsets.md),
+[`movebank_mag_colsets()`](https://move2universe.github.io/move2imu/reference/movebank_colsets.md),
+[`movebank_gyro_colsets()`](https://move2universe.github.io/move2imu/reference/movebank_colsets.md)
 to see column sets provided by Movebank.
 
 ## Examples

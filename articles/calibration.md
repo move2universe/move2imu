@@ -30,14 +30,14 @@ each tag will need its own transformation.
 
 move2imu facilitates this transformation process with two functions:
 
-- [`acc_calibration()`](https://robe2037.github.io/move2imu/reference/acc_calibration.md)
+- [`acc_calibration()`](https://move2universe.github.io/move2imu/reference/acc_calibration.md)
   specifies the parameters for a set of transformation functions
-- [`transform_imu()`](https://robe2037.github.io/move2imu/reference/transform_imu.md)
+- [`transform_imu()`](https://move2universe.github.io/move2imu/reference/transform_imu.md)
   applies that specification to an `acc` vector, yielding a vector with
   proper physical units.
 
 We’ll work through this with the example
-[`albatrosses()`](https://robe2037.github.io/move2imu/reference/example_data.md)
+[`albatrosses()`](https://move2universe.github.io/move2imu/reference/example_data.md)
 dataset, which contains raw data collected with e-obs tags.
 
 ``` r
@@ -87,7 +87,7 @@ Note as well that the raw acc values are in the thousands, which would
 be unreasonable were these values already in m/s² or *g*.
 
 We can confirm with
-[`imu_units()`](https://robe2037.github.io/move2imu/reference/imu-properties.md):
+[`imu_units()`](https://move2universe.github.io/move2imu/reference/imu-properties.md):
 
 ``` r
 
@@ -124,7 +124,7 @@ cal
 ```
 
 Then, we simply use
-[`transform_imu()`](https://robe2037.github.io/move2imu/reference/transform_imu.md)
+[`transform_imu()`](https://move2universe.github.io/move2imu/reference/transform_imu.md)
 to apply this transformation to the albatross acceleration bursts:
 
 ``` r
@@ -157,10 +157,10 @@ vedba(alb$acc_cal)
 ```
 
 By default,
-[`acc_calibration()`](https://robe2037.github.io/move2imu/reference/acc_calibration.md)
+[`acc_calibration()`](https://move2universe.github.io/move2imu/reference/acc_calibration.md)
 converts to m/s². If you instead want your data in *g*, you can convert
 with
-[`set_imu_units()`](https://robe2037.github.io/move2imu/reference/set_imu_units.md):
+[`set_imu_units()`](https://move2universe.github.io/move2imu/reference/set_imu_units.md):
 
 ``` r
 
@@ -211,14 +211,14 @@ acc_calibration(
 ```
 
 Note the difference between these two approaches:
-[`set_imu_units()`](https://robe2037.github.io/move2imu/reference/set_imu_units.md)
+[`set_imu_units()`](https://move2universe.github.io/move2imu/reference/set_imu_units.md)
 converts *between* compatible units (e.g., m/s² to *g*) or *assigns* new
 units, whereas
-[`transform_imu()`](https://robe2037.github.io/move2imu/reference/transform_imu.md)
+[`transform_imu()`](https://move2universe.github.io/move2imu/reference/transform_imu.md)
 *transforms* raw values to their physical counterpart.
 
 Thus, if you have raw values in your data, you must first use
-[`transform_imu()`](https://robe2037.github.io/move2imu/reference/transform_imu.md)
+[`transform_imu()`](https://move2universe.github.io/move2imu/reference/transform_imu.md)
 to convert the raw ADC values to meaningful units using the provided
 calibration. Otherwise, you will end up simply assigning units to raw
 values without changing the values themselves.
@@ -247,11 +247,11 @@ However, e-obs has revised the default calibration over time, so earlier
 generations of tags don’t necessarily have the same transformation
 function. (You can see the default calibration specifications for e-obs
 tags with
-[`eobs_default_specs()`](https://robe2037.github.io/move2imu/reference/eobs_default_specs.md).)
+[`eobs_default_specs()`](https://move2universe.github.io/move2imu/reference/eobs_default_specs.md).)
 
 In these cases, you can build a vector of per-burst calibration
 specifications, which when passed to
-[`transform_imu()`](https://robe2037.github.io/move2imu/reference/transform_imu.md)
+[`transform_imu()`](https://move2universe.github.io/move2imu/reference/transform_imu.md)
 will be matched to bursts by index.
 
 For instance, imagine that the e-obs tag IDs were stored in the original
@@ -341,7 +341,7 @@ mt_as_event_attribute(alb, cal)$cal
 ```
 
 Passing this to
-[`transform_imu()`](https://robe2037.github.io/move2imu/reference/transform_imu.md)
+[`transform_imu()`](https://move2universe.github.io/move2imu/reference/transform_imu.md)
 maps each burst to its corresponding calibration function by index:
 
 ``` r
@@ -370,7 +370,7 @@ transform_imu(alb$acceleration, mt_as_event_attribute(alb, cal)$cal)
 ```
 
 In general, expanding within the call to
-[`transform_imu()`](https://robe2037.github.io/move2imu/reference/transform_imu.md)
+[`transform_imu()`](https://move2universe.github.io/move2imu/reference/transform_imu.md)
 is ideal, as the calibrations that are duplicated across bursts do not
 need to persist in memory afterwards.
 
@@ -435,10 +435,10 @@ to an external file for later reuse.
 move2imu supports the conversion of a `data.frame` that contains these
 calibration parameters to an `acc_calibration` vector on a per-row basis
 with
-[`as_acc_calibration()`](https://robe2037.github.io/move2imu/reference/acc_calibration.md).
+[`as_acc_calibration()`](https://move2universe.github.io/move2imu/reference/acc_calibration.md).
 Any columns in the `data.frame` that correspond to the available
 arguments to
-[`acc_calibration()`](https://robe2037.github.io/move2imu/reference/acc_calibration.md)
+[`acc_calibration()`](https://move2universe.github.io/move2imu/reference/acc_calibration.md)
 will be used to build calibration functions.
 
 For instance, for the following set of calibration specifications:

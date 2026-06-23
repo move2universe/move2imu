@@ -8,7 +8,7 @@ draws a multi-panel histogram of those same distributions.
 
 Intervals are the gaps between consecutive bursts (end of one to the
 start of the next), computed in vector order (see
-[`burst_intervals()`](https://robe2037.github.io/move2imu/reference/imu-properties.md)).
+[`burst_intervals()`](https://move2universe.github.io/move2imu/reference/imu-properties.md)).
 If bursts come from different sources (e.g. different tags), there may
 be noticeable interval artifacts between some bursts where sources
 change.

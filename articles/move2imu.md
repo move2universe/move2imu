@@ -18,11 +18,11 @@ they can be easily manipulated, analyzed, and linked to other tracking
 data—for instance, those stored in a `move2` object. The package
 currently supports three sensor types:
 
-- [`acc()`](https://robe2037.github.io/move2imu/reference/imu_constructors.md)
+- [`acc()`](https://move2universe.github.io/move2imu/reference/imu_constructors.md)
   for accelerometer bursts
-- [`mag()`](https://robe2037.github.io/move2imu/reference/imu_constructors.md)
+- [`mag()`](https://move2universe.github.io/move2imu/reference/imu_constructors.md)
   for magnetometer bursts
-- [`gyro()`](https://robe2037.github.io/move2imu/reference/imu_constructors.md)
+- [`gyro()`](https://move2universe.github.io/move2imu/reference/imu_constructors.md)
   for gyroscope bursts
 
 Each of these shares the same underlying structure. For the rest of this
@@ -104,7 +104,7 @@ will load these data from external sources. move2imu has been designed
 to work in tandem with [move2](https://bartk.gitlab.io/move2/) and
 [Movebank](https://www.movebank.org) and will automatically parse IMU
 data stored in one of Movebank’s standard storage formats (see
-[`movebank_acc_colsets()`](https://robe2037.github.io/move2imu/reference/movebank_colsets.md)).
+[`movebank_acc_colsets()`](https://move2universe.github.io/move2imu/reference/movebank_colsets.md)).
 
 For example, we’ll load a sample dataset of albatross tracks stored as a
 `move2`:
@@ -166,7 +166,7 @@ alb
 ```
 
 Then, to extract the acceleration data from this object, we simply call
-[`as_acc()`](https://robe2037.github.io/move2imu/reference/as_acc.md):
+[`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md):
 
 ``` r
 
@@ -191,7 +191,7 @@ a
 #> # frequency: 5 [Hz]
 ```
 
-[`as_acc()`](https://robe2037.github.io/move2imu/reference/as_acc.md)
+[`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md)
 automatically identifies the relevant acceleration data in the albatross
 data and converts them into bursts with associated frequencies and start
 timestamps.
@@ -279,22 +279,22 @@ as_acc(gul)
 Even though the albatross and gulls data sources store their
 acceleration data differently, because each adheres to the Movebank data
 model,
-[`as_acc()`](https://robe2037.github.io/move2imu/reference/as_acc.md)
+[`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md)
 seamlessly parses the data into a set of `acc` burst matrices.
 
 For more details about the ways Movebank stores acceleration data, see
-[`movebank_acc_colsets()`](https://robe2037.github.io/move2imu/reference/movebank_colsets.md).
+[`movebank_acc_colsets()`](https://move2universe.github.io/move2imu/reference/movebank_colsets.md).
 
 ### Fine-tuning data import
 
 If you have your own data stored using column names that don’t adhere to
 the Movebank data model, you can still use
-[`as_acc()`](https://robe2037.github.io/move2imu/reference/as_acc.md) to
-load them, provided that the data themselves are stored in a
+[`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md)
+to load them, provided that the data themselves are stored in a
 recognizable format (see
-[`imu_colset()`](https://robe2037.github.io/move2imu/reference/imu_colset.md)).
+[`imu_colset()`](https://move2universe.github.io/move2imu/reference/imu_colset.md)).
 Use
-[`imu_colset()`](https://robe2037.github.io/move2imu/reference/imu_colset.md)
+[`imu_colset()`](https://move2universe.github.io/move2imu/reference/imu_colset.md)
 to define the column names that correspond to each axis of acceleration
 data in your input data source:
 
@@ -447,7 +447,7 @@ starts(a)
 ### Plotting bursts
 
 You can also plot the acceleration data over time with
-[`plot_time()`](https://robe2037.github.io/move2imu/reference/plot_time.md).
+[`plot_time()`](https://move2universe.github.io/move2imu/reference/plot_time.md).
 This produces an interactive
 [`dygraph`](https://rstudio.github.io/dygraphs/) that you can zoom into
 with the mouse:
@@ -471,10 +471,10 @@ plot_time(a[422])
 
 If your data are stored as raw ADC values rather than physical units,
 see the [calibration
-vignette](https://robe2037.github.io/move2imu/articles/calibration.md)
+vignette](https://move2universe.github.io/move2imu/articles/calibration.md)
 to learn how to convert them.
 
 See the [programming with
-bursts](https://robe2037.github.io/move2imu/articles/programming.md)
+bursts](https://move2universe.github.io/move2imu/articles/programming.md)
 vignette for a demonstration of how to compute values from `acc` bursts
 and link them back to GPS coordinates in a `move2` object.

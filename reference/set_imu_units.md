@@ -20,7 +20,7 @@ as-is.
 
 To transform raw values to physical units rather than simply attaching
 or converting units, use
-[`transform_imu()`](https://robe2037.github.io/move2imu/reference/transform_imu.md).
+[`transform_imu()`](https://move2universe.github.io/move2imu/reference/transform_imu.md).
 
 ## Usage
 
@@ -52,7 +52,7 @@ each burst matrix.
 
 ## See also
 
-[`transform_imu()`](https://robe2037.github.io/move2imu/reference/transform_imu.md)
+[`transform_imu()`](https://move2universe.github.io/move2imu/reference/transform_imu.md)
 to transform raw IMU values
 
 ## Examples

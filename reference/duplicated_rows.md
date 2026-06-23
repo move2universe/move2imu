@@ -9,13 +9,13 @@ To resolve duplicated rows, pass a specific set of IMU columns to the
 `colset` argument of `as_*()` or remove the duplicated data.
 
 - `duplicated_acc_rows()` — checks acceleration column sets used by
-  [`as_acc()`](https://robe2037.github.io/move2imu/reference/as_acc.md).
+  [`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md).
 
 - `duplicated_mag_rows()` — checks magnetometer column sets used by
-  [`as_mag()`](https://robe2037.github.io/move2imu/reference/as_mag.md).
+  [`as_mag()`](https://move2universe.github.io/move2imu/reference/as_mag.md).
 
 - `duplicated_gyro_rows()` — checks gyroscope column sets used by
-  [`as_gyro()`](https://robe2037.github.io/move2imu/reference/as_gyro.md).
+  [`as_gyro()`](https://move2universe.github.io/move2imu/reference/as_gyro.md).
 
 ## Usage
 
@@ -45,12 +45,12 @@ sets.
 
 ## See also
 
-[`active_acc_colsets()`](https://robe2037.github.io/move2imu/reference/active_colsets.md),
-[`active_mag_colsets()`](https://robe2037.github.io/move2imu/reference/active_colsets.md),
-[`active_gyro_colsets()`](https://robe2037.github.io/move2imu/reference/active_colsets.md)
+[`active_acc_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md),
+[`active_mag_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md),
+[`active_gyro_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md)
 to identify available column sets in a `move2` object.
 
-[`as_acc()`](https://robe2037.github.io/move2imu/reference/as_acc.md),
-[`as_mag()`](https://robe2037.github.io/move2imu/reference/as_mag.md),
-[`as_gyro()`](https://robe2037.github.io/move2imu/reference/as_gyro.md)
+[`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md),
+[`as_mag()`](https://move2universe.github.io/move2imu/reference/as_mag.md),
+[`as_gyro()`](https://move2universe.github.io/move2imu/reference/as_gyro.md)
 to extract IMU data from a `move2` object.
