@@ -1,0 +1,198 @@
+# move2imu
+
+move2imu aims to standardize the storage and analysis of biologging
+inertial measurement unit (IMU) data, including accelerometer,
+magnetometer, and gyroscope records. The package integrates with
+[move2](https://bartk.gitlab.io/move2/), enabling standardized data
+processing workflows and allowing IMU data to be analyzed alongside
+other observations, including location records.
+
+## Installation
+
+move2imu does not yet exist on CRAN. Instead, you can install the
+development version directly:
+
+``` r
+
+# install.packages("pak")
+pak::pak("robe2037/move2imu")
+
+# Or, if remotes is already installed:
+remotes::install_github("robe2037/move2imu")
+```
+
+## Usage
+
+``` r
+
+library(move2imu)
+library(move2)
+
+# Extract acceleration data from gulls data
+acceleration <- as_acc(gulls())
+
+acceleration <- acceleration[!is.na(acceleration)]
+
+head(acceleration)
+#> <acceleration[6]>
+#> [1] (-97.75 323.55 1963.95) (-95 267.65 1914.25)    (7.1 301.85 1990.9)    
+#> [4] (77.65 372.95 1824.75)  (46.9 349.8 1989)       (-29.15 251.05 2046.6) 
+#> # frequency: 20 [Hz]
+
+# Compute values on acceleration bursts
+vedba(acceleration)
+#>  [1]  184.32546  217.03563  169.67963  159.70308  139.13675   93.78337
+#>  [7]   70.52255   47.88465  103.18600  120.17322  180.73977  272.24915
+#> [13] 1205.98655  906.47609 1297.89387 1370.41230 1010.59239 1155.86132
+#> [19] 1207.07769  348.04025 1359.16413 1271.36056 1320.84767  292.35113
+#> [25]  330.88228 1255.16058 1236.19487  162.21664 1570.35847 1167.40129
+#> [31]  130.55415  439.56821 1286.00234  148.70816  103.99947  116.59106
+#> [37]   76.41446  807.40152  115.69910  428.93748  250.49735  135.25885
+#> [43]   94.72192  250.57432  104.08138  323.06970  142.13018  252.64078
+#> [49]  161.30022  139.36594  203.29928  172.87414  188.60353  312.24183
+#> [55]  225.97108  341.48917  147.20475  279.21028  309.20153
+```
+
+## Getting help + Contributing
+
+We welcome feedback and contributions. If you encounter a bug or have
+specific feature requests, please create an issue on
+[GitHub](https://github.com/robe2037/move2imu).
+
+# Package index
+
+## IMU vectors
+
+Build and explore IMU data vectors
+
+- [`acc()`](https://robe2037.github.io/move2imu/reference/imu_constructors.md)
+  [`mag()`](https://robe2037.github.io/move2imu/reference/imu_constructors.md)
+  [`gyro()`](https://robe2037.github.io/move2imu/reference/imu_constructors.md)
+  : Create an IMU vector
+- [`is_acc()`](https://robe2037.github.io/move2imu/reference/imu-predicates.md)
+  [`is_mag()`](https://robe2037.github.io/move2imu/reference/imu-predicates.md)
+  [`is_gyro()`](https://robe2037.github.io/move2imu/reference/imu-predicates.md)
+  : Check sensor type of an IMU vector
+- [`n_axis()`](https://robe2037.github.io/move2imu/reference/imu-properties.md)
+  [`n_samples()`](https://robe2037.github.io/move2imu/reference/imu-properties.md)
+  [`burst_dur()`](https://robe2037.github.io/move2imu/reference/imu-properties.md)
+  [`burst_intervals()`](https://robe2037.github.io/move2imu/reference/imu-properties.md)
+  [`imu_units()`](https://robe2037.github.io/move2imu/reference/imu-properties.md)
+  [`is_uniform()`](https://robe2037.github.io/move2imu/reference/imu-properties.md)
+  : Burst properties of an IMU vector
+- [`bursts()`](https://robe2037.github.io/move2imu/reference/imu-fields.md)
+  [`` `bursts<-`() ``](https://robe2037.github.io/move2imu/reference/imu-fields.md)
+  [`freqs()`](https://robe2037.github.io/move2imu/reference/imu-fields.md)
+  [`` `freqs<-`() ``](https://robe2037.github.io/move2imu/reference/imu-fields.md)
+  [`starts()`](https://robe2037.github.io/move2imu/reference/imu-fields.md)
+  [`` `starts<-`() ``](https://robe2037.github.io/move2imu/reference/imu-fields.md)
+  : Access and modify fields of an IMU vector
+- [`summary(`*`<imu>`*`)`](https://robe2037.github.io/move2imu/reference/imu_summary.md)
+  [`plot(`*`<imu_summary>`*`)`](https://robe2037.github.io/move2imu/reference/imu_summary.md)
+  : Summarize and plot an IMU vector
+- [`plot_time()`](https://robe2037.github.io/move2imu/reference/plot_time.md)
+  : Plot bursts over time
+
+## Extracting IMU data from move2 / Movebank
+
+Identify IMU data in a `move2` object and extract into an IMU vector.
+
+- [`as_acc()`](https://robe2037.github.io/move2imu/reference/as_acc.md)
+  :
+
+  Convert an object to an `acc` vector
+
+- [`as_gyro()`](https://robe2037.github.io/move2imu/reference/as_gyro.md)
+  :
+
+  Convert an object to a `gyro` vector
+
+- [`as_mag()`](https://robe2037.github.io/move2imu/reference/as_mag.md)
+  :
+
+  Convert an object to a `mag` vector
+
+- [`imu_colset()`](https://robe2037.github.io/move2imu/reference/imu_colset.md)
+  :
+
+  Specify IMU data columns present in a `move2` object
+
+- [`active_acc_colsets()`](https://robe2037.github.io/move2imu/reference/active_colsets.md)
+  [`active_mag_colsets()`](https://robe2037.github.io/move2imu/reference/active_colsets.md)
+  [`active_gyro_colsets()`](https://robe2037.github.io/move2imu/reference/active_colsets.md)
+  :
+
+  Identify IMU columns present in a `move2` object
+
+- [`movebank_acc_colsets()`](https://robe2037.github.io/move2imu/reference/movebank_colsets.md)
+  [`movebank_mag_colsets()`](https://robe2037.github.io/move2imu/reference/movebank_colsets.md)
+  [`movebank_gyro_colsets()`](https://robe2037.github.io/move2imu/reference/movebank_colsets.md)
+  : View standard Movebank IMU data column sets
+
+- [`has_acc()`](https://robe2037.github.io/move2imu/reference/has_imu.md)
+  [`has_mag()`](https://robe2037.github.io/move2imu/reference/has_imu.md)
+  [`has_gyro()`](https://robe2037.github.io/move2imu/reference/has_imu.md)
+  :
+
+  Identify rows in a `move2` that contain IMU data
+
+## Combining and splitting
+
+Join continuous bursts together or split an IMU vector into pieces.
+
+- [`merge_imu()`](https://robe2037.github.io/move2imu/reference/merge_imu.md)
+  : Merge adjacent bursts in an IMU vector
+- [`split_imu()`](https://robe2037.github.io/move2imu/reference/split_imu.md)
+  : Split an IMU vector at regular intervals
+
+## Calibration and units
+
+Transform raw ADC counts to physical units, override per-axis
+orientation, and look up tag manufacturer calibration defaults.
+
+- [`acc_calibration()`](https://robe2037.github.io/move2imu/reference/acc_calibration.md)
+  [`as_acc_calibration()`](https://robe2037.github.io/move2imu/reference/acc_calibration.md)
+  : Create calibrations for raw acceleration values
+- [`transform_imu()`](https://robe2037.github.io/move2imu/reference/transform_imu.md)
+  : Apply a sensor calibration to an IMU vector
+- [`eobs_default_specs()`](https://robe2037.github.io/move2imu/reference/eobs_default_specs.md)
+  : Default e-obs tag configuration table
+- [`set_imu_units()`](https://robe2037.github.io/move2imu/reference/set_imu_units.md)
+  [`drop_imu_units()`](https://robe2037.github.io/move2imu/reference/set_imu_units.md)
+  : Manage units in IMU burst data
+
+## Burst computations
+
+Get the dynamic body acceleration and/or peak frequency of a burst
+
+- [`vedba()`](https://robe2037.github.io/move2imu/reference/dba.md)
+  [`odba()`](https://robe2037.github.io/move2imu/reference/dba.md) :
+
+  Calculate dynamic body acceleration (DBA) for an `acc` vector
+
+- [`peak_frequency()`](https://robe2037.github.io/move2imu/reference/peak_frequency.md)
+  : Calculate the peak frequency per axis for bursts
+
+## Example data
+
+Bundled datasets used throughout examples and vignettes.
+
+- [`albatrosses()`](https://robe2037.github.io/move2imu/reference/example_data.md)
+  [`gulls()`](https://robe2037.github.io/move2imu/reference/example_data.md)
+  : move2imu example datasets
+
+- [`acc_example()`](https://robe2037.github.io/move2imu/reference/acc_example.md)
+  :
+
+  Example `acc` vector
+
+# Articles
+
+### All vignettes
+
+- [Calibrating acceleration
+  bursts](https://robe2037.github.io/move2imu/articles/calibration.md):
+- [Introduction to
+  move2imu](https://robe2037.github.io/move2imu/articles/move2imu.md):
+- [Programming with IMU
+  bursts](https://robe2037.github.io/move2imu/articles/programming.md):
