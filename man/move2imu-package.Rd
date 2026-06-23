@@ -11,9 +11,9 @@ Standardized vector representation of bursted inertial measurement unit (IMU) da
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://github.com/robe2037/move2imu}
-  \item \url{https://robe2037.github.io/move2imu/}
-  \item Report bugs at \url{https://github.com/robe2037/move2imu/issues}
+  \item \url{https://github.com/move2universe/move2imu}
+  \item \url{https://move2universe.github.io/move2imu/}
+  \item Report bugs at \url{https://github.com/move2universe/move2imu/issues}
 }
 
 }

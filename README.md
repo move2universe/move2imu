@@ -5,9 +5,9 @@
 
 <!-- badges: start -->
 
-[![R-CMD-check](https://github.com/robe2037/move2imu/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/robe2037/move2imu/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/move2universe/move2imu/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/move2universe/move2imu/actions/workflows/R-CMD-check.yaml)
 [![Codecov test
-coverage](https://codecov.io/gh/robe2037/move2imu/graph/badge.svg)](https://app.codecov.io/gh/robe2037/move2imu)
+coverage](https://codecov.io/gh/move2universe/move2imu/graph/badge.svg)](https://app.codecov.io/gh/move2universe/move2imu)
 [![CRAN
 status](https://www.r-pkg.org/badges/version/move2imu)](https://CRAN.R-project.org/package=move2imu)
 [![Lifecycle:
@@ -28,10 +28,10 @@ development version directly:
 
 ``` r
 # install.packages("pak")
-pak::pak("robe2037/move2imu")
+pak::pak("move2universe/move2imu")
 
 # Or, if remotes is already installed:
-remotes::install_github("robe2037/move2imu")
+remotes::install_github("move2universe/move2imu")
 ```
 
 ## Usage
@@ -69,4 +69,4 @@ vedba(acceleration)
 
 We welcome feedback and contributions. If you encounter a bug or have
 specific feature requests, please create an issue on
-[GitHub](https://github.com/robe2037/move2imu).
+[GitHub](https://github.com/move2universe/move2imu).

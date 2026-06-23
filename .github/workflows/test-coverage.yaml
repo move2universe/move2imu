@@ -14,7 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-      MBPWD: ${{ secrets.MBPWD }}
 
     steps:
       - uses: actions/checkout@v4
