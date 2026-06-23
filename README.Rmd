@@ -16,8 +16,8 @@ knitr::opts_chunk$set(
 # move2imu
 
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/robe2037/move2imu/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/robe2037/move2imu/actions/workflows/R-CMD-check.yaml)
-[![Codecov test coverage](https://codecov.io/gh/robe2037/move2imu/graph/badge.svg)](https://app.codecov.io/gh/robe2037/move2imu)
+[![R-CMD-check](https://github.com/move2universe/move2imu/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/move2universe/move2imu/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/move2universe/move2imu/graph/badge.svg)](https://app.codecov.io/gh/move2universe/move2imu)
 [![CRAN status](https://www.r-pkg.org/badges/version/move2imu)](https://CRAN.R-project.org/package=move2imu)
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
@@ -35,10 +35,10 @@ version directly:
 
 ```{r, eval = FALSE}
 # install.packages("pak")
-pak::pak("robe2037/move2imu")
+pak::pak("move2universe/move2imu")
 
 # Or, if remotes is already installed:
-remotes::install_github("robe2037/move2imu")
+remotes::install_github("move2universe/move2imu")
 ```
 
 ## Usage
@@ -61,4 +61,4 @@ vedba(acceleration)
 ## Getting help + Contributing
 
 We welcome feedback and contributions. If you encounter a bug or have 
-specific feature requests, please create an issue on [GitHub](https://github.com/robe2037/move2imu).
+specific feature requests, please create an issue on [GitHub](https://github.com/move2universe/move2imu).
