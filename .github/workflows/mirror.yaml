@@ -1,0 +1,21 @@
+# Mirror this repository to GitLab (gitlab.mpcdf.mpg.de) on every push
+on:
+  push:
+    branches: ['**']
+    tags: ['**']
+
+name: mirror.yaml
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mirror to GitLab
+        run: |
+          git clone --mirror \
+            "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" repo.git
+          git -C repo.git push --mirror \
+            "https://oauth2:${{ secrets.GITLAB_TOKEN }}@gitlab.mpcdf.mpg.de/anenvi/r-packages/move2imu.git"
