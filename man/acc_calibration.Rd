@@ -131,10 +131,10 @@ acc_calibration(offset = 2048, slope = 1 / 512)
 
 # Calibrate specific axes with axis-specific args:
 cal <- acc_calibration(
-  offset_x = 2048, 
+  offset_x = 2048,
   offset_y = 2046,
   offset_z = 2048,
-  slope = 1 / 512, 
+  slope = 1 / 512,
   orientation_y = -1 # Flip y axis orientation
 )
 

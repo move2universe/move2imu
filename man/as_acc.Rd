@@ -83,7 +83,7 @@ head(as_acc(g))
 
 # Specify the columns to extract explicitly with a colset, e.g. to
 # pull a single axis from the gulls data:
-as_acc(g, colset = imu_colset(x = "acceleration_raw_x")) |> 
+as_acc(g, colset = imu_colset(x = "acceleration_raw_x")) |>
   head()
 
 # Output is index-matched to the input move2, so the result can be

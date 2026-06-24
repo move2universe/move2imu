@@ -64,7 +64,7 @@ alb <- albatrosses()
 alb$eobs_acceleration_axes <- NULL
 
 \dontrun{
-  active_acc_colsets(alb)
+active_acc_colsets(alb)
 }
 }
 \seealso{

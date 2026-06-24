@@ -27,10 +27,10 @@ more closely determine the true frequency.
 a <- acc(
   list(
     cbind(
-      X = sin(1:200 / (5  / (pi * 2))),
+      X = sin(1:200 / (5 / (pi * 2))),
       Z = cos(1:200 / (80 / (pi * 2)))
     )
-  ), 
+  ),
   units::set_units(400, "Hz")
 )
 
@@ -47,7 +47,7 @@ a <- acc(
       X = sin((1:200) / (5 / (pi * 2))),
       Z = cos(80 + 1:200 / (80 / (pi * 2)))
     )
-  ), 
+  ),
   units::set_units(400, "Hz")
 )
 
