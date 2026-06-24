@@ -125,7 +125,7 @@ head(as_acc(g))
 
 # Specify the columns to extract explicitly with a colset, e.g. to
 # pull a single axis from the gulls data:
-as_acc(g, colset = imu_colset(x = "acceleration_raw_x")) |> 
+as_acc(g, colset = imu_colset(x = "acceleration_raw_x")) |>
   head()
 #> <acceleration[6]>
 #> [1] <NA>     (-97.75) <NA>     <NA>     <NA>     <NA>    
