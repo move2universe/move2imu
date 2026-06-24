@@ -100,19 +100,6 @@ orientation, and look up tag manufacturer calibration defaults.
   [`drop_imu_units()`](https://move2universe.github.io/move2imu/reference/set_imu_units.md)
   : Manage units in IMU burst data
 
-## Burst computations
-
-Get the dynamic body acceleration and/or peak frequency of a burst
-
-- [`vedba()`](https://move2universe.github.io/move2imu/reference/dba.md)
-  [`odba()`](https://move2universe.github.io/move2imu/reference/dba.md)
-  :
-
-  Calculate dynamic body acceleration (DBA) for an `acc` vector
-
-- [`peak_frequency()`](https://move2universe.github.io/move2imu/reference/peak_frequency.md)
-  : Calculate the peak frequency per axis for bursts
-
 ## Example data
 
 Bundled datasets used throughout examples and vignettes.

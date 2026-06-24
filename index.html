@@ -79,28 +79,41 @@
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bartk.gitlab.io/move2/" class="external-link">move2</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Extract acceleration data from gulls data</span></span>
-<span><span class="va">acceleration</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/as_acc.html">as_acc</a></span><span class="op">(</span><span class="fu"><a href="reference/example_data.html">gulls</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">a</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/as_acc.html">as_acc</a></span><span class="op">(</span><span class="fu"><a href="reference/example_data.html">gulls</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">a</span> <span class="op">&lt;-</span> <span class="va">a</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">a</span><span class="op">)</span><span class="op">]</span></span>
 <span></span>
-<span><span class="va">acceleration</span> <span class="op">&lt;-</span> <span class="va">acceleration</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">acceleration</span><span class="op">)</span><span class="op">]</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">acceleration</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">a</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;acceleration[6]&gt;</span></span>
 <span><span class="co">#&gt; [1] (-97.75 323.55 1963.95) (-95 267.65 1914.25)    (7.1 301.85 1990.9)    </span></span>
 <span><span class="co">#&gt; [4] (77.65 372.95 1824.75)  (46.9 349.8 1989)       (-29.15 251.05 2046.6) </span></span>
 <span><span class="co">#&gt; # frequency: 20 [Hz]</span></span>
 <span></span>
-<span><span class="co"># Compute values on acceleration bursts</span></span>
-<span><span class="fu"><a href="reference/dba.html">vedba</a></span><span class="op">(</span><span class="va">acceleration</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  [1]  184.32546  217.03563  169.67963  159.70308  139.13675   93.78337</span></span>
-<span><span class="co">#&gt;  [7]   70.52255   47.88465  103.18600  120.17322  180.73977  272.24915</span></span>
-<span><span class="co">#&gt; [13] 1205.98655  906.47609 1297.89387 1370.41230 1010.59239 1155.86132</span></span>
-<span><span class="co">#&gt; [19] 1207.07769  348.04025 1359.16413 1271.36056 1320.84767  292.35113</span></span>
-<span><span class="co">#&gt; [25]  330.88228 1255.16058 1236.19487  162.21664 1570.35847 1167.40129</span></span>
-<span><span class="co">#&gt; [31]  130.55415  439.56821 1286.00234  148.70816  103.99947  116.59106</span></span>
-<span><span class="co">#&gt; [37]   76.41446  807.40152  115.69910  428.93748  250.49735  135.25885</span></span>
-<span><span class="co">#&gt; [43]   94.72192  250.57432  104.08138  323.06970  142.13018  252.64078</span></span>
-<span><span class="co">#&gt; [49]  161.30022  139.36594  203.29928  172.87414  188.60353  312.24183</span></span>
-<span><span class="co">#&gt; [55]  225.97108  341.48917  147.20475  279.21028  309.20153</span></span></code></pre></div>
+<span><span class="co"># Overview of acceleration bursts</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">a</span><span class="op">)</span></span>
+<span><span class="co">#&gt; 59 acc bursts</span></span>
+<span><span class="co">#&gt; from 2021-03-03 00:57:06 to 2021-03-03 23:44:55 UTC </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Axes: XYZ (59) </span></span>
+<span><span class="co">#&gt; Frequencies: 20 -- 20 [Hz] </span></span>
+<span><span class="co">#&gt; Samples per burst: 20 -- 20 </span></span>
+<span><span class="co">#&gt; Durations: 1 -- 1 [s] </span></span>
+<span><span class="co">#&gt; Intervals: [ 1197 / 1199 / 1200.5 / 1214.75 / 3624 ] [s]  (min/Q1/med/Q3/max) </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Values:  [ -1383 / 142 / 355 / 1782.25 / 4073 ]  (min/Q1/med/Q3/max) </span></span>
+<span><span class="co">#&gt; Units:   [no units]</span></span>
+<span></span>
+<span><span class="co"># Standardize raw ADC counts to physical units with a built-in tag calibration</span></span>
+<span><span class="va">a</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/transform_imu.html">transform_imu</a></span><span class="op">(</span><span class="va">a</span>, <span class="fu"><a href="reference/acc_calibration.html">acc_calibration</a></span><span class="op">(</span><span class="st">"ornitela"</span>, units <span class="op">=</span> <span class="st">"standard_free_fall"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">a</span><span class="op">)</span></span>
+<span><span class="co">#&gt; &lt;acceleration[6]&gt;</span></span>
+<span><span class="co">#&gt; [1] (-0.1 0.32 1.96) [standard_free_fall] </span></span>
+<span><span class="co">#&gt; [2] (-0.1 0.27 1.91) [standard_free_fall] </span></span>
+<span><span class="co">#&gt; [3] (0.01 0.3 1.99) [standard_free_fall]  </span></span>
+<span><span class="co">#&gt; [4] (0.08 0.37 1.82) [standard_free_fall] </span></span>
+<span><span class="co">#&gt; [5] (0.05 0.35 1.99) [standard_free_fall] </span></span>
+<span><span class="co">#&gt; [6] (-0.03 0.25 2.05) [standard_free_fall]</span></span>
+<span><span class="co">#&gt; # frequency: 20 [Hz]</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="getting-help--contributing">Getting help + Contributing<a class="anchor" aria-label="anchor" href="#getting-help--contributing"></a>

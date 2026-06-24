@@ -176,24 +176,10 @@ transformation to the albatross acceleration bursts:</p>
 <span><span class="co">#&gt; [1] &lt;NA&gt;                  (-4.29 -2.57) [m/s^2] (-2.75 -2.33) [m/s^2]</span></span>
 <span><span class="co">#&gt; [4] (-4.3 -2.58) [m/s^2]  (-4.24 -2.53) [m/s^2] (-6.3 -2.67) [m/s^2] </span></span>
 <span><span class="co">#&gt; # frequency: 5 [Hz]</span></span></code></pre></div>
-<p>Now that values have been transformed, computations on the
-acceleration bursts will respect the attached units:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/dba.html">vedba</a></span><span class="op">(</span><span class="va">alb</span><span class="op">$</span><span class="va">acc_cal</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Units: [m/s^2]</span></span>
-<span><span class="co">#&gt;  [1]         NA 0.42592544 0.63469795 0.46723033 0.42602852 0.52097709</span></span>
-<span><span class="co">#&gt;  [7]         NA 0.72788691 1.06822539 0.81265780 0.45922480 0.51736803</span></span>
-<span><span class="co">#&gt; [13] 1.60998841         NA 1.67764039 0.72574021 0.64973569 0.77873477</span></span>
-<span><span class="co">#&gt; [19] 1.31999039         NA 0.90810530 1.71834229 0.96066700 1.39964558</span></span>
-<span><span class="co">#&gt; [25] 0.40135076         NA 0.58057912 0.51380267 0.33742077 0.43802696</span></span>
-<span><span class="co">#&gt; [31] 1.95526814         NA 0.28129788 0.08598663 0.08436676 0.08193444</span></span>
-<span><span class="co">#&gt; [37] 0.08279857         NA 0.06927485 0.08091683 0.08286561 0.08829448</span></span>
-<span><span class="co">#&gt; [43] 0.07738145         NA 0.70910821 0.15095153 0.08536001 0.19591598</span></span>
-<span><span class="co">#&gt; [49] 1.42934267         NA 0.43037142 0.46979953 0.46734662 0.48806595</span></span></code></pre></div>
 <p>By default, <code><a href="../reference/acc_calibration.html">acc_calibration()</a></code> converts to m/s². If you
 instead want your data in <em>g</em>, you can convert with
 <code><a href="../reference/set_imu_units.html">set_imu_units()</a></code>:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/set_imu_units.html">set_imu_units</a></span><span class="op">(</span><span class="va">alb</span><span class="op">$</span><span class="va">acc_cal</span>, <span class="st">"standard_free_fall"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;acceleration[54]&gt;</span></span>
 <span><span class="co">#&gt;  [1] &lt;NA&gt;                               (-0.44 -0.26) [standard_free_fall]</span></span>
@@ -226,7 +212,7 @@ instead want your data in <em>g</em>, you can convert with
 <span><span class="co">#&gt; # frequency: 5 [Hz]</span></span></code></pre></div>
 <p>Alternatively, we could have also specified the units in the
 calibration itself:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/acc_calibration.html">acc_calibration</a></span><span class="op">(</span></span>
 <span>  manufacturer <span class="op">=</span> <span class="st">"eobs"</span>,</span>
 <span>  tag_id <span class="op">=</span> <span class="fl">4266</span>,</span>
@@ -244,7 +230,7 @@ physical counterpart.</p>
 units using the provided calibration. Otherwise, you will end up simply
 assigning units to raw values without changing the values
 themselves.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">alb</span><span class="op">$</span><span class="va">acceleration</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span></span>
 <span><span class="co">#&gt; &lt;acceleration[1]&gt;</span></span>
 <span><span class="co">#&gt; [1] (1824.17 1913.83)</span></span>
@@ -272,7 +258,7 @@ specifications, which when passed to <code><a href="../reference/transform_imu.h
 be matched to bursts by index.</p>
 <p>For instance, imagine that the e-obs tag IDs were stored in the
 original <code>move2</code> object like so:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Example IDs that span e-obs generations</span></span>
 <span><span class="va">fake_ids</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1000</span>, <span class="fl">2000</span>, <span class="fl">2500</span>, <span class="fl">2501</span>, <span class="fl">2502</span>, <span class="fl">4200</span>, <span class="fl">4201</span>, <span class="fl">4202</span>, <span class="fl">4203</span><span class="op">)</span></span>
 <span></span>
@@ -304,7 +290,7 @@ original <code>move2</code> object like so:</p>
 <span><span class="co">#&gt; <span style="color: #949494;">#   taxon_canonical_name &lt;fct&gt;, individual_number_of_deployments &lt;int&gt;, …</span></span></span></code></pre></div>
 <p>We could use this track-level metadata to build a vectorized set of
 calibration functions based on the tag ID:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cals</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/acc_calibration.html">acc_calibration</a></span><span class="op">(</span><span class="st">"eobs"</span>, tag_id <span class="op">=</span> <span class="fu"><a href="https://bartk.gitlab.io/move2/reference/mt_track_data.html" class="external-link">mt_track_data</a></span><span class="op">(</span><span class="va">alb</span><span class="op">)</span><span class="op">$</span><span class="va">tag_id</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Reattach calibrations to each track</span></span>
@@ -329,7 +315,7 @@ but our acceleration bursts are stored as individual events in the
 <em>event</em> data of our <code>move2</code> object.</p>
 <p>To expand each calibration to its corresponding bursts (linking by
 track ID), we can use move2’s <code><a href="https://bartk.gitlab.io/move2/reference/mt_as_track_attribute.html" class="external-link">mt_as_event_attribute()</a></code>:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://bartk.gitlab.io/move2/reference/mt_as_track_attribute.html" class="external-link">mt_as_event_attribute</a></span><span class="op">(</span><span class="va">alb</span>, <span class="va">cal</span><span class="op">)</span><span class="op">$</span><span class="va">cal</span></span>
 <span><span class="co">#&gt; &lt;acc_calibration[54]&gt;</span></span>
 <span><span class="co">#&gt;  [1] {offset=[2048] slope=[0.00220]}                       </span></span>
@@ -344,7 +330,7 @@ track ID), we can use move2’s <code><a href="https://bartk.gitlab.io/move2/ref
 <span><span class="co">#&gt; ...</span></span></code></pre></div>
 <p>Passing this to <code><a href="../reference/transform_imu.html">transform_imu()</a></code> maps each burst to its
 corresponding calibration function by index:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/transform_imu.html">transform_imu</a></span><span class="op">(</span><span class="va">alb</span><span class="op">$</span><span class="va">acceleration</span>, <span class="fu"><a href="https://bartk.gitlab.io/move2/reference/mt_as_track_attribute.html" class="external-link">mt_as_event_attribute</a></span><span class="op">(</span><span class="va">alb</span>, <span class="va">cal</span><span class="op">)</span><span class="op">$</span><span class="va">cal</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;acceleration[54]&gt;</span></span>
 <span><span class="co">#&gt;  [1] &lt;NA&gt;                  (-4.83 -2.89) [m/s^2] (-3.1 -2.62) [m/s^2] </span></span>
@@ -376,13 +362,13 @@ need to persist in memory afterwards.</p>
 <p>For tags that come from manufacturers without built-in move2imu
 support, you can build your own calibration function by manually
 specifying the offset and slope for the transformation function:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/acc_calibration.html">acc_calibration</a></span><span class="op">(</span>offset <span class="op">=</span> <span class="fl">2048</span>, slope <span class="op">=</span> <span class="fl">0.001</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;acc_calibration[1]&gt;</span></span>
 <span><span class="co">#&gt; [1] {offset=[2048] slope=[0.001]}</span></span></code></pre></div>
 <p>If the calibration differs by axis, you can specify per-axis
 parameters:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/acc_calibration.html">acc_calibration</a></span><span class="op">(</span>offset_x <span class="op">=</span> <span class="fl">2048</span>, offset_y <span class="op">=</span> <span class="fl">2040</span>, slope <span class="op">=</span> <span class="fl">0.001</span>, orientation_y <span class="op">=</span> <span class="op">-</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;acc_calibration[1]&gt;</span></span>
 <span><span class="co">#&gt; [1] {offset=[2048, 2040, NA] slope=[0.001] orientation=[1, -1, 1]}</span></span></code></pre></div>
@@ -394,7 +380,7 @@ defined their axes in different directions. For instance, you may want
 to redefine the y-axis orientation for Ornitela tags to match other tags
 used in the study if those tags define the y-axis in the opposite
 direction:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cal1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/acc_calibration.html">acc_calibration</a></span><span class="op">(</span><span class="st">"ornitela"</span><span class="op">)</span></span>
 <span><span class="va">cal2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/acc_calibration.html">acc_calibration</a></span><span class="op">(</span><span class="st">"ornitela"</span>, orientation_y <span class="op">=</span> <span class="op">-</span><span class="fl">1</span><span class="op">)</span></span>
 <span></span>
@@ -425,9 +411,9 @@ arguments to <code><a href="../reference/acc_calibration.html">acc_calibration()
 calibration functions.</p>
 <p>For instance, for the following set of calibration
 specifications:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cal_table</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"calibration.csv"</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cal_table</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 9 × 8</span></span></span>
 <span><span class="co">#&gt;   tag_id offset_x offset_y offset_z slope_x slope_y slope_z orientation_y</span></span>
@@ -443,7 +429,7 @@ specifications:</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">9</span>   <span style="text-decoration: underline;">4</span>203     <span style="text-decoration: underline;">2</span>049     <span style="text-decoration: underline;">2</span>048     <span style="text-decoration: underline;">2</span>050 0.001<span style="text-decoration: underline;">95</span> 0.001<span style="text-decoration: underline;">97</span> 0.001<span style="text-decoration: underline;">96</span>             1</span></span></code></pre></div>
 <p>We can generate a vector of <code>acc_calibration</code> objects
 linked to their corresponding <code>tag_id</code> like so:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cals_df</span> <span class="op">&lt;-</span> <span class="va">cal_table</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>cals <span class="op">=</span> <span class="fu"><a href="../reference/acc_calibration.html">as_acc_calibration</a></span><span class="op">(</span><span class="va">cal_table</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">tag_id</span>, <span class="va">cals</span><span class="op">)</span></span>
@@ -463,14 +449,14 @@ linked to their corresponding <code>tag_id</code> like so:</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">9</span>   <span style="text-decoration: underline;">4</span>203 &lt;acc_cal&gt;</span></span></code></pre></div>
 <p>Then, we can join these calibrations onto our <code>move2</code>
 track data, matching by tag ID:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">alb</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://bartk.gitlab.io/move2/reference/mt_track_data.html" class="external-link">mt_set_track_data</a></span><span class="op">(</span></span>
 <span>  <span class="va">alb</span>,</span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">left_join</a></span><span class="op">(</span><span class="fu"><a href="https://bartk.gitlab.io/move2/reference/mt_track_data.html" class="external-link">mt_track_data</a></span><span class="op">(</span><span class="va">alb</span><span class="op">)</span>, <span class="va">cals_df</span>, by <span class="op">=</span> <span class="st">"tag_id"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>And transform by expanding our track-level calibrations to each of
 the corresponding bursts in the event data:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/transform_imu.html">transform_imu</a></span><span class="op">(</span><span class="va">alb</span><span class="op">$</span><span class="va">acceleration</span>, <span class="fu"><a href="https://bartk.gitlab.io/move2/reference/mt_as_track_attribute.html" class="external-link">mt_as_event_attribute</a></span><span class="op">(</span><span class="va">alb</span>, <span class="va">cals</span><span class="op">)</span><span class="op">$</span><span class="va">cals</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;acceleration[54]&gt;</span></span>
 <span><span class="co">#&gt;  [1] &lt;NA&gt;                  (-4.89 -2.87) [m/s^2] (-3.16 -2.6) [m/s^2] </span></span>

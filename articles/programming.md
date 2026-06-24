@@ -63,12 +63,56 @@ gul$acceleration <- transform_imu(
 )
 ```
 
-Then, we extract the VeDBA values:
+We can write a custom function that ingests an acceleration vector and
+computes VeDBA on each burst:
+
+``` r
+
+vedba <- function(acc) {
+  purrr::map_dbl(
+    bursts(acc),
+    function(b) {
+      # If no data, return NA
+      if (rlang::is_null(b)) {
+        return(NA_real_)
+      }
+      
+      b <- drop_units(b)
+      dba <- t(b) - colMeans(b)
+      mean(sqrt(colSums(dba^2)))
+    }
+  )
+}
+```
+
+We can then apply this function to each element of our acceleration
+vector. First, we confirm that we have a standard unit for all bursts.
+That way, we can safely reattach that unit after computation:
+
+``` r
+
+# Confirm that we have a single standard unit across all bursts:
+unique(imu_units(gul$acceleration[!is.na(gul$acceleration)]))
+#> [1] "standard_free_fall"
+```
+
+Now we can compute VeDBA for all bursts:
+
+``` r
+
+v <- set_units(vedba(gul$acceleration), "standard_free_fall")
+head(v)
+#> Units: [standard_free_fall]
+#> [1]        NA 0.1843255        NA        NA        NA        NA
+```
+
+We can put these values directly into our dataframe alongside the other
+event data for that record:
 
 ``` r
 
 gul_v <- gul |>
-  mutate(vedba = vedba(acceleration)) |>
+  mutate(vedba = v) |>
   filter(!is.na(vedba)) |>
   select(vedba)
 ```
@@ -229,7 +273,7 @@ ggplot(gul_v) +
   scale_x_datetime(expand = expansion(mult = 0.1))
 ```
 
-![](programming_files/figure-html/unnamed-chunk-10-1.png)
+![](programming_files/figure-html/unnamed-chunk-13-1.png)
 
 We can use this rolling average to identify when the tag has become
 inactive or the animal has died. The decision of what temporal and VeDBA
@@ -371,16 +415,15 @@ vedba_roll
 
 ggplot() +
   geom_line(aes(x = samp_t[2:length(samp_t)], y = vedba_roll[2:length(vedba_roll)])) +
-  geom_hline(aes(yintercept = drop_units(vedba(alb$a[[2]]))), linetype = "dashed") +
+  geom_hline(aes(yintercept = vedba(alb$a[2])), linetype = "dashed") +
   labs(x = "Sample", y = "VeDBA")
 ```
 
-![](programming_files/figure-html/unnamed-chunk-14-1.png)
+![](programming_files/figure-html/unnamed-chunk-17-1.png)
 
-The horizontal line shows the full-burst VeDBA produced by
-[`vedba()`](https://move2universe.github.io/move2imu/reference/dba.md).
-As you can see, the dynamic body acceleration varies quite a bit from
-this value across the burst.
+The horizontal line shows the full-burst VeDBA produced by `vedba()`. As
+you can see, the dynamic body acceleration varies quite a bit from this
+value across the burst.
 
 ### Scaling up
 
@@ -394,13 +437,13 @@ rolling_vedba <- function(acc, window = lubridate::seconds(1)) {
   if (is.na(acc)) {
     return(NA_real_)
   }
-
+  
   b <- bursts(acc)[[1]]
   fq <- freqs(acc)[[1]]
   t0 <- starts(acc)[[1]]
-
+  
   samp_t <- t0 + (seq_len(nrow(b)) - 1) / as.numeric(fq)
-
+  
   slide_index_dbl(
     seq_len(nrow(b)),
     samp_t,

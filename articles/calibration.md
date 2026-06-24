@@ -138,24 +138,6 @@ head(alb$acc_cal)
 #> # frequency: 5 [Hz]
 ```
 
-Now that values have been transformed, computations on the acceleration
-bursts will respect the attached units:
-
-``` r
-
-vedba(alb$acc_cal)
-#> Units: [m/s^2]
-#>  [1]         NA 0.42592544 0.63469795 0.46723033 0.42602852 0.52097709
-#>  [7]         NA 0.72788691 1.06822539 0.81265780 0.45922480 0.51736803
-#> [13] 1.60998841         NA 1.67764039 0.72574021 0.64973569 0.77873477
-#> [19] 1.31999039         NA 0.90810530 1.71834229 0.96066700 1.39964558
-#> [25] 0.40135076         NA 0.58057912 0.51380267 0.33742077 0.43802696
-#> [31] 1.95526814         NA 0.28129788 0.08598663 0.08436676 0.08193444
-#> [37] 0.08279857         NA 0.06927485 0.08091683 0.08286561 0.08829448
-#> [43] 0.07738145         NA 0.70910821 0.15095153 0.08536001 0.19591598
-#> [49] 1.42934267         NA 0.43037142 0.46979953 0.46734662 0.48806595
-```
-
 By default,
 [`acc_calibration()`](https://move2universe.github.io/move2imu/reference/acc_calibration.md)
 converts to m/s². If you instead want your data in *g*, you can convert

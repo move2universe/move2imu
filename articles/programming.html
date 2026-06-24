@@ -123,13 +123,45 @@ here?)</p>
 <span>  <span class="va">gul</span><span class="op">$</span><span class="va">acceleration</span>,</span>
 <span>  <span class="fu"><a href="../reference/acc_calibration.html">acc_calibration</a></span><span class="op">(</span><span class="st">"ornitela"</span>, units <span class="op">=</span> <span class="st">"standard_free_fall"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>Then, we extract the VeDBA values:</p>
+<p>We can write a custom function that ingests an acceleration vector
+and computes VeDBA on each burst:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">vedba</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">acc</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu">purrr</span><span class="fu">::</span><span class="fu"><a href="https://purrr.tidyverse.org/reference/map.html" class="external-link">map_dbl</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="../reference/imu-fields.html">bursts</a></span><span class="op">(</span><span class="va">acc</span><span class="op">)</span>,</span>
+<span>    <span class="kw">function</span><span class="op">(</span><span class="va">b</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="co"># If no data, return NA</span></span>
+<span>      <span class="kw">if</span> <span class="op">(</span><span class="fu">rlang</span><span class="fu">::</span><span class="fu"><a href="https://rlang.r-lib.org/reference/type-predicates.html" class="external-link">is_null</a></span><span class="op">(</span><span class="va">b</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>        <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NA_real_</span><span class="op">)</span></span>
+<span>      <span class="op">}</span></span>
+<span>      </span>
+<span>      <span class="va">b</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://r-quantities.github.io/units/reference/drop_units.html" class="external-link">drop_units</a></span><span class="op">(</span><span class="va">b</span><span class="op">)</span></span>
+<span>      <span class="va">dba</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">b</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colMeans</a></span><span class="op">(</span><span class="va">b</span><span class="op">)</span></span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">dba</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<p>We can then apply this function to each element of our acceleration
+vector. First, we confirm that we have a standard unit for all bursts.
+That way, we can safely reattach that unit after computation:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Confirm that we have a single standard unit across all bursts:</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="../reference/imu-properties.html">imu_units</a></span><span class="op">(</span><span class="va">gul</span><span class="op">$</span><span class="va">acceleration</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">gul</span><span class="op">$</span><span class="va">acceleration</span><span class="op">)</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "standard_free_fall"</span></span></code></pre></div>
+<p>Now we can compute VeDBA for all bursts:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">v</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://r-quantities.github.io/units/reference/units.html" class="external-link">set_units</a></span><span class="op">(</span><span class="fu">vedba</span><span class="op">(</span><span class="va">gul</span><span class="op">$</span><span class="va">acceleration</span><span class="op">)</span>, <span class="st">"standard_free_fall"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">v</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Units: [standard_free_fall]</span></span>
+<span><span class="co">#&gt; [1]        NA 0.1843255        NA        NA        NA        NA</span></span></code></pre></div>
+<p>We can put these values directly into our dataframe alongside the
+other event data for that record:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">gul_v</span> <span class="op">&lt;-</span> <span class="va">gul</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>vedba <span class="op">=</span> <span class="fu"><a href="../reference/dba.html">vedba</a></span><span class="op">(</span><span class="va">acceleration</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>vedba <span class="op">=</span> <span class="va">v</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">vedba</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">vedba</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
@@ -142,7 +174,7 @@ need to reattach the computed VeDBA to the recorded GPS locations for
 our gull. However, the acceleration data is not directly linked with a
 particular location. We can see that these records are associated with
 <code>POINT EMPTY</code> geometries:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">gul_v</span><span class="op">$</span><span class="va">geometry</span></span>
 <span><span class="co">#&gt; Geometry set for 59 features  (with 59 geometries empty)</span></span>
 <span><span class="co">#&gt; Geometry type: POINT</span></span>
@@ -161,7 +193,7 @@ acceleration rows. So, we need to relink our VeDBA values with the
 corresponding GPS location at the same timestamp. First, we’ll drop the
 empty geometry column from our VeDBA data and restrict our location data
 just to those records with spatial information:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Drop geometry column, which is empty for our acc records:</span></span>
 <span><span class="va">gul_v</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_geometry.html" class="external-link">st_drop_geometry</a></span><span class="op">(</span><span class="va">gul_v</span><span class="op">)</span></span>
 <span></span>
@@ -172,7 +204,7 @@ linking by the track ID and the timestamp. (We use the move2 helpers
 <code><a href="https://bartk.gitlab.io/move2/reference/column_name.html" class="external-link">mt_track_id_column()</a></code> and <code><a href="https://bartk.gitlab.io/move2/reference/column_name.html" class="external-link">mt_time_column()</a></code> to
 ensure the correct metadata columns are used for the join, as the
 precise names of these columns can differ across data sources.)</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Specify that the track ID columns and timestamp columns should match,</span></span>
 <span><span class="co"># regardless of the exact column names:</span></span>
 <span><span class="va">join</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span></span>
@@ -187,7 +219,7 @@ precise names of these columns can differ across data sources.)</p>
 <span><span class="va">gul_joined</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">left_join</a></span><span class="op">(</span><span class="va">gul_gps</span>, <span class="va">gul_v</span>, by <span class="op">=</span> <span class="va">join</span><span class="op">)</span></span></code></pre></div>
 <p>Now we have our VeDBA values associated with their corresponding GPS
 location:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://rstudio.github.io/leaflet/" class="external-link">leaflet</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">pal</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rstudio.github.io/leaflet/reference/colorNumeric.html" class="external-link">colorNumeric</a></span><span class="op">(</span><span class="st">"viridis"</span>, <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">gul_joined</span><span class="op">$</span><span class="va">vedba</span><span class="op">)</span><span class="op">)</span></span>
@@ -234,7 +266,7 @@ recent time interval.</p>
 <p>We’ll use the <a href="https://slider.r-lib.org/" class="external-link">slider</a> package
 to apply this technique, computing the mean VeDBA for the prior 5 hours
 at each time point.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/r-lib/slider" class="external-link">slider</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">gul_v</span> <span class="op">&lt;-</span> <span class="va">gul_v</span> <span class="op">|&gt;</span></span>
@@ -248,13 +280,13 @@ at each time point.</p>
 <span>    <span class="op">)</span>,</span>
 <span>    vedba_smooth <span class="op">=</span> <span class="fu"><a href="https://r-quantities.github.io/units/reference/units.html" class="external-link">set_units</a></span><span class="op">(</span><span class="va">vedba_smooth</span>, <span class="st">"standard_free_fall"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">gul_v</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://bartk.gitlab.io/move2/reference/mt_time.html" class="external-link">mt_time</a></span><span class="op">(</span><span class="va">gul_v</span><span class="op">)</span>, y <span class="op">=</span> <span class="va">vedba</span><span class="op">)</span>, color <span class="op">=</span> <span class="st">"gray"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://bartk.gitlab.io/move2/reference/mt_time.html" class="external-link">mt_time</a></span><span class="op">(</span><span class="va">gul_v</span><span class="op">)</span>, y <span class="op">=</span> <span class="va">vedba_smooth</span><span class="op">)</span>, color <span class="op">=</span> <span class="st">"navy"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">""</span>, y <span class="op">=</span> <span class="st">"VeDBA"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_date.html" class="external-link">scale_x_datetime</a></span><span class="op">(</span>expand <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/expansion.html" class="external-link">expansion</a></span><span class="op">(</span>mult <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><img src="programming_files/figure-html/unnamed-chunk-10-1.png" class="r-plt" alt="" width="576" style="display: block; margin: auto;"></p>
+<p><img src="programming_files/figure-html/unnamed-chunk-13-1.png" class="r-plt" alt="" width="576" style="display: block; margin: auto;"></p>
 <p>We can use this rolling average to identify when the tag has become
 inactive or the animal has died. The decision of what temporal and VeDBA
 threshold to use to make this determination will depend on the species
@@ -264,7 +296,7 @@ the tag to be inactive.</p>
 <p>Since this is a contrived example, this gull doesn’t have a true
 mortality event. The periods of reduced activity are likely a result of
 overnight roosting.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">threshold</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://r-quantities.github.io/units/reference/units.html" class="external-link">set_units</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="st">"standard_free_fall"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">gul_v</span><span class="op">)</span> <span class="op">+</span></span>
@@ -318,7 +350,7 @@ necessary to apply moving window functions across an individual
 burst.</p>
 <p>To illustrate, we’ll switch to the <code><a href="../reference/example_data.html">albatrosses()</a></code>
 dataset, which has slightly longer bursts than the gulls above:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">alb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/example_data.html">albatrosses</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">alb</span> <span class="op">&lt;-</span> <span class="va">alb</span> <span class="op">|&gt;</span></span>
@@ -338,7 +370,7 @@ dataset, which has slightly longer bursts than the gulls above:</p>
 calibrate using the third-generation e-obs tag manufacturer defaults.
 See the <a href="calibration.html">calibration vignette</a> for a more
 detailed discussion of tag calibration.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">alb</span> <span class="op">&lt;-</span> <span class="va">alb</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fu"><a href="../reference/transform_imu.html">transform_imu</a></span><span class="op">(</span><span class="va">a</span>, <span class="fu"><a href="../reference/acc_calibration.html">acc_calibration</a></span><span class="op">(</span><span class="st">"eobs"</span>, <span class="fl">4200</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
@@ -375,7 +407,7 @@ and start time of the burst. These are necessary to reconstruct the
 timestamps of each sample within the burst.</p>
 <p>Then, we use <code>slider_index_dbl()</code> to calculate VeDBA for
 each 1-second section of the burst.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Sample burst</span></span>
 <span><span class="va">b</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/imu-fields.html">bursts</a></span><span class="op">(</span><span class="va">alb</span><span class="op">$</span><span class="va">a</span><span class="op">)</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="va">fq</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/imu-fields.html">freqs</a></span><span class="op">(</span><span class="va">alb</span><span class="op">$</span><span class="va">a</span><span class="op">)</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span></span>
@@ -405,14 +437,14 @@ each 1-second section of the burst.</p>
 <span><span class="co">#&gt; [43] 0.7821901 0.5475945 0.4566791 0.4363970 0.3933886 0.3443165 0.3476315</span></span>
 <span><span class="co">#&gt; [50] 0.3554716 0.3675772 0.3592596 0.3370735 0.3154496 0.3099526 0.2860757</span></span>
 <span><span class="co">#&gt; [57] 0.1931000 0.1681015 0.1426723 0.1615469</span></span></code></pre></div>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">samp_t</span><span class="op">[</span><span class="fl">2</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">samp_t</span><span class="op">)</span><span class="op">]</span>, y <span class="op">=</span> <span class="va">vedba_roll</span><span class="op">[</span><span class="fl">2</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">vedba_roll</span><span class="op">)</span><span class="op">]</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_hline</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>yintercept <span class="op">=</span> <span class="fu"><a href="https://r-quantities.github.io/units/reference/drop_units.html" class="external-link">drop_units</a></span><span class="op">(</span><span class="fu"><a href="../reference/dba.html">vedba</a></span><span class="op">(</span><span class="va">alb</span><span class="op">$</span><span class="va">a</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>, linetype <span class="op">=</span> <span class="st">"dashed"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_hline</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>yintercept <span class="op">=</span> <span class="fu">vedba</span><span class="op">(</span><span class="va">alb</span><span class="op">$</span><span class="va">a</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>, linetype <span class="op">=</span> <span class="st">"dashed"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Sample"</span>, y <span class="op">=</span> <span class="st">"VeDBA"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="programming_files/figure-html/unnamed-chunk-14-1.png" class="r-plt" alt="" width="576" style="display: block; margin: auto;"></p>
+<p><img src="programming_files/figure-html/unnamed-chunk-17-1.png" class="r-plt" alt="" width="576" style="display: block; margin: auto;"></p>
 <p>The horizontal line shows the full-burst VeDBA produced by
-<code><a href="../reference/dba.html">vedba()</a></code>. As you can see, the dynamic body acceleration
+<code>vedba()</code>. As you can see, the dynamic body acceleration
 varies quite a bit from this value across the burst.</p>
 </div>
 <div class="section level3">
@@ -421,18 +453,18 @@ varies quite a bit from this value across the burst.</p>
 <p>We can apply this computation to every burst in the dataset easily.
 First we define an explicit function containing the computation from
 above:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rolling_vedba</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">acc</span>, <span class="va">window</span> <span class="op">=</span> <span class="fu">lubridate</span><span class="fu">::</span><span class="fu"><a href="https://lubridate.tidyverse.org/reference/period.html" class="external-link">seconds</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">acc</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NA_real_</span><span class="op">)</span></span>
 <span>  <span class="op">}</span></span>
-<span></span>
+<span>  </span>
 <span>  <span class="va">b</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/imu-fields.html">bursts</a></span><span class="op">(</span><span class="va">acc</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
 <span>  <span class="va">fq</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/imu-fields.html">freqs</a></span><span class="op">(</span><span class="va">acc</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
 <span>  <span class="va">t0</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/imu-fields.html">starts</a></span><span class="op">(</span><span class="va">acc</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
-<span></span>
+<span>  </span>
 <span>  <span class="va">samp_t</span> <span class="op">&lt;-</span> <span class="va">t0</span> <span class="op">+</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">b</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">fq</span><span class="op">)</span></span>
-<span></span>
+<span>  </span>
 <span>  <span class="fu"><a href="https://slider.r-lib.org/reference/slide_index.html" class="external-link">slide_index_dbl</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">b</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>    <span class="va">samp_t</span>,</span>
@@ -447,13 +479,13 @@ above:</p>
 <p>And then we iterate over the <code>acc</code> bursts for all the
 albatrosses in the study, applying our <code>rolling_vedba()</code>
 function:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">alb</span> <span class="op">&lt;-</span> <span class="va">alb</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>v <span class="op">=</span> <span class="fu">purrr</span><span class="fu">::</span><span class="fu"><a href="https://purrr.tidyverse.org/reference/map.html" class="external-link">map</a></span><span class="op">(</span><span class="va">a</span>, <span class="va">rolling_vedba</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>This leaves us with a vector of values for each burst. We can
 summarize the variability in VeDBA within each burst by taking the
 standard deviation of the rolling values:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">alb</span> <span class="op">&lt;-</span> <span class="va">alb</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>v_sd <span class="op">=</span> <span class="fu">purrr</span><span class="fu">::</span><span class="fu"><a href="https://purrr.tidyverse.org/reference/map.html" class="external-link">map_dbl</a></span><span class="op">(</span><span class="va">v</span>, <span class="va">sd</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
@@ -476,7 +508,7 @@ locations if we are to answer any questions about how activity varies
 over space.</p>
 <p>First, we split our location records from our acceleration
 records.</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Select GPS records and remove acceleration info (will be reattached)</span></span>
 <span><span class="va">alb_gps</span> <span class="op">&lt;-</span> <span class="va">alb</span><span class="op">[</span><span class="op">!</span><span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/geos_query.html" class="external-link">st_is_empty</a></span><span class="op">(</span><span class="va">alb</span><span class="op">)</span>, <span class="op">]</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="op">-</span><span class="va">a</span>, <span class="op">-</span><span class="va">v_sd</span><span class="op">)</span></span>
@@ -492,7 +524,7 @@ simultaneously. For the albatross data, the GPS records are typically
 recorded just after the start of the acceleration data. This means that
 a simple <code><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">left_join()</a></code> doesn’t manage to match GPS and
 acceleration records:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Doesn't attach--timestamps don't align in all cases</span></span>
 <span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">left_join</a></span><span class="op">(</span><span class="va">alb_gps</span>, <span class="va">alb_acc</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">a</span>, <span class="va">v_sd</span><span class="op">)</span></span>
@@ -544,7 +576,7 @@ join using the <code>closest()</code> helper. This matches each GPS
 record to the most recent acceleration burst that preceded it (using
 <code>timestamp &lt;= timestamp</code>). We also match on the animal ID
 to ensure that records aren’t linked across individuals.</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">alb_joined</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">left_join</a></span><span class="op">(</span></span>
 <span>  <span class="va">alb_gps</span>,</span>
 <span>  <span class="va">alb_acc</span>,</span>
@@ -557,7 +589,7 @@ to ensure that records aren’t linked across individuals.</p>
 <p>Each GPS row now carries the acceleration burst (and our
 <code>v_sd</code> summary) from the most recent preceding burst,
 allowing the acceleration summaries to be explored across space:</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">alb_joined</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">a</span>, <span class="va">v_sd</span><span class="op">)</span></span>
 <span><span class="co">#&gt; A <span style="color: #0000BB;">&lt;move2&gt;</span> with `track_id_column` <span style="color: #0000BB;">"individual_local_identifier"</span> and</span></span>
