@@ -200,26 +200,11 @@ inter-burst time intervals and the actual recorded burst values.
 ```{r}
 a <- as_acc(albatrosses())
 
-s <- summary(a)
-
-s
+summary(a)
 ```
 
-Plotting the saved summary will display histograms of several of the key burst properties:
-
-```{r}
-plot(s)
-```
-
-You can also select individual panels and modify plot parameters to explore
-the distributions in more depth:
-
-```{r summary_plot_one, fig.width=6, fig.height=4}
-plot(s, which = "Values", breaks = 50)
-```
-
-move2imu also provides several helpers to directly access burst properties.
-For instance:
+For a more detailed look at these properties, you can use move2imu's
+dedicated accessors. For instance:
 
 ```{r}
 # Number of samples per burst
@@ -242,6 +227,16 @@ bursts(a)
 freqs(a)
 
 starts(a)
+```
+
+These can be used to easily explore the distributions of these properties:
+
+```{r summary_hist, fig.width=6, fig.height=4}
+# Distribution of inter-burst intervals
+hist(burst_intervals(a), main = "Burst intervals (s)")
+
+# All values
+hist(unlist(bursts(a)), main = "Sample values")
 ```
 
 ### Plotting bursts

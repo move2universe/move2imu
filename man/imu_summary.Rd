@@ -3,49 +3,34 @@
 \name{imu_summary}
 \alias{imu_summary}
 \alias{summary.imu}
-\alias{plot.imu_summary}
-\title{Summarize and plot an IMU vector}
+\title{Summarize an IMU vector}
 \usage{
 \method{summary}{imu}(object, ...)
-
-\method{plot}{imu_summary}(x, panel = NULL, ...)
 }
 \arguments{
 \item{object}{An \code{imu} object.}
 
-\item{...}{For \code{plot()}, passed to \code{\link[graphics:hist]{graphics::hist()}}.}
-
-\item{x}{An \code{imu_summary} object (returned by \code{summary()}).}
-
-\item{panel}{Optional character vector of panel names or integer
-vector of panel positions, restricting which panels are drawn. Valid
-names: \code{"Frequency"}, \code{"Samples per burst"}, \code{"Duration"}, \code{"Intervals"},
-and/or \code{"Values"}. By default, all panels are drawn.}
+\item{...}{Ignored.}
 }
 \value{
-\code{summary()} returns an \code{imu_summary} object. \code{plot()} invisibly returns
-its input.
+An \code{imu_summary} object
 }
 \description{
-Provides a diagnostic overview of an IMU vector (\code{acc}, \code{mag}, or \code{gyro}) —
-axis combinations, frequencies, burst sizes, timing, and a coarse quantile
-summary of the burst sample values. Calling \code{\link[=plot]{plot()}} on the result draws a
-multi-panel histogram of those same distributions.
+Provides a diagnostic overview of an IMU vector (\code{acc}, \code{mag}, or \code{gyro}).
 
-Intervals are the gaps between consecutive bursts (end of one to the start
-of the next), computed in vector order (see \code{\link[=burst_intervals]{burst_intervals()}}). If bursts
-come from different sources (e.g. different tags), there may be noticeable
-interval artifacts between some bursts where sources change.
+Includes information about data time range, axes, sampling frequencies,
+burst lengths, inter-burst intervals, and sample values.
+}
+\details{
+The intervals shown are the gaps between consecutive bursts (end of one to
+the start of the next), computed in vector order (see \code{\link[=burst_intervals]{burst_intervals()}}).
+If bursts come from different sources (e.g. different tags), there may be
+noticeable interval artifacts between some bursts where sources change.
 
-Note that the distribution of sample values considers all axes and units
+Note that the sample-value quantiles consider all axes and units
 simultaneously.
 }
 \examples{
 a <- acc_example()
-s <- summary(a)
-s
-plot(s)
-
-# Focus on a single panel, with custom binning/xlim
-plot(s, panel = "Values", breaks = 50, xlim = c(0, 1))
+summary(a)
 }

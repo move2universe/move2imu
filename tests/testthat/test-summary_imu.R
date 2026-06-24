@@ -37,21 +37,15 @@ test_that("summary shows no units when bursts are unitless", {
   expect_true(any(grepl("Units:.*no units", out)))
 })
 
-test_that("summary captures intervals", {
+test_that("summary shows ranges and quantiles", {
   s <- summary(acc_example())
-  expect_true(!is.null(s$intervals))
-  expect_length(s$intervals, 1)
-})
-
-test_that("summary captures frequencies, samples, durations, values", {
-  s <- summary(acc_example())
-  expect_equal(s$freqs, c(20, 20))
+  expect_equal(s$freqs_rng, c(20, 20))
   expect_equal(s$freq_unit, "Hz")
-  expect_equal(s$samples, c(30L, 20L))
-  expect_equal(s$durations, c(30 / 20, 20 / 20))
+  expect_equal(s$samples_rng, c(20, 30))
+  expect_equal(s$durations_rng, c(1, 1.5))
   expect_equal(s$dur_unit, "s")
-  expect_type(s$values, "double")
-  expect_length(s$values, 150)
+  expect_length(s$intervals_q, 5)
+  expect_length(s$values_q, 5)
 })
 
 # Single-burst: always-present empty intervals --------------------------------
@@ -64,9 +58,9 @@ single_burst_acc <- function() {
   )
 }
 
-test_that("single-burst summary stores empty intervals (not NULL)", {
+test_that("single-burst summary has no interval quantiles", {
   s <- summary(single_burst_acc())
-  expect_identical(s$intervals, numeric(0))
+  expect_null(s$intervals_q)
 })
 
 test_that("single-burst summary prints 'no data' for intervals", {
@@ -103,7 +97,17 @@ test_that("summary lists multiple unit groups in Units footer when mixed", {
   expect_match(units_line, "no units")
 })
 
-# format_quantiles helper -----------------------------------------------------
+# format_range / format_quantiles helpers ------------------------------------
+
+test_that("format_range renders", {
+  expect_equal(format_range(c(1, 5), "s"), "1 -- 5 [s]")
+  expect_equal(format_range(c(1, 5)), "1 -- 5")
+})
+
+test_that("format_range renders empty input as 'no data'", {
+  expect_equal(format_range(NULL), "[ no data ]")
+  expect_equal(format_range(numeric(0), "s"), "[ no data ]")
+})
 
 test_that("format_quantiles renders", {
   with_unit <- format_quantiles(c(1, 2, 3, 4, 5), "s")
@@ -117,56 +121,20 @@ test_that("format_quantiles renders", {
 })
 
 test_that("format_quantiles renders empty input as 'no data'", {
+  expect_equal(format_quantiles(NULL), "[ no data ]")
+  expect_equal(format_quantiles(NULL, "s"), "[ no data ]")
   expect_equal(format_quantiles(numeric(0)), "[ no data ]")
   expect_equal(format_quantiles(numeric(0), "s"), "[ no data ]")
 })
 
-# plot.imu_summary smoke tests ------------------------------------------------
+test_that(".range / .quantile precompute summaries or NULL", {
+  expect_equal(.range(c(3, 1, 2)), c(1, 3))
+  expect_null(.range(numeric(0)))
 
-with_pdf <- function(expr) {
-  pdf(tempfile())
-  on.exit(dev.off())
-  force(expr)
-}
-
-test_that("plot.imu_summary draws without error", {
-  s <- summary(acc_example())
-  expect_no_error(with_pdf(plot(s)))
-})
-
-test_that("plot.imu_summary handles single-burst (empty Interval panel)", {
-  s <- summary(single_burst_acc())
-  expect_no_error(with_pdf(plot(s)))
-})
-
-test_that("plot.imu_summary `panel` selects by name and by integer", {
-  s <- summary(acc_example())
-  expect_no_error(with_pdf({
-    plot(s, panel = "Values")
-    plot(s, panel = c("Frequency", "Values"))
-    plot(s, panel = 1)
-    plot(s, panel = c(1, 5))
-  }))
-})
-
-test_that("plot.imu_summary errors on unknown panel name", {
-  s <- summary(acc_example())
-  pdf(tempfile())
-  on.exit(dev.off())
-  expect_error(plot(s, panel = "NotAPanel"))
-})
-
-test_that("plot.imu_summary errors on out-of-range integer `panel`", {
-  s <- summary(acc_example())
-  pdf(tempfile())
-  on.exit(dev.off())
-  expect_error(plot(s, panel = 99), "between 1 and")
-  expect_error(plot(s, panel = 0), "between 1 and")
-})
-
-test_that("plot.imu_summary forwards extra args to hist()", {
-  s <- summary(acc_example())
-  expect_no_error(with_pdf(plot(s, breaks = 5)))
+  expect_equal(.quantile(0:4), c(0, 1, 2, 3, 4))
+  expect_equal(.quantile(c(0:4, NA)), c(0, 1, 2, 3, 4))
+  expect_null(.quantile(numeric(0)))
+  expect_null(.quantile(c(NA_real_, NA_real_)))
 })
 
 # Other sensor types ---------------------------------------------------------
