@@ -48,14 +48,18 @@ library(move2imu)
 library(move2)
 
 # Extract acceleration data from gulls data
-acceleration <- as_acc(gulls())
+a <- as_acc(gulls())
+a <- a[!is.na(a)]
 
-acceleration <- acceleration[!is.na(acceleration)]
+head(a)
 
-head(acceleration)
+# Overview of acceleration bursts
+summary(a)
 
-# Compute values on acceleration bursts
-vedba(acceleration)
+# Standardize raw ADC counts to physical units with a built-in tag calibration
+a <- transform_imu(a, acc_calibration("ornitela", units = "standard_free_fall"))
+
+head(a)
 ```
 
 ## Getting help + Contributing

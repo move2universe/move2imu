@@ -42,12 +42,6 @@ reference:
   - eobs_default_specs
   - set_imu_units
 
-- title: Burst computations
-  desc: Get the dynamic body acceleration and/or peak frequency of a burst
-  contents:
-  - vedba
-  - peak_frequency
-
 - title: Example data
   desc: Bundled datasets used throughout examples and vignettes.
   contents:

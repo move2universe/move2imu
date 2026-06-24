@@ -55,7 +55,9 @@ gul$acceleration[1:10]
 
 ## Dynamic body acceleration
 
-As a simple example, imagine if we wanted to compute the vectorial dynamic body acceleration (VeDBA) for these bursts, and link each of those VeDBA values to the closest GPS location record.
+As a simple example, imagine if we wanted to compute the vectorial dynamic 
+body acceleration (VeDBA) for these bursts, and link each of those VeDBA 
+values to the closest GPS location record.
 
 VeDBA is computed by:
 
@@ -76,11 +78,49 @@ gul$acceleration <- transform_imu(
 )
 ```
 
-Then, we extract the VeDBA values:
+We can write a custom function that ingests an acceleration vector and computes
+VeDBA on each burst:
+
+```{r}
+vedba <- function(acc) {
+  purrr::map_dbl(
+    bursts(acc),
+    function(b) {
+      # If no data, return NA
+      if (rlang::is_null(b)) {
+        return(NA_real_)
+      }
+      
+      b <- drop_units(b)
+      dba <- t(b) - colMeans(b)
+      mean(sqrt(colSums(dba^2)))
+    }
+  )
+}
+```
+
+We can then apply this function to each element of our acceleration vector. First,
+we confirm that we have a standard unit for all bursts. That way, we can
+safely reattach that unit after computation:
+
+```{r}
+# Confirm that we have a single standard unit across all bursts:
+unique(imu_units(gul$acceleration[!is.na(gul$acceleration)]))
+```
+
+Now we can compute VeDBA for all bursts:
+
+```{r}
+v <- set_units(vedba(gul$acceleration), "standard_free_fall")
+head(v)
+```
+
+We can put these values directly into our dataframe alongside the other event
+data for that record:
 
 ```{r}
 gul_v <- gul |>
-  mutate(vedba = vedba(acceleration)) |>
+  mutate(vedba = v) |>
   filter(!is.na(vedba)) |>
   select(vedba)
 ```
@@ -340,7 +380,7 @@ vedba_roll
 ```{r}
 ggplot() +
   geom_line(aes(x = samp_t[2:length(samp_t)], y = vedba_roll[2:length(vedba_roll)])) +
-  geom_hline(aes(yintercept = drop_units(vedba(alb$a[[2]]))), linetype = "dashed") +
+  geom_hline(aes(yintercept = vedba(alb$a[2])), linetype = "dashed") +
   labs(x = "Sample", y = "VeDBA")
 ```
 
@@ -358,13 +398,13 @@ rolling_vedba <- function(acc, window = lubridate::seconds(1)) {
   if (is.na(acc)) {
     return(NA_real_)
   }
-
+  
   b <- bursts(acc)[[1]]
   fq <- freqs(acc)[[1]]
   t0 <- starts(acc)[[1]]
-
+  
   samp_t <- t0 + (seq_len(nrow(b)) - 1) / as.numeric(fq)
-
+  
   slide_index_dbl(
     seq_len(nrow(b)),
     samp_t,
