@@ -136,13 +136,6 @@ alb$acc_cal <- transform_imu(alb$acceleration, calibration = cal)
 head(alb$acc_cal)
 ```
 
-Now that values have been transformed, computations on the acceleration bursts
-will respect the attached units:
-
-```{r}
-vedba(alb$acc_cal)
-```
-
 By default, `acc_calibration()` converts to m/s². If you
 instead want your data in *g*, you can convert with `set_imu_units()`:
 

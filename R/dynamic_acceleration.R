@@ -15,8 +15,7 @@
 #'
 #' @returns A numeric vector the same length as `x`.
 #'
-#' @export
-#' @rdname dba
+#' @noRd
 #'
 #' @examples
 #' a <- acc_example()
@@ -31,8 +30,7 @@ vedba <- function(x) {
   dba_(x, .f = function(.br) vedba_(.br))
 }
 
-#' @rdname dba
-#' @export
+#' @noRd
 odba <- function(x) {
   if (!is_acc(x)) {
     cli::cli_abort("{.arg x} must be an {.cls acc} vector.")

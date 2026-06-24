@@ -11,7 +11,7 @@
 #' increasing the number of samples in a burst has only a limited ability to
 #' more closely determine the true frequency.
 #'
-#' @export
+#' @noRd
 #'
 #' @examples
 #' a <- acc(
