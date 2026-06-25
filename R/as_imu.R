@@ -154,14 +154,18 @@ as_imu_move2_expanded <- function(x,
     x
   })
 
-  # Calculate mean frequency for each burst
-  freq <- unname(unlist(
-    lapply(
-      split(move2::mt_time(x[vals_i, ]), ts_grps),
-      function(y) {
-        ifelse(length(y) <= 1, NA, mean(1 / units::as_units(diff(y))))
+  # Calculate mean frequency for each burst. Each burst gap should imply
+  # the same frequency, but we allow a small numeric tolerance when parsing,
+  # so this is not strictly true. The mean recovers the single implied freq.
+  freq <- unname(vapply(
+    split(move2::mt_time(x[vals_i, ]), ts_grps),
+    function(y) {
+      if (length(y) <= 1) {
+        return(NA_real_)
       }
-    )
+      mean(1 / as.numeric(diff(y), units = "secs"))
+    },
+    numeric(1)
   ))
 
   freq <- round(freq, digits = freq_digits)
