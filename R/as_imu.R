@@ -90,16 +90,17 @@ as_imu_compact <- function(x, axes, freq, sensor, timestamp, force_int = FALSE) 
   vals_split <- strsplit(as.character(x), " ")
 
   if (force_int) {
-    all_vals <- unlist(vals_split)
-    all_vals <- all_vals[!is.na(all_vals)]
+    flat <- as.numeric(unlist(vals_split))
+    flat_int <- as.integer(flat)
 
-    if (any((as.numeric(all_vals) %% 1) != 0)) {
+    if (any(flat_int != flat, na.rm = TRUE)) {
       cli::cli_warn(
         "Detected numeric values, but expected integers. Some precision will be lost."
       )
     }
 
-    mlist <- purrr::map(vals_split, function(x) as.integer(as.numeric(x)))
+    # Re-chunk the flat integer values back into per-burst pieces
+    mlist <- vctrs::vec_chop(flat_int, sizes = lengths(vals_split))
   } else {
     mlist <- purrr::map(vals_split, function(x) as.numeric(x))
   }
@@ -154,14 +155,18 @@ as_imu_move2_expanded <- function(x,
     x
   })
 
-  # Calculate mean frequency for each burst
-  freq <- unname(unlist(
-    lapply(
-      split(move2::mt_time(x[vals_i, ]), ts_grps),
-      function(y) {
-        ifelse(length(y) <= 1, NA, mean(1 / units::as_units(diff(y))))
+  # Calculate mean frequency for each burst. Each burst gap should imply
+  # the same frequency, but we allow a small numeric tolerance when parsing,
+  # so this is not strictly true. The mean recovers the single implied freq.
+  freq <- unname(vapply(
+    split(move2::mt_time(x[vals_i, ]), ts_grps),
+    function(y) {
+      if (length(y) <= 1) {
+        return(NA_real_)
       }
-    )
+      mean(1 / as.numeric(diff(y), units = "secs"))
+    },
+    numeric(1)
   ))
 
   freq <- round(freq, digits = freq_digits)

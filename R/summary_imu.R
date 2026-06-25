@@ -1,35 +1,29 @@
-#' Summarize and plot an IMU vector
+#' Summarize an IMU vector
 #'
 #' @description
-#' Provides a diagnostic overview of an IMU vector (`acc`, `mag`, or `gyro`) —
-#' axis combinations, frequencies, burst sizes, timing, and a coarse quantile
-#' summary of the burst sample values. Calling [plot()] on the result draws a
-#' multi-panel histogram of those same distributions.
+#' Provides a diagnostic overview of an IMU vector (`acc`, `mag`, or `gyro`).
+#' 
+#' Includes information about data time range, axes, sampling frequencies, 
+#' burst lengths, inter-burst intervals, and sample values.
+#' 
+#' @details
+#' The intervals shown are the gaps between consecutive bursts (end of one to 
+#' the start of the next), computed in vector order (see [burst_intervals()]). 
+#' If bursts come from different sources (e.g. different tags), there may be 
+#' noticeable interval artifacts between some bursts where sources change.
 #'
-#' Intervals are the gaps between consecutive bursts (end of one to the start
-#' of the next), computed in vector order (see [burst_intervals()]). If bursts
-#' come from different sources (e.g. different tags), there may be noticeable
-#' interval artifacts between some bursts where sources change.
-#'
-#' Note that the distribution of sample values considers all axes and units
+#' Note that the sample-value quantiles consider all axes and units
 #' simultaneously.
 #'
 #' @param object An `imu` object.
-#' @param ... For `plot()`, passed to [graphics::hist()].
+#' @param ... Ignored.
 #'
-#' @returns
-#' `summary()` returns an `imu_summary` object. `plot()` invisibly returns
-#' its input.
+#' @returns An `imu_summary` object
 #'
 #' @name imu_summary
 #' @examples
 #' a <- acc_example()
-#' s <- summary(a)
-#' s
-#' plot(s)
-#'
-#' # Focus on a single panel, with custom binning/xlim
-#' plot(s, panel = "Values", breaks = 50, xlim = c(0, 1))
+#' summary(a)
 NULL
 
 #' @rdname imu_summary
@@ -56,45 +50,55 @@ summary.imu <- function(object, ...) {
   # Frequencies
   f <- freqs(x)
   out$freq_unit <- units::deparse_unit(f)
-  out$freqs <- as.numeric(f)
+  out$freqs_rng <- .range(as.numeric(f))
 
   # Samples per burst
-  out$samples <- n_samples(x)
+  sm <- n_samples(x)
+  out$samples_rng <- .range(sm)
 
-  # Durations
-  dur <- burst_dur(x)
-  out$durations <- as.numeric(dur)
-  out$dur_unit <- units::deparse_unit(dur)
+  # Freq unit is constant. Output is in seconds. Get the seconds per freq unit
+  # to avoid per-element units processing.
+  sec_per_period <- as.numeric(
+    units::set_units(1 / units::set_units(1, units(f), mode = "standard"), "s")
+  )
+
+  # Durations. Don't use burst_dur() to avoid recomputing samples, etc.
+  dur_s <- sm / as.numeric(f) * sec_per_period
+  out$dur_unit <- "s"
+  out$durations_rng <- .range(dur_s)
 
   st <- starts(x)
-  st <- st[!is.na(st)]
+  st_valid <- st[!is.na(st)]
 
-  if (length(st) > 0) {
-    out$start_range <- range(st)
+  if (length(st_valid) > 0) {
+    out$start_range <- range(st_valid)
   } else {
     out$start_range <- NULL
   }
 
-  out$start_tz <- attr(st, "tzone") %||% "UTC"
+  out$start_tz <- attr(st_valid, "tzone") %||% "UTC"
 
-  # Inter-burst intervals. If bursts come from
-  # different sources some intervals will be artifacts, but if generated
-  # from a move2, these should be limited as the tracks should already be
-  # ordered.
-  out$intervals <- as.numeric(stats::na.omit(burst_intervals(x)))
+  # Inter-burst intervals. Don't use burst_intervals() to avoid recomputing
+  # components. If bursts come from different sources some intervals will be
+  # artifacts, but if generated from a move2 these should be limited as the
+  # tracks should already be ordered.
+  stn <- as.numeric(st)
+  gap <- stn - c(NA_real_, utils::head(stn, -1L))
+  gap <- gap - c(NA_real_, utils::head(dur_s, -1L))
+  out$intervals_q <- .quantile(gap[!is.na(gap)])
 
   # Units
   unit_strs <- imu_units(x)
   out$imu_units <- unique(stats::na.omit(unit_strs))
   out$has_unitless <- any(is.na(unit_strs))
 
-  # Sample values (units stripped; mixed-unit case flagged via footer)
-  out$values <- as.numeric(
-    unlist(
-      lapply(br, function(b) if (length(b) == 0) NULL else as.numeric(b)),
-      use.names = FALSE
-    )
+  # Sample values, pooled across axes and units (units stripped; mixed-unit
+  # case flagged via footer)
+  vals <- unlist(
+    lapply(br, function(b) if (length(b) == 0) NULL else as.numeric(b)),
+    use.names = FALSE
   )
+  out$values_q <- .quantile(vals)
 
   new_imu_summary(out)
 }
@@ -134,20 +138,20 @@ print.imu_summary <- function(x, ...) {
   cat("Axes:", paste(axis_parts, collapse = ", "), "\n")
 
   # Frequency
-  cat("Frequencies:", format_range(x$freqs, x$freq_unit), "\n")
+  cat("Frequencies:", format_range(x$freqs_rng, x$freq_unit), "\n")
 
   # Samples
-  cat("Samples per burst:", format_range(x$samples), "\n")
+  cat("Samples per burst:", format_range(x$samples_rng), "\n")
 
   # Duration
-  cat("Durations:", format_range(x$durations, x$dur_unit), "\n")
+  cat("Durations:", format_range(x$durations_rng, x$dur_unit), "\n")
 
   # Intervals
-  cat("Intervals:", format_quantiles(x$intervals, "s"), "\n")
+  cat("Intervals:", format_quantiles(x$intervals_q, "s"), "\n")
 
   # Values + Units
   cat("\n")
-  cat("Values: ", format_quantiles(x$values), "\n")
+  cat("Values: ", format_quantiles(x$values_q), "\n")
   labels <- character(0)
   if (length(x$imu_units) > 0) labels <- paste0("[", x$imu_units, "]")
   if (isTRUE(x$has_unitless)) labels <- c(labels, "[no units]")
@@ -155,99 +159,6 @@ print.imu_summary <- function(x, ...) {
   cat("Units:  ", paste(labels, collapse = ", "), "\n")
 
   invisible(x)
-}
-
-#' @param x An `imu_summary` object (returned by `summary()`).
-#' @param panel Optional character vector of panel names or integer
-#'   vector of panel positions, restricting which panels are drawn. Valid
-#'   names: `"Frequency"`, `"Samples per burst"`, `"Duration"`, `"Intervals"`,
-#'   and/or `"Values"`. By default, all panels are drawn.
-#'
-#' @rdname imu_summary
-#' @export
-plot.imu_summary <- function(x, panel = NULL, ...) {
-  if (is.null(x$axes)) {
-    message("Nothing to plot (no non-NA bursts).")
-    return(invisible(x))
-  }
-
-  panels <- list(
-    Frequency = list(
-      data = x$freqs,
-      xlab = paste0("Frequency [", x$freq_unit, "]")
-    ),
-    `Samples per burst` = list(
-      data = x$samples,
-      xlab = "Samples per burst"
-    ),
-    Duration = list(
-      data = x$durations,
-      xlab = paste0("Duration [", x$dur_unit, "]")
-    ),
-    Intervals = list(
-      data = x$intervals,
-      xlab = "Interval [s]"
-    ),
-    Values = list(
-      data = x$values,
-      xlab = "Value"
-    )
-  )
-
-  if (!is.null(panel)) {
-    panels <- select_panels(panels, panel)
-  }
-
-  if (length(panels) == 0) {
-    message("Nothing to plot (no panels selected).")
-    return(invisible(x))
-  }
-
-  np <- length(panels)
-  nc <- min(np, 2)
-  nr <- ceiling(np / nc)
-
-  oldpar <- graphics::par(mfrow = c(nr, nc), mar = c(4, 4, 2, 1))
-  on.exit(graphics::par(oldpar))
-
-  for (nm in names(panels)) {
-    p <- panels[[nm]]
-    if (length(p$data) == 0) {
-      graphics::plot.new()
-      graphics::title(main = nm, xlab = p$xlab)
-      graphics::text(0.5, 0.5, "No data", col = "grey50")
-      next
-    }
-    graphics::hist(
-      p$data,
-      main = nm,
-      xlab = p$xlab,
-      col = "grey80",
-      border = "white",
-      ...
-    )
-  }
-
-  invisible(x)
-}
-
-# Subset the panel list by name or integer index, validating against the
-# panels that are actually available
-select_panels <- function(panels, which_panel) {
-  available <- names(panels)
-
-  if (is.numeric(which_panel)) {
-    if (any(which_panel > length(available)) || any(which_panel <= 0)) {
-      cli::cli_abort("{.arg which_panel} must be between 1 and {length(available)}.")
-    }
-
-    sel <- available[which_panel]
-  } else {
-    sel <- which_panel
-  }
-
-  sel <- rlang::arg_match(sel, available, multiple = TRUE)
-  panels[sel]
 }
 
 new_imu_summary <- function(x) {
@@ -262,9 +173,29 @@ format_num <- function(x) {
   format(round(x, 2), trim = TRUE, nsmall = 0)
 }
 
-format_range <- function(x, unit = NULL) {
-  mn <- format_num(min(x))
-  mx <- format_num(max(x))
+# Safe range function for storage in summary object
+.range <- function(x) {
+  if (length(x) == 0) {
+    return(NULL)
+  }
+  range(x)
+}
+
+# Safe quantile function for storage in summary object
+.quantile <- function(x) {
+  x <- x[!is.na(x)]
+  if (length(x) == 0) {
+    return(NULL)
+  }
+  unname(stats::quantile(x, c(0, 0.25, 0.5, 0.75, 1)))
+}
+
+format_range <- function(rng, unit = NULL) {
+  if (length(rng) == 0) {
+    return("[ no data ]")
+  }
+  mn <- format_num(rng[1])
+  mx <- format_num(rng[2])
   if (!is.null(unit)) {
     paste0(mn, " -- ", mx, " [", unit, "]")
   } else {
@@ -272,11 +203,10 @@ format_range <- function(x, unit = NULL) {
   }
 }
 
-format_quantiles <- function(x, unit = NULL) {
-  if (length(x) == 0) {
+format_quantiles <- function(q, unit = NULL) {
+  if (length(q) == 0) {
     return("[ no data ]")
   }
-  q <- stats::quantile(x, c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
   parts <- paste(vapply(q, format_num, ""), collapse = " / ")
   out <- paste0("[ ", parts, " ]")
   if (!is.null(unit)) {

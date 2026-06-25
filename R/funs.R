@@ -192,7 +192,7 @@ imu_units <- function(x) {
   purrr::map_chr(
     bursts(x),
     function(b) {
-      tryCatch(as.character(units(b)), error = function(cnd) NA_character_)
+      if (inherits(b, "units")) as.character(units(b)) else NA_character_
     }
   )
 }
