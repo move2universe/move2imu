@@ -90,16 +90,17 @@ as_imu_compact <- function(x, axes, freq, sensor, timestamp, force_int = FALSE) 
   vals_split <- strsplit(as.character(x), " ")
 
   if (force_int) {
-    all_vals <- unlist(vals_split)
-    all_vals <- all_vals[!is.na(all_vals)]
+    flat <- as.numeric(unlist(vals_split))
+    flat_int <- as.integer(flat)
 
-    if (any((as.numeric(all_vals) %% 1) != 0)) {
+    if (any(flat_int != flat, na.rm = TRUE)) {
       cli::cli_warn(
         "Detected numeric values, but expected integers. Some precision will be lost."
       )
     }
 
-    mlist <- purrr::map(vals_split, function(x) as.integer(as.numeric(x)))
+    # Re-chunk the flat integer values back into per-burst pieces
+    mlist <- vctrs::vec_chop(flat_int, sizes = lengths(vals_split))
   } else {
     mlist <- purrr::map(vals_split, function(x) as.numeric(x))
   }

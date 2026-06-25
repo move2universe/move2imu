@@ -21,7 +21,7 @@ Imports:
     purrr,
     rlang,
     units,
-    vctrs
+    vctrs (>= 0.6.0)
 Suggests:
     curl,
     dplyr,
