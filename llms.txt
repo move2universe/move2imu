@@ -101,8 +101,7 @@ Build and explore IMU data vectors
   [`` `starts<-`() ``](https://move2universe.github.io/move2imu/reference/imu-fields.md)
   : Access and modify fields of an IMU vector
 - [`summary(`*`<imu>`*`)`](https://move2universe.github.io/move2imu/reference/imu_summary.md)
-  [`plot(`*`<imu_summary>`*`)`](https://move2universe.github.io/move2imu/reference/imu_summary.md)
-  : Summarize and plot an IMU vector
+  : Summarize an IMU vector
 - [`plot_time()`](https://move2universe.github.io/move2imu/reference/plot_time.md)
   : Plot bursts over time
 

@@ -315,9 +315,7 @@ inter-burst time intervals and the actual recorded burst values.
 
 a <- as_acc(albatrosses())
 
-s <- summary(a)
-
-s
+summary(a)
 #> 54 acc bursts (9 NA)
 #> from 2008-07-27 00:00:14 to 2008-07-27 01:00:00 UTC 
 #> 
@@ -331,58 +329,8 @@ s
 #> Units:   [no units]
 ```
 
-Plotting the saved summary will display histograms of several of the key
-burst properties:
-
-``` r
-
-plot(s)
-```
-
-![](move2imu_files/figure-html/unnamed-chunk-9-1.png)
-
-You can also select individual panels and modify plot parameters to
-explore the distributions in more depth:
-
-``` r
-
-plot(s, which = "Values", breaks = 50)
-#> Warning in plot.window(xlim, ylim, log, ...): "which" is not a graphical
-#> parameter
-#> Warning in title(main = main, sub = sub, xlab = xlab, ylab = ylab, ...):
-#> "which" is not a graphical parameter
-#> Warning in axis(1, ...): "which" is not a graphical parameter
-#> Warning in axis(2, at = yt, ...): "which" is not a graphical parameter
-#> Warning in plot.window(xlim, ylim, log, ...): "which" is not a graphical
-#> parameter
-#> Warning in title(main = main, sub = sub, xlab = xlab, ylab = ylab, ...):
-#> "which" is not a graphical parameter
-#> Warning in axis(1, ...): "which" is not a graphical parameter
-#> Warning in axis(2, at = yt, ...): "which" is not a graphical parameter
-#> Warning in plot.window(xlim, ylim, log, ...): "which" is not a graphical
-#> parameter
-#> Warning in title(main = main, sub = sub, xlab = xlab, ylab = ylab, ...):
-#> "which" is not a graphical parameter
-#> Warning in axis(1, ...): "which" is not a graphical parameter
-#> Warning in axis(2, at = yt, ...): "which" is not a graphical parameter
-#> Warning in plot.window(xlim, ylim, log, ...): "which" is not a graphical
-#> parameter
-#> Warning in title(main = main, sub = sub, xlab = xlab, ylab = ylab, ...):
-#> "which" is not a graphical parameter
-#> Warning in axis(1, ...): "which" is not a graphical parameter
-#> Warning in axis(2, at = yt, ...): "which" is not a graphical parameter
-#> Warning in plot.window(xlim, ylim, log, ...): "which" is not a graphical
-#> parameter
-#> Warning in title(main = main, sub = sub, xlab = xlab, ylab = ylab, ...):
-#> "which" is not a graphical parameter
-#> Warning in axis(1, ...): "which" is not a graphical parameter
-#> Warning in axis(2, at = yt, ...): "which" is not a graphical parameter
-```
-
-![](move2imu_files/figure-html/summary_plot_one-1.png)
-
-move2imu also provides several helpers to directly access burst
-properties. For instance:
+For a more detailed look at these properties, you can use move2imu’s
+dedicated accessors. For instance:
 
 ``` r
 
@@ -443,6 +391,26 @@ starts(a)
 #> [19] "2008-07-27 00:00:50 UTC" NA                       
 #> ...
 ```
+
+These can be used to easily explore the distributions of these
+properties:
+
+``` r
+
+# Distribution of inter-burst intervals
+hist(burst_intervals(a), main = "Burst intervals (s)")
+```
+
+![](move2imu_files/figure-html/summary_hist-1.png)
+
+``` r
+
+
+# All values
+hist(unlist(bursts(a)), main = "Sample values")
+```
+
+![](move2imu_files/figure-html/summary_hist-2.png)
 
 ### Plotting bursts
 
