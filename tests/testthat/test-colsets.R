@@ -1,8 +1,24 @@
+# Rename columns to mimic Movebank's manual (web) downloads, which use ":" and
+# "-" separators (and a stripped `mag:` namespace) in place of the API's "_".
+# For testing manual colset behavior below
+to_alt_cols <- function(x, cols) {
+  names(x)[match(cols, names(x))] <- to_alt_names(cols)
+  x
+}
+
+alb_alt <- function() {
+  to_alt_cols(albatrosses(), acc_colset_eobs())
+}
+
+gul_alt <- function() {
+  to_alt_cols(gulls(), acc_colset_raw_xyz())
+}
+
 test_that("Config predicates validate colsets against supported defaults", {
   matches_any <- function(cols, config) {
-    any(purrr::map_lgl(config, function(entry) entry$is_(cols)))
+    any(purrr::map_lgl(config, function(entry) colset_is(entry, cols)))
   }
-  cfg <- acc_colset_config()
+  cfg <- movebank_acc_colsets()
 
   expect_true(matches_any(acc_colset_eobs(), cfg))
   expect_true(matches_any(acc_colset_raw(), cfg))
@@ -167,9 +183,178 @@ test_that("imu_colset() errors on invalid specifications", {
 })
 
 test_that("Can get colset type from colset", {
-  expect_equal(attr(acc_colset_eobs(), "type"), "compact")
-  expect_equal(attr(acc_colset_raw(), "type"), "compact")
-  expect_equal(attr(acc_colset_acc(), "type"), "compact")
-  expect_equal(attr(acc_colset_xyz(), "type"), "expanded")
-  expect_equal(attr(acc_colset_raw_xyz(), "type"), "expanded")
+  expect_equal(colset_type(acc_colset_eobs()), "compact")
+  expect_equal(colset_type(acc_colset_raw()), "compact")
+  expect_equal(colset_type(acc_colset_acc()), "compact")
+  expect_equal(colset_type(acc_colset_xyz()), "expanded")
+  expect_equal(colset_type(acc_colset_raw_xyz()), "expanded")
+})
+
+test_that("API column names convert to the expected alternate spellings", {
+  cols <- unlist(
+    c(movebank_acc_colsets(), movebank_mag_colsets(), movebank_gyro_colsets()),
+    use.names = FALSE
+  )
+
+  # The expected alternate (manual-download) spellings. Based on 
+  # `move2:::to_download_names()`, which is not used because it is internal
+  # to move2.
+  expected <- c(
+    "eobs:accelerations-raw",
+    "eobs:acceleration-axes",
+    "eobs:acceleration-sampling-frequency-per-axis",
+    "accelerations-raw",
+    "acceleration-axes",
+    "acceleration-sampling-frequency-per-axis",
+    "accelerations",
+    "acceleration-axes",
+    "acceleration-sampling-frequency-per-axis",
+    "acceleration-x",
+    "acceleration-y",
+    "acceleration-z",
+    "acceleration-raw-x",
+    "acceleration-raw-y",
+    "acceleration-raw-z",
+    "mag:magnetic-fields-raw",
+    "mag:magnetic-field-axes",
+    "mag:magnetic-field-sampling-frequency-per-axis",
+    "mag:magnetic-field-x",
+    "mag:magnetic-field-y",
+    "mag:magnetic-field-z",
+    "mag:magnetic-field-raw-x",
+    "mag:magnetic-field-raw-y",
+    "mag:magnetic-field-raw-z",
+    "angular-velocities-raw",
+    "gyroscope-axes",
+    "gyroscope-sampling-frequency-per-axis",
+    "angular-velocity-x",
+    "angular-velocity-y",
+    "angular-velocity-z"
+  )
+
+  expect_identical(to_alt_names(cols), expected)
+})
+
+test_that("Only genuinely distinct alternate spellings are added as alt colsets", {
+  # A colset whose names have separators gets a distinct manual spelling
+  expect_named(
+    movebank_alt_colsets(list(raw_xyz = acc_colset_raw_xyz())),
+    "raw_xyz_alt"
+  )
+
+  # A colset whose names have no separators converts to itself, so no alt is
+  # added (the API colset already covers the single spelling)
+  cs <- list(cs = new_imu_colset(c(X = "x", Y = "y", Z = "z"), "expanded"))
+  expect_length(movebank_alt_colsets(cs), 0)
+})
+
+test_that("Active colsets match alternate column names", {
+  skip_if_not_installed("move2")
+  
+  # Compact-format (eobs): recognized as the hidden `eobs_alt` colset
+  cs <- active_acc_colsets(alb_alt())
+  
+  expect_named(cs, "eobs_alt")
+  expect_true(
+    colset_is(
+      cs[[1]],
+      c(
+        bursts = "eobs:accelerations-raw",
+        axes = "eobs:acceleration-axes",
+        frequency = "eobs:acceleration-sampling-frequency-per-axis"
+      )
+    )
+  )
+  
+  # Expanded-format: recognized as the hidden `raw_xyz_alt` colset
+  cs <- active_acc_colsets(gul_alt())
+  
+  expect_named(cs, "raw_xyz_alt")
+  expect_true(
+    colset_is(
+      cs[[1]],
+      c(
+        X = "acceleration-raw-x",
+        Y = "acceleration-raw-y",
+        Z = "acceleration-raw-z"
+      )
+    )
+  )
+})
+
+test_that("as_acc() parses alternate names identically to canonical", {
+  skip_if_not_installed("move2")
+  
+  expect_identical(as_acc(alb_alt()), as_acc(albatrosses()))
+  expect_identical(as_acc(gul_alt()), as_acc(gulls()))
+})
+
+# Test mag as insurance since mag columns behave slightly differently with
+# their `mag:` prefix.
+test_that("Alternate names are detected and parsed for mag", {
+  skip_if_not_installed("move2")
+
+  # Compact-format
+  mc <- to_alt_cols(mag_example_compact(), mag_colset_raw())
+  expect_named(active_mag_colsets(mc), "raw_alt")
+  expect_identical(as_mag(mc), as_mag(mag_example_compact()))
+
+  # Expanded-format (`mag:magnetic-field-x`, etc.)
+  me <- to_alt_cols(mag_example_expanded(), mag_colset_xyz())
+  expect_named(active_mag_colsets(me), "xyz_alt")
+  expect_identical(as_mag(me), as_mag(mag_example_expanded()))
+})
+
+test_that("API and alternate spellings are detected as separate colsets", {
+  skip_if_not_installed("move2")
+  
+  g <- gulls()
+  
+  cols <- c("acceleration_raw_x", "acceleration_raw_y", "acceleration_raw_z")
+  
+  for (col in cols) {
+    g[[to_alt_names(col)]] <- g[[col]]
+  }
+  
+  expect_named(active_acc_colsets(g), c("raw_xyz", "raw_xyz_alt"))
+})
+
+test_that("Overlapping data in API and alt col names reported as duplicated rows", {
+  skip_if_not_installed("move2")
+  
+  g <- gulls()
+  
+  cols <- c("acceleration_raw_x", "acceleration_raw_y", "acceleration_raw_z")
+  
+  for (col in cols) {
+    g[[to_alt_names(col)]] <- g[[col]]
+  }
+  
+  expect_gt(length(duplicated_acc_rows(g)), 0)
+  expect_error(suppressWarnings(as_acc(g)), "multiple sources")
+})
+
+test_that("Explicit colsets bypass detection, in either spelling", {
+  skip_if_not_installed("move2")
+  
+  g <- gulls()
+  
+  cols <- c("acceleration_raw_x", "acceleration_raw_y", "acceleration_raw_z")
+  
+  for (col in cols) {
+    g[[to_alt_names(col)]] <- g[[col]]
+  }
+  
+  # Auto-detection would be an overlapping conflict, but naming the columns
+  # explicitly works with no detection and no ambiguity, in either spelling.
+  alt_acc <- as_acc(
+    g, 
+    colset = imu_colset(
+      x = "acceleration-raw-x",
+      y = "acceleration-raw-y",
+      z = "acceleration-raw-z"
+    )
+  )
+  
+  expect_identical(alt_acc, as_acc(gulls()))
 })
