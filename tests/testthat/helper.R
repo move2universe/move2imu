@@ -99,6 +99,26 @@ gyro_example_compact <- function(id = "compact") {
   )
 }
 
+# Fabricated expanded-format acc move2 built from an arbitrary vector of
+# timestamps (seconds relative to `origin`). Used to exercise burst splitting,
+# the tolerance, and span-based frequency in `as_acc()`.
+expanded_acc <- function(ts, id = 1) {
+  t <- data.frame(
+    id = id,
+    acceleration_x = seq_along(ts),
+    acceleration_y = seq_along(ts),
+    acceleration_z = seq_along(ts),
+    timestamp = as.POSIXct(ts, tz = "UTC", origin = "2020-01-01"),
+    x = 1, y = 1
+  )
+  move2::mt_as_move2(
+    t,
+    coords = c("x", "y"),
+    time_column = "timestamp",
+    track_id_column = "id"
+  )
+}
+
 # Build sample data source to simulate case where compact-format data is actually
 # continuous, as the bursts are adjacent in time.
 albatrosses_messy <- function() {

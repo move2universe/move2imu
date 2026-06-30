@@ -495,3 +495,67 @@ test_that("split_imu() round-trip in dataframe workflow", {
   expect_identical(result$id, c("x", "x", "z", "z"))
   expect_identical(result$a2, a[!is.na(a)])
 })
+
+test_that("merge_imu tolerance bridges a small boundary glitch", {
+  # Two 10 Hz bursts (30 samples = 3 s each). The second starts 0.5 ms late, so
+  # they are not exactly adjacent.
+  a <- acc(
+    c(
+      acc_burst_example(1:30, 1:30),
+      acc_burst_example(31:60, 31:60)
+    ),
+    frequency = units::set_units(10, "Hz"),
+    start = as.POSIXct(c(0, 3.0005), tz = "UTC")
+  )
+
+  # Default tolerance keeps them separate (exact adjacency required).
+  expect_length(merge_imu(a, drop = TRUE), 2)
+
+  # A tolerance larger than the glitch merges them into one burst.
+  merged <- merge_imu(a, tolerance = 0.001, drop = TRUE)
+  expect_length(merged, 1)
+  expect_equal(n_samples(merged), 60L)
+  expect_identical(starts(merged), as.POSIXct(0, tz = "UTC", origin = "1970-01-01"))
+})
+
+test_that("merge_imu tolerance bridges a small frequency glitch", {
+  # Same boundary, but the second burst's frequency is a hair different.
+  a <- acc(
+    c(
+      acc_burst_example(1:30, 1:30),
+      acc_burst_example(31:60, 31:60)
+    ),
+    frequency = units::set_units(c(10, 10.001), "Hz"),
+    start = as.POSIXct(c(0, 3), tz = "UTC")
+  )
+
+  expect_length(merge_imu(a, drop = TRUE), 2)
+  expect_length(merge_imu(a, tolerance = 0.001, drop = TRUE), 1)
+})
+
+test_that("merged frequency is recomputed from the burst span", {
+  # Two exactly-adjacent 10 Hz bursts merge to exactly 10 Hz (frequency
+  # recomputation is faithful for clean data).
+  a <- acc(
+    c(
+      acc_burst_example(1:30, 1:30),
+      acc_burst_example(31:60, 31:60)
+    ),
+    frequency = units::set_units(10, "Hz"),
+    start = as.POSIXct(c(0, 3), tz = "UTC")
+  )
+  expect_equal(as.numeric(freqs(merge_imu(a, drop = TRUE))), 10)
+
+  # With a 0.5 ms boundary gap absorbed, the merged freq reflects the true
+  # merged burst time span (59 intervals over 5.9005 s), slightly below 10 Hz.
+  b <- acc(
+    c(
+      acc_burst_example(1:30, 1:30),
+      acc_burst_example(31:60, 31:60)
+    ),
+    frequency = units::set_units(10, "Hz"),
+    start = as.POSIXct(c(0, 3.0005), tz = "UTC")
+  )
+  merged <- merge_imu(b, tolerance = 0.001, drop = TRUE)
+  expect_equal(as.numeric(freqs(merged)), signif(59 / 5.9005, 6))
+})
