@@ -541,21 +541,6 @@ colset_equal.imu_colset_expanded <- function(colset, cols) {
   is_unique_named_subset(cols, colset)
 }
 
-# Determine if a colset is present in a move2 object's column names.
-colset_present <- function(colset, x) {
-  UseMethod("colset_present")
-}
-
-#' @export
-colset_present.imu_colset_compact <- function(colset, x) {
-  all(colset %in% colnames(x))
-}
-
-#' @export
-colset_present.imu_colset_expanded <- function(colset, x) {
-  any(colset %in% colnames(x))
-}
-
 # Determine whether a colset is "active" in a move2 object `x`. Active colsets
 # are present and contain data in all necessary columns. Compact colsets
 # require all columns in the set to be present and contain data. Expanded
@@ -566,11 +551,12 @@ colset_active <- function(colset, x) {
 
 #' @export
 colset_active.imu_colset_compact <- function(colset, x) {
-  if (!colset_present(colset, x)) {
+  # All compact cols must be present
+  if (!all(colset %in% colnames(x))) {
     return(NULL)
   }
 
-  # Every compact column must carry data, else the burst cannot be parsed
+  # All compact cols must have data
   if (any(cols_empty(x, colset))) {
     return(NULL)
   }
@@ -580,11 +566,8 @@ colset_active.imu_colset_compact <- function(colset, x) {
 
 #' @export
 colset_active.imu_colset_expanded <- function(colset, x) {
-  if (!colset_present(colset, x)) {
-    return(NULL)
-  }
-
-  # Keep only the axis columns that are present and contain data
+  # Some axes may be present but not have data. Identify the axes that are
+  # present and have data.
   present <- colset[colset %in% colnames(x)]
   present <- present[!cols_empty(x, present)]
 
