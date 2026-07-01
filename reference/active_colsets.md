@@ -52,6 +52,22 @@ A list of `imu_colset` objects.
   frequency of the burst. All three of these columns must be present to
   form a valid compact-format column set.
 
+### Alternate column name separators
+
+Some column names may differ depending on how the data were downloaded.
+The Movebank API (e.g.
+[`move2::movebank_download_study()`](https://bartk.gitlab.io/move2/reference/movebank_download_study.html))
+provides columns with `_` separators, while manually downloaded data
+uses `:` and `-` separators and occasionally includes additional
+prefixes. For full compatibility, the `active_*_colsets()` functions
+recognize these alternate spellings as additional column sets even
+though `movebank_*_colsets()` lists only the standard API names.
+
+For future compatibility, consider converting data with the
+manually-downloaded column names to use `_` separators. To use a custom
+column set, provide the names explicitly with
+[`imu_colset()`](https://move2universe.github.io/move2imu/reference/imu_colset.md).
+
 ## See also
 
 [`movebank_acc_colsets()`](https://move2universe.github.io/move2imu/reference/movebank_colsets.md),

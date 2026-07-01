@@ -97,7 +97,24 @@ string. This string must be segmented into axis-specific values using
 an associated column that indicates the axes present in the burst.
 A further column provides the sampling frequency of the burst. All three
 of these columns must be present to form a valid compact-format column set.</p></li>
-</ul></div>
+</ul><div class="section">
+<h3 id="alternate-column-name-separators">Alternate column name separators<a class="anchor" aria-label="anchor" href="#alternate-column-name-separators"></a></h3>
+
+
+<p>Some column names may differ depending on how the data were downloaded.
+The Movebank API (e.g. <code><a href="https://bartk.gitlab.io/move2/reference/movebank_download_study.html" class="external-link">move2::movebank_download_study()</a></code>) provides columns
+with <code>_</code> separators, while manually downloaded data uses <code>:</code> and <code>-</code>
+separators and occasionally includes additional prefixes. For full
+compatibility, the <code>active_*_colsets()</code> functions recognize these alternate
+spellings as additional column sets even though <code>movebank_*_colsets()</code> lists
+only the standard API names.</p>
+<p>For future compatibility, consider converting data with
+the manually-downloaded column names to use <code>_</code> separators. To use
+a custom column set, provide the names explicitly with
+<code><a href="imu_colset.html">imu_colset()</a></code>.</p>
+</div>
+
+    </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="movebank_colsets.html">movebank_acc_colsets()</a></code>, <code><a href="movebank_colsets.html">movebank_mag_colsets()</a></code>,
