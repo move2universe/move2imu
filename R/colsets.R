@@ -128,6 +128,21 @@ print.imu_colset <- function(x, ...) {
 #'   A further column provides the sampling frequency of the burst. All three
 #'   of these columns must be present to form a valid compact-format column set.
 #'
+#' ## Alternate column name separators
+#' 
+#' Some column names may differ depending on how the data were downloaded. 
+#' The Movebank API (e.g. `move2::movebank_download_study()`) provides columns
+#' with `_` separators, while manually downloaded data uses `:` and `-`
+#' separators and occasionally includes additional prefixes. For full 
+#' compatibility, the `active_*_colsets()` functions recognize these alternate 
+#' spellings as additional column sets even though `movebank_*_colsets()` lists
+#' only the standard API names.
+#' 
+#' For future compatibility, consider converting data with
+#' the manually-downloaded column names to use `_` separators. To use
+#' a custom column set, provide the names explicitly with
+#' [imu_colset()].
+#'
 #' @returns A named list of `imu_colset` objects.
 #'
 #' @seealso [active_acc_colsets()], [active_mag_colsets()], [active_gyro_colsets()]
@@ -146,19 +161,52 @@ NULL
 #' @export
 #' @rdname movebank_colsets
 movebank_acc_colsets <- function() {
-  purrr::map(acc_colset_config(), function(colset) colset$cols)
+  list(
+    eobs = acc_colset_eobs(),
+    raw = acc_colset_raw(),
+    acc = acc_colset_acc(),
+    xyz = acc_colset_xyz(),
+    raw_xyz = acc_colset_raw_xyz()
+  )
 }
 
 #' @export
 #' @rdname movebank_colsets
 movebank_mag_colsets <- function() {
-  purrr::map(mag_colset_config(), function(colset) colset$cols)
+  list(
+    raw = mag_colset_raw(),
+    xyz = mag_colset_xyz(),
+    raw_xyz = mag_colset_raw_xyz()
+  )
 }
 
 #' @export
 #' @rdname movebank_colsets
 movebank_gyro_colsets <- function() {
-  purrr::map(gyro_colset_config(), function(colset) colset$cols)
+  list(
+    raw = gyro_colset_raw(),
+    xyz = gyro_colset_xyz()
+  )
+}
+
+# Generate alternately-spelled colset names, since manually-downloaded data from
+# Movebank has different column names. These columns are also supported by
+# active_*_colsets(), though not exposed officially through movebank_*_colsets()
+#
+# Only colsets with a genuinely distinct alternate spelling are returned, since
+# a colset can have an alternate spelling that is identical to its standard
+# spelling (if it has no separators). Retaining these would produce spurious
+# "duplicate" colsets.
+movebank_alt_colsets <- function(config) {
+  alt <- purrr::map(config, to_alt_colset)
+
+  differs <- purrr::map2_lgl(
+    config, 
+    alt,
+    function(cols, alt_cols) !identical(unclass(cols), unclass(alt_cols))
+  )
+
+  rlang::set_names(alt[differs], paste0(names(config)[differs], "_alt"))
 }
 
 # Active colsets in a move2 object ---------------------------------------------
@@ -233,44 +281,22 @@ active_gyro_colsets <- function(x) {
   active_colsets_(x, "gyro")
 }
 
-# Apply active colset logic in a move2 for a given IMU class. Active colsets
-# are fully present (if compact-format) and contain data.
 active_colsets_ <- function(x, sensor) {
   force(x)
+  
   config <- switch(sensor,
-    acc = acc_colset_config(),
-    mag = mag_colset_config(),
-    gyro = gyro_colset_config()
+    acc = movebank_acc_colsets(),
+    mag = movebank_mag_colsets(),
+    gyro = movebank_gyro_colsets()
   )
-  i <- which(purrr::map_lgl(config, function(colset) colset$is_in_(x)))
 
-  if (length(i) == 0) {
-    abort_missing_colset(sensor)
-  }
-
-  poss_colsets <- config[i]
+  # Ensure that manually-downloaded column spellings (with `:`/`-`) are
+  # recognized as valid "alternate" spellings. These are treated as separate
+  # colsets alongside the ones officially supported via movebank_*_colsets()
+  config <- c(config, movebank_alt_colsets(config))
 
   colsets <- purrr::compact(
-    purrr::map(
-      poss_colsets,
-      function(colset_config) {
-        colset <- colset_config$cols
-        cols_in_x <- colset[colset %in% colnames(x)]
-        cols_present <- cols_in_x[!cols_empty(x, cols_in_x)]
-
-        if (!setequal(cols_present, colset)) {
-          if (attr(colset, "type") == "compact") {
-            # Remove entire colset for types that require all cols present
-            return(NULL)
-          }
-
-          # Rebuild expanded-format colset with only present columns
-          return(new_imu_colset(cols = cols_present, type = attr(colset, "type")))
-        }
-
-        colset
-      }
-    )
+    purrr::map(config, function(colset) colset_active(colset, x))
   )
 
   if (length(colsets) == 0) {
@@ -354,13 +380,17 @@ duplicated_imu_rows <- function(x, colsets = NULL) {
 # Internal constructor for `imu_colset` objects. Colsets are IMU-class-agnostic:
 # the same colset can be passed to `as_acc()`, `as_mag()`, or `as_gyro()` -
 # the IMU class is determined by which converter you call, not by the colset.
+#
+# The format ("expanded"/"compact") is stored in the `imu_colset_<type>`
+# subclass. This enables S3 dispatch for behavior that differs across compact
+# and expanded colsets (e.g. compact requires all cols, expanded allows a
+# subset). Use `colset_type()` to recover the format as a string.
 new_imu_colset <- function(cols, type) {
   type <- rlang::arg_match(type, c("expanded", "compact"))
 
   structure(
     cols,
-    type = type,
-    class = c("imu_colset", class(cols))
+    class = c(paste0("imu_colset_", type), "imu_colset", class(cols))
   )
 }
 
@@ -368,35 +398,18 @@ is_imu_colset <- function(x) {
   inherits(x, "imu_colset")
 }
 
+# Recover a colset's format ("compact"/"expanded") from its subclass.
+colset_type <- function(x) {
+  if (inherits(x, "imu_colset_compact")) {
+    "compact"
+  } else if (inherits(x, "imu_colset_expanded")) {
+    "expanded"
+  } else {
+    cli::cli_abort("{.arg x} must be an {.cls imu_colset}.")
+  }
+}
+
 # Colset config ----------------------------------------------------------------
-
-# Registry of supported default colsets. Each entry is built
-# via `register_colset()`, which derives the appropriate is_/is_in_ checks from
-# the colset's own `type` attribute.
-acc_colset_config <- function() {
-  list(
-    eobs = register_colset(acc_colset_eobs()),
-    raw = register_colset(acc_colset_raw()),
-    acc = register_colset(acc_colset_acc()),
-    xyz = register_colset(acc_colset_xyz()),
-    raw_xyz = register_colset(acc_colset_raw_xyz())
-  )
-}
-
-mag_colset_config <- function() {
-  list(
-    raw = register_colset(mag_colset_raw()),
-    xyz = register_colset(mag_colset_xyz()),
-    raw_xyz = register_colset(mag_colset_raw_xyz())
-  )
-}
-
-gyro_colset_config <- function() {
-  list(
-    raw = register_colset(gyro_colset_raw()),
-    xyz = register_colset(gyro_colset_xyz())
-  )
-}
 
 acc_colset_eobs <- function() {
   new_imu_colset(
@@ -508,32 +521,94 @@ gyro_colset_xyz <- function() {
   )
 }
 
-# Build a single config entry from a colset.
-#
-# - "compact" type colsets require all columns to be present
-# - "expanded" type colsets allow subsets of the axis cols
-#
-# - `is_` checks whether a colset vector matches this entry (including subsets
-#   for expanded format)
-# - `is_in_` checks whether a `move2` object contains the required columns
-#   (including subsets for expanded format)
-register_colset <- function(cols) {
-  if (attr(cols, "type") == "compact") {
-    list(
-      cols = cols,
-      is_ = function(x) setequal(x, cols) && length(x) == length(cols),
-      is_in_ = function(m) all(cols %in% colnames(m))
-    )
-  } else {
-    list(
-      cols = cols,
-      is_ = function(x) is_unique_named_subset(x, cols),
-      is_in_ = function(m) any(cols %in% colnames(m))
-    )
+# Colset predicates (S3, dispatched on format subclass) ------------------------
+
+# Determine if a colset is equivalent to another vector of character cols
+# Compact colsets require all columns present to be equivalent.
+# Expanded colsets are still considered equivalent even if only a subset
+# of axis cols is provided.
+colset_equal <- function(colset, cols) {
+  UseMethod("colset_equal")
+}
+
+#' @export
+colset_equal.imu_colset_compact <- function(colset, cols) {
+  is_unique_named_subset(cols, colset) && length(cols) == length(colset)
+}
+
+#' @export
+colset_equal.imu_colset_expanded <- function(colset, cols) {
+  is_unique_named_subset(cols, colset)
+}
+
+# Determine whether a colset is "active" in a move2 object `x`. Active colsets
+# are present and contain data in all necessary columns. Compact colsets
+# require all columns in the set to be present and contain data. Expanded
+# colsets only require a subset of the columns to be present and have data.
+colset_active <- function(colset, x) {
+  UseMethod("colset_active")
+}
+
+#' @export
+colset_active.imu_colset_compact <- function(colset, x) {
+  # All compact cols must be present
+  if (!all(colset %in% colnames(x))) {
+    return(NULL)
   }
+
+  # All compact cols must have data
+  if (any(cols_empty(x, colset))) {
+    return(NULL)
+  }
+
+  colset
+}
+
+#' @export
+colset_active.imu_colset_expanded <- function(colset, x) {
+  # Some axes may be present but not have data. Identify the axes that are
+  # present and have data.
+  present <- colset[colset %in% colnames(x)]
+  present <- present[!cols_empty(x, present)]
+
+  if (length(present) == 0) {
+    return(NULL)
+  }
+
+  new_imu_colset(present, type = "expanded")
 }
 
 # General helpers --------------------------------------------------------------
+
+# Convert Movebank API column names to their manual-download equivalent.
+# This includes updating underscores to `-` and `:` where appropriate and
+# reinstating the `mag:` prefix for magnetometer columns. This is the inverse 
+# of `to_download_names()` from move2, restricted to the IMU columns we support.
+#
+# This allows us to detect and parse manually-downloaded IMU cols alongside
+# the standard Movebank API column names.
+to_alt_names <- function(x) {
+  x <- gsub("_", "-", x, fixed = TRUE)
+  x <- sub("^eobs-", "eobs:", x)
+  sub("^magnetic-", "mag:magnetic-", x)
+}
+
+# Convert a supported colset to its alternately-named format
+to_alt_colset <- function(colset) {
+  new_imu_colset(
+    rlang::set_names(to_alt_names(unclass(colset)), names(colset)),
+    type = colset_type(colset)
+  )
+}
+
+# Determine if a colset is the eobs acc colset in either its API or alternate 
+# spelling. We know that eobs cols from Movebank are integer ADC values, so we 
+# use this check to enforce integer values on eobs-colsets specifically.
+is_eobs_acc_colset <- function(colset) {
+  eobs <- acc_colset_eobs()
+  eobs_alt <- to_alt_colset(eobs)
+  colset_equal(eobs, colset) || colset_equal(eobs_alt, colset)
+}
 
 # Check that `x` is a non-empty, non-duplicated, name-value subset of `target`
 is_unique_named_subset <- function(x, y) {

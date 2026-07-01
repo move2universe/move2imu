@@ -41,6 +41,21 @@ an associated column that indicates the axes present in the burst.
 A further column provides the sampling frequency of the burst. All three
 of these columns must be present to form a valid compact-format column set.
 }
+\subsection{Alternate column name separators}{
+
+Some column names may differ depending on how the data were downloaded.
+The Movebank API (e.g. \code{move2::movebank_download_study()}) provides columns
+with \verb{_} separators, while manually downloaded data uses \code{:} and \code{-}
+separators and occasionally includes additional prefixes. For full
+compatibility, the \verb{active_*_colsets()} functions recognize these alternate
+spellings as additional column sets even though \verb{movebank_*_colsets()} lists
+only the standard API names.
+
+For future compatibility, consider converting data with
+the manually-downloaded column names to use \verb{_} separators. To use
+a custom column set, provide the names explicitly with
+\code{\link[=imu_colset]{imu_colset()}}.
+}
 }
 \examples{
 movebank_acc_colsets()

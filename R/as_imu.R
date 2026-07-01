@@ -51,14 +51,14 @@ as_imu.move2 <- function(x, sensor, colset = NULL, min_freq = 1, merge_continuou
 as_imu_move2_ <- function(x, sensor, colset, min_freq = 1, merge_continuous = TRUE, drop = FALSE, force_int = NULL, ...) {
   check_colset(x, colset)
 
-  colset_type <- attr(colset, "type")
+  type <- colset_type(colset)
 
-  if (colset_type == "expanded") {
+  if (type == "expanded") {
     out <- as_imu_move2_expanded(x, colset = colset, sensor = sensor, min_freq = min_freq, ...)
-  } else if (colset_type == "compact") {
+  } else if (type == "compact") {
     # eobs bursts are integer-encoded; other compact sources are numeric.
     # This is the only IMU-class-specific default in the compact pipeline.
-    is_acc_eobs_cols <- sensor == "acc" && acc_colset_config()[["eobs"]]$is_(colset)
+    is_acc_eobs_cols <- sensor == "acc" && is_eobs_acc_colset(colset)
 
     out <- as_imu_compact(
       x[[colset[["bursts"]]]],
@@ -226,7 +226,7 @@ which_imu_vals <- function(x, colset) {
 
   x <- as.data.frame(x) # Drop sticky move2 columns
 
-  type <- attr(colset, "type")
+  type <- colset_type(colset)
 
   # Expanded-format columns only need at least one column to have data
   if (type == "expanded") {
@@ -382,7 +382,7 @@ check_colset <- function(x, colset, call = rlang::caller_env()) {
   assert_all_cols_present(x, colset, call = call)
   assert_colset_has_data(x, colset, call = call)
 
-  if (attr(colset, "type") == "compact") {
+  if (colset_type(colset) == "compact") {
     assert_compact_col_types(x, colset, call = call)
   } else {
     assert_matched_units(x, colset, call = call)
