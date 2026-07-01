@@ -16,7 +16,7 @@ gul_alt <- function() {
 
 test_that("Config predicates validate colsets against supported defaults", {
   matches_any <- function(cols, config) {
-    any(purrr::map_lgl(config, function(entry) colset_is(entry, cols)))
+    any(purrr::map_lgl(config, function(entry) colset_equal(entry, cols)))
   }
   cfg <- movebank_acc_colsets()
 
@@ -256,7 +256,7 @@ test_that("Active colsets match alternate column names", {
   
   expect_named(cs, "eobs_alt")
   expect_true(
-    colset_is(
+    colset_equal(
       cs[[1]],
       c(
         bursts = "eobs:accelerations-raw",
@@ -271,7 +271,7 @@ test_that("Active colsets match alternate column names", {
   
   expect_named(cs, "raw_xyz_alt")
   expect_true(
-    colset_is(
+    colset_equal(
       cs[[1]],
       c(
         X = "acceleration-raw-x",

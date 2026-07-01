@@ -527,32 +527,32 @@ gyro_colset_xyz <- function() {
 # Compact colsets require all columns present to be equivalent.
 # Expanded colsets are still considered equivalent even if only a subset
 # of axis cols is provided.
-colset_is <- function(colset, cols) {
-  UseMethod("colset_is")
+colset_equal <- function(colset, cols) {
+  UseMethod("colset_equal")
 }
 
 #' @export
-colset_is.imu_colset_compact <- function(colset, cols) {
+colset_equal.imu_colset_compact <- function(colset, cols) {
   is_unique_named_subset(cols, colset) && length(cols) == length(colset)
 }
 
 #' @export
-colset_is.imu_colset_expanded <- function(colset, cols) {
+colset_equal.imu_colset_expanded <- function(colset, cols) {
   is_unique_named_subset(cols, colset)
 }
 
 # Determine if a colset is present in a move2 object's column names.
-colset_is_in <- function(colset, x) {
-  UseMethod("colset_is_in")
+colset_present <- function(colset, x) {
+  UseMethod("colset_present")
 }
 
 #' @export
-colset_is_in.imu_colset_compact <- function(colset, x) {
+colset_present.imu_colset_compact <- function(colset, x) {
   all(colset %in% colnames(x))
 }
 
 #' @export
-colset_is_in.imu_colset_expanded <- function(colset, x) {
+colset_present.imu_colset_expanded <- function(colset, x) {
   any(colset %in% colnames(x))
 }
 
@@ -566,7 +566,7 @@ colset_active <- function(colset, x) {
 
 #' @export
 colset_active.imu_colset_compact <- function(colset, x) {
-  if (!colset_is_in(colset, x)) {
+  if (!colset_present(colset, x)) {
     return(NULL)
   }
 
@@ -580,7 +580,7 @@ colset_active.imu_colset_compact <- function(colset, x) {
 
 #' @export
 colset_active.imu_colset_expanded <- function(colset, x) {
-  if (!colset_is_in(colset, x)) {
+  if (!colset_present(colset, x)) {
     return(NULL)
   }
 
@@ -624,7 +624,7 @@ to_alt_colset <- function(colset) {
 is_eobs_acc_colset <- function(colset) {
   eobs <- acc_colset_eobs()
   eobs_alt <- to_alt_colset(eobs)
-  colset_is(eobs, colset) || colset_is(eobs_alt, colset)
+  colset_equal(eobs, colset) || colset_equal(eobs_alt, colset)
 }
 
 # Check that `x` is a non-empty, non-duplicated, name-value subset of `target`
