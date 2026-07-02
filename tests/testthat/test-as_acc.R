@@ -206,58 +206,20 @@ test_that("Error on a user-supplied colset whose columns are present but empty",
 })
 
 test_that("Can split expanded-format data into bursts by inferred frequency", {
-  t1 <- data.frame(
-    id = 1,
-    acceleration_x = 1:69,
-    acceleration_y = 1:69,
-    acceleration_z = 1:69,
-    timestamp = as.POSIXct(
-      c(
-        seq(1, 3, by = 0.5), 4, 5.5,
-        seq(6, 10, by = 0.5), seq(10.5, 50, by = 0.75)
-      ),
-      "UTC"
-    ),
-    x = 1,
-    y = 1
-  )
-
-  m1 <- move2::mt_as_move2(
-    t1,
-    coords = c("x", "y"),
-    time_column = "timestamp",
-    track_id_column = "id"
+  m1 <- expanded_acc(
+    c(seq(1, 3, by = 0.5), 4, 5.5, seq(6, 10, by = 0.5), seq(10.5, 50, by = 0.75))
   )
 
   a <- as_acc(m1, drop = TRUE)
 
   expect_length(a, 4)
   expect_equal(purrr::map_int(bursts(a), nrow), c(5, 1, 11, 52))
-  expect_equal(as.numeric(freqs(a)), c(2, NA, 2, 1.3333))
+  expect_equal(as.numeric(freqs(a)), c(2, NA, 2, signif(4 / 3, 6)))
 })
 
 test_that("Can use `min_freq` to avoid building bursts below freq thresh", {
-  t1 <- data.frame(
-    id = 1,
-    acceleration_x = 1:69,
-    acceleration_y = 1:69,
-    acceleration_z = 1:69,
-    timestamp = as.POSIXct(
-      c(
-        seq(1, 3, by = 0.5), 4, 5.5,
-        seq(6, 10, by = 0.5), seq(10.5, 50, by = 0.75)
-      ),
-      "UTC"
-    ),
-    x = 1,
-    y = 1
-  )
-
-  m1 <- move2::mt_as_move2(
-    t1,
-    coords = c("x", "y"),
-    time_column = "timestamp",
-    track_id_column = "id"
+  m1 <- expanded_acc(
+    c(seq(1, 3, by = 0.5), 4, 5.5, seq(6, 10, by = 0.5), seq(10.5, 50, by = 0.75))
   )
 
   a1 <- as_acc(m1, min_freq = 1, drop = TRUE)
@@ -272,6 +234,9 @@ test_that("Can use `min_freq` to avoid building bursts below freq thresh", {
 
   expect_length(as_acc(m1, min_freq = Inf, drop = TRUE), nrow(m1))
   expect_identical(a1, as_acc(m1, min_freq = 0, drop = TRUE))
+
+  # A units-valued `min_freq` is accepted and matches the bare-numeric (Hz) form
+  expect_identical(as_acc(m1, min_freq = units::set_units(2, "Hz"), drop = TRUE), a2)
 
   # If `drop = FALSE`, partitioned bursts should fill indices that were
   # previously empty, and overall vector length should stay the same.
@@ -494,4 +459,60 @@ test_that("Custom expanded-format colset works end-to-end", {
     as_acc(gul, colset = custom),
     a
   )
+})
+
+test_that("tolerance absorbs a timestamp glitch across both split tests", {
+  skip_if_not_installed("move2")
+  # 1 Hz data with a single 1.001 s hiccup
+  ts <- cumsum(c(0, rep(1, 26), 1.001, 0.999, 1, 1))
+  m <- expanded_acc(ts)
+
+  # By default the glitch fragments the burst (frequency-change detection),
+  # surfacing the issue to the user.
+  expect_gt(length(as_acc(m, drop = TRUE)), 1)
+
+  # Raising the tolerance absorbs the hiccup when testing for both frequency
+  # changes and period gaps
+  expect_length(as_acc(m, tolerance = 0.001, drop = TRUE), 1)
+
+  # min_freq determines the period at which we refuse to include a sample in
+  # a burst. Previously, tolerance was not applied to this test. This means
+  # that with jitter when the real freq is at min_freq, we can fail to 
+  # build a complete burst because the period at the jitter point may be longer
+  # than the period implied by the min_freq, even if the overall burst would 
+  # still have a recomputed frequency of `min_freq`. Ensure that 
+  # min_freq respects the tolerance as well.
+  expect_length(as_acc(m, tolerance = 0.001, min_freq = 1, drop = TRUE), 1)
+
+  # A units-aware tolerance behaves identically.
+  expect_length(
+    as_acc(m, tolerance = units::set_units(10, "ms"), drop = TRUE),
+    1
+  )
+})
+
+test_that("zero-span bursts (duplicate timestamps) get NA frequency, not Inf", {
+  skip_if_not_installed("move2")
+
+  a <- as_acc(expanded_acc(c(0, 0, 0, 1, 2, 3)), tolerance = 0, drop = TRUE)
+
+  expect_true(any(is.na(freqs(a))))
+  expect_false(any(is.infinite(as.numeric(freqs(a)))))
+})
+
+test_that("burst frequency is span-based (unbiased) for non-uniform spacing", {
+  skip_if_not_installed("move2")
+  
+  # Uniform spacing: span frequency equals the mean instantaneous rate.
+  m_uniform <- expanded_acc(c(0, 1, 2))
+  expect_equal(as.numeric(freqs(as_acc(m_uniform, drop = TRUE))), 1)
+
+  # Non-uniform gaps normally split bursts, but with tolerance they can
+  # be incorporated together. The derived frequency is biased with (mean(1/diff))
+  # Instead use (n - 1) / span.
+  m_jitter <- expanded_acc(c(0, 1, 2.4))
+  a <- as_acc(m_jitter, tolerance = 0.5, drop = TRUE)
+  
+  expect_length(a, 1)
+  expect_equal(as.numeric(freqs(a)), signif(2 / 2.4, 6))
 })

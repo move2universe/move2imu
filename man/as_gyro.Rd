@@ -13,7 +13,8 @@ as_gyro(x, ...)
 \method{as_gyro}{move2}(
   x,
   colset = NULL,
-  min_freq = 1,
+  min_freq = 0,
+  tolerance = 1e-06,
   merge_continuous = TRUE,
   drop = FALSE,
   ...
@@ -34,21 +35,33 @@ contain data (see \code{\link[=active_gyro_colsets]{active_gyro_colsets()}}).
 Several common colsets are listed under \code{\link[=movebank_gyro_colsets]{movebank_gyro_colsets()}}. To
 specify a custom set of columns, use \code{\link[=imu_colset]{imu_colset()}}.}
 
-\item{min_freq}{Numeric value indicating the
-minimum allowable within-burst data collection frequency when identifying
-bursts in expanded-format data. Any two adjacent timestamps
-that fall outside of the period defined by this frequency will be split
-into separate bursts. If no units are provided, this value is assumed to
-be in Hz.
+\item{min_freq}{Numeric value indicating the minimum sampling rate to use
+when combining samples into a single burst. Samples recorded at a rate
+slower than this value will instead be split into individual (length-1)
+"bursts". Increase this value to avoid producing slow-frequency bursts.
+By default, all samples recorded at consistent
+intervals will be combined into bursts, regardless of their sampling rate.
 
-Ignored if data are already in predefined bursts.}
+Ignored for compact-format data, where values are already in predefined
+bursts.}
+
+\item{tolerance}{Tolerance (in seconds) to use when identifying timestamp
+irregularities that should be treated as noise when constructing bursts.
+This is the largest amount by which a sample's timestamp may deviate
+from the value suggested by the adjacent samples, assuming samples are
+collected at a consistent rate. For example, for 1 Hz data with a tolerance
+of 0.001, a timestamp recorded 1.001 seconds after another would still
+be considered to belong to the same burst.
+
+Increase this value to avoid splitting samples into separate IMU bursts
+because of small timestamp irregularities. See details.}
 
 \item{merge_continuous}{Logical value indicating whether to merge
-adjacent bursts. Two adjacent bursts can be merged if the
-first burst ends at the same time that the second starts and the
-burst frequency is identical between the two. This is useful for
+adjacent bursts. Two adjacent bursts can be merged if the end of the first
+burst coincides with the start of the second burst (within \code{tolerance})
+and the burst frequency is consistent between the two. This is useful for
 processing continuous data that have been stored in chunks
-split at regular intervals.}
+split at regular intervals (e.g. e-obs data).}
 
 \item{drop}{Logical indicating whether empty bursts should
 be dropped from the output. If \code{drop = FALSE}, then the length of the
