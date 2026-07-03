@@ -16,12 +16,12 @@ this vector, even if their timestamps and frequencies align.}
 \item{tolerance}{Noise tolerance to use when determining whether two bursts
 can be merged. Two bursts are considered adjacent when the gap between
 the first burst's end and the second burst's start is within \code{tolerance}.
-Two bursts are considered to have the same frequency when their periods
-(1 / frequency) are within \code{tolerance}.
+Two bursts are considered to have the same frequency when their sample gap
+times (1 / frequency) are within \code{tolerance}.
 
 Increase this value to avoid merge failures at burst boundaries because
 of small timestamp irregularities. Note that this may come at the cost of
-reducing timestamp precision in the merged bursts.}
+reducing sample timestamp precision in the merged bursts.}
 
 \item{drop}{Logical indicating whether to drop entries that have been merged
 into other bursts. If \code{drop = FALSE} (default), the output will have the
