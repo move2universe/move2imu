@@ -1,9 +1,10 @@
 # Merge adjacent bursts in an IMU vector
 
 For a given IMU vector, identify temporally adjacent bursts and merge
-them into a single burst. Bursts that end at the same time as the start
-time of the next burst are considered adjacent. Bursts with different
-frequencies, axes, or burst data units will not be merged.
+them into a single burst. Bursts whose end time coincides with the start
+time of the next burst (within a given `tolerance`) are considered
+adjacent. Bursts with different frequencies, axes, or burst data units
+will not be merged.
 
 To merge bursts with differing units, convert them to a common unit
 first with
@@ -12,7 +13,7 @@ first with
 ## Usage
 
 ``` r
-merge_imu(x, ids = NULL, drop = FALSE)
+merge_imu(x, ids = NULL, tolerance = 1e-06, drop = FALSE)
 ```
 
 ## Arguments
@@ -26,6 +27,18 @@ merge_imu(x, ids = NULL, drop = FALSE)
   Vector indicating groups to which the elements in `x` belong. If
   provided, bursts in `x` will not be merged across different values of
   this vector, even if their timestamps and frequencies align.
+
+- tolerance:
+
+  Noise tolerance to use when determining whether two bursts can be
+  merged. Two bursts are considered adjacent when the gap between the
+  first burst's end and the second burst's start is within `tolerance`.
+  Two bursts are considered to have the same frequency when their sample
+  gap times (1 / frequency) are within `tolerance`.
+
+  Increase this value to avoid merge failures at burst boundaries
+  because of small timestamp irregularities. Note that this may come at
+  the cost of reducing sample timestamp precision in the merged bursts.
 
 - drop:
 

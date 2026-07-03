@@ -18,7 +18,8 @@ as_acc(x, ...)
 as_acc(
   x,
   colset = NULL,
-  min_freq = 1,
+  min_freq = 0,
+  tolerance = 1e-06,
   merge_continuous = TRUE,
   drop = FALSE,
   ...
@@ -55,21 +56,38 @@ as_acc(
 
 - min_freq:
 
-  Numeric value indicating the minimum allowable within-burst data
-  collection frequency when identifying bursts in expanded-format data.
-  Any two adjacent timestamps that fall outside of the period defined by
-  this frequency will be split into separate bursts. If no units are
-  provided, this value is assumed to be in Hz.
+  Numeric value indicating the minimum sampling rate to use when
+  combining samples into a single burst. Samples recorded at a rate
+  slower than this value will instead be split into individual
+  (length-1) "bursts". Increase this value to avoid producing
+  slow-frequency bursts. By default, all samples recorded at consistent
+  intervals will be combined into bursts, regardless of their sampling
+  rate.
 
-  Ignored if data are already in predefined bursts.
+  Ignored for compact-format data, where values are already in
+  predefined bursts.
+
+- tolerance:
+
+  Tolerance (in seconds) to use when identifying timestamp
+  irregularities that should be treated as noise when constructing
+  bursts. This is the largest amount by which a sample's timestamp may
+  deviate from the value suggested by the adjacent samples, assuming
+  samples are collected at a consistent rate. For example, for 1 Hz data
+  with a tolerance of 0.001, a timestamp recorded 1.001 seconds after
+  another would still be considered to belong to the same burst.
+
+  Increase this value to avoid splitting samples into separate IMU
+  bursts because of small timestamp irregularities. See details.
 
 - merge_continuous:
 
   Logical value indicating whether to merge adjacent bursts. Two
-  adjacent bursts can be merged if the first burst ends at the same time
-  that the second starts and the burst frequency is identical between
-  the two. This is useful for processing continuous data that have been
-  stored in chunks split at regular intervals.
+  adjacent bursts can be merged if the end of the first burst coincides
+  with the start of the second burst (within `tolerance`) and the burst
+  frequency is consistent between the two. This is useful for processing
+  continuous data that have been stored in chunks split at regular
+  intervals (e.g. e-obs data).
 
 - drop:
 
@@ -80,10 +98,32 @@ as_acc(
 
 ## Details
 
-The resulting vector will be as long as the input. This means it can,
-for example, be added as a column to a `data.frame`. For some tags this
-means `NA` values are inserted when one burst is stored over multiple
-rows of a `data.frame`.
+For data stored in expanded format, `as_*()` must derive the implied
+sampling frequency from the individual timestamps recorded in the data.
+Within each burst, all samples must be collected at a fixed frequency.
+However, timestamps may also contain occasional imprecisions. These
+deviations then violate the requirement that a burst have
+consistently-sampled records, forcing the creation of a new, separate
+burst at the point where the deviation occurs.
+
+To avoid this behavior, you can set the `tolerance` parameter to ignore
+a certain amount of noise in the recorded timestamps. Timestamps can
+vary from the value implied by the local sampling frequency (which is
+indicated by the gaps between adjacent sample timestamps) up to the
+value of `tolerance` while still being considered as part of the same
+burst. This prevents the partitioning of bursts at artificial boundaries
+where timestamps contain small noise errors.
+
+The `tolerance` also governs the largest amount that the end of one
+burst and the start of the next burst can vary while still being
+considered equal for the purposes of merging bursts (see the
+`merge_continuous` argument.)
+
+Note that increasing tolerance comes at the cost of reducing timestamp
+precision; once bursts are constructed, recovering timestamps for
+individual samples within a burst is only accurate to roughly the size
+of `tolerance`. At large tolerance values, you may also mask true
+frequency changes in the data.
 
 ## See also
 
