@@ -8,7 +8,7 @@ as_imu.default <- function(x, sensor, ...) {
 }
 
 #' @export
-as_imu.move2 <- function(x, sensor, colset = NULL, min_freq = 1, merge_continuous = TRUE, drop = FALSE, ...) {
+as_imu.move2 <- function(x, sensor, colset = NULL, min_freq = 0, tolerance = 1e-6, merge_continuous = TRUE, drop = FALSE, ...) {
   colsets <- parse_colsets(x, colset, sensor)
   dup <- duplicated_imu_rows(x, colsets = colsets)
 
@@ -30,6 +30,7 @@ as_imu.move2 <- function(x, sensor, colset = NULL, min_freq = 1, merge_continuou
         sensor = sensor,
         colset = cols,
         min_freq = min_freq,
+        tolerance = tolerance,
         merge_continuous = merge_continuous,
         drop = FALSE,
         ...
@@ -48,13 +49,13 @@ as_imu.move2 <- function(x, sensor, colset = NULL, min_freq = 1, merge_continuou
 
 # Pipeline internals -----------------------------------------------------------
 
-as_imu_move2_ <- function(x, sensor, colset, min_freq = 1, merge_continuous = TRUE, drop = FALSE, force_int = NULL, ...) {
+as_imu_move2_ <- function(x, sensor, colset, min_freq = 0, tolerance = 1e-6, merge_continuous = TRUE, drop = FALSE, force_int = NULL, ...) {
   check_colset(x, colset)
 
   type <- colset_type(colset)
 
   if (type == "expanded") {
-    out <- as_imu_move2_expanded(x, colset = colset, sensor = sensor, min_freq = min_freq, ...)
+    out <- as_imu_move2_expanded(x, colset = colset, sensor = sensor, min_freq = min_freq, tolerance = tolerance, ...)
   } else if (type == "compact") {
     # eobs bursts are integer-encoded; other compact sources are numeric.
     # This is the only IMU-class-specific default in the compact pipeline.
@@ -74,7 +75,7 @@ as_imu_move2_ <- function(x, sensor, colset, min_freq = 1, merge_continuous = TR
   }
 
   if (merge_continuous) {
-    out <- merge_imu(out, ids = move2::mt_track_id(x), drop = drop)
+    out <- merge_imu(out, ids = move2::mt_track_id(x), tolerance = tolerance, drop = drop)
   }
 
   if (drop) {
@@ -125,9 +126,9 @@ as_imu_compact <- function(x, axes, freq, sensor, timestamp, force_int = FALSE) 
 as_imu_move2_expanded <- function(x,
                                   colset,
                                   sensor,
-                                  min_freq = 1,
+                                  min_freq = 0,
+                                  tolerance = 1e-6,
                                   timestamp = move2::mt_time(x),
-                                  freq_digits = 4,
                                   ...) {
   col_names <- as.character(colset)
   m <- as.matrix(as.data.frame(x)[, col_names])
@@ -141,7 +142,7 @@ as_imu_move2_expanded <- function(x,
 
   # Generate vector of ids for each distinct burst based on sequential
   # timestamps collected at a minimum frequency
-  ts_grps <- parse_bursts(x, colset = colset, min_freq = min_freq)
+  ts_grps <- parse_bursts(x, colset = colset, min_freq = min_freq, tolerance = tolerance)
 
   vals_i <- which_imu_vals(x, colset = colset)
 
@@ -155,21 +156,31 @@ as_imu_move2_expanded <- function(x,
     x
   })
 
-  # Calculate mean frequency for each burst. Each burst gap should imply
-  # the same frequency, but we allow a small numeric tolerance when parsing,
-  # so this is not strictly true. The mean recovers the single implied freq.
-  freq <- unname(vapply(
-    split(move2::mt_time(x[vals_i, ]), ts_grps),
-    function(y) {
-      if (length(y) <= 1) {
-        return(NA_real_)
+  # Compute each burst's frequency from its span: number of intervals divided by
+  # the elapsed time from first to last sample. This equals the reciprocal of the
+  # mean interval, and avoids the upward bias of averaging the per-interval rates
+  # (the old mean(1/diff)), which overestimates the rate when spacing is uneven.
+  freq <- unname(
+    purrr::map_dbl(
+      split(move2::mt_time(x[vals_i, ]), ts_grps),
+      function(y) {
+        if (length(y) <= 1) {
+          return(NA_real_)
+        }
+        span <- as.numeric(y[length(y)] - y[1], units = "secs")
+        
+        # Duplicate timestamps produce Inf rate. Make NA for consistency with
+        # merge_imu()
+        if (span <= 0) {
+          return(NA_real_)
+        }
+        
+        (length(y) - 1) / span
       }
-      mean(1 / as.numeric(diff(y), units = "secs"))
-    },
-    numeric(1)
-  ))
-
-  freq <- round(freq, digits = freq_digits)
+    )
+  )
+  
+  freq <- snap_freq(freq)
 
   # Attach bursts to index of the first record that belongs to that burst
   out <- vec_rep(
@@ -258,32 +269,30 @@ which_imu_vals <- function(x, colset) {
 #' the burst prior to or the burst after the boundary timestamp. See comments
 #' to `freq_changes` for details on our approach.
 #'
+#' @inheritParams as_acc
 #' @param x move2 object with expanded-format IMU data
-#' @param min_freq Numeric value indicating the
-#'   minimum allowable within-burst data collection frequency when identifying
-#'   bursts in expanded-format IMU data. Any two adjacent timestamps
-#'   that fall outside of the period defined by this frequency will be split
-#'   into separate bursts. If no units are provided, this value is assumed to
-#'   be in Hz.
-#' @param freq_tol Noise parameter used when comparing frequencies to identify
-#'   changes in data collection frequency in continuous data. Time differences
-#'   that are within this value will be considered equal for the purposes of
-#'   identifying consistent runs of a given collection frequency. This avoids
-#'   error associated with floating point representation and IMU collection
-#'   noise when identifying bursts.
 #'
 #' @returns Integer vector of IDs identifying burst groups
 #' @noRd
-parse_bursts <- function(x, colset, min_freq = 1, freq_tol = 1e-6) {
-  if (min_freq < 0) {
-    cli::cli_abort("{.arg min_freq} must be greater than or equal to 0.")
-  }
-
+parse_bursts <- function(x, colset, min_freq = 0, tolerance = 1e-6) {
   if (!inherits(min_freq, "units")) {
     min_freq <- units::set_units(min_freq, "Hz")
   }
 
-  burst_gap_thresh <- units::set_units(1 / min_freq, "s")
+  if (as.numeric(min_freq) < 0) {
+    cli::cli_abort("{.arg min_freq} must be greater than or equal to 0.")
+  }
+
+  # Tolerance is an absolute time; reduce it to numeric seconds for comparison.
+  tolerance <- units::set_units(tolerance, "s")
+
+  if (as.numeric(tolerance) < 0) {
+    cli::cli_abort("{.arg tolerance} must be greater than or equal to 0.")
+  }
+
+  # Fold the tolerance into the gap threshold so a gap must exceed the implied
+  # period by more than `tolerance` to start a new burst.
+  burst_gap_thresh <- units::set_units(1 / min_freq, "s") + tolerance
 
   vals_i <- which_imu_vals(x, colset = colset)
   idx <- split(vals_i, as.character(move2::mt_track_id(x[vals_i, ])))
@@ -293,9 +302,10 @@ parse_bursts <- function(x, colset, min_freq = 1, freq_tol = 1e-6) {
     function(i) {
       d <- units::as_units(diff(move2::mt_time(x[i, ])), "s")
 
-      # Identify collection split points based on min freq and freq changes
+      # Identify collection split points based on min freq and freq changes,
+      # accounting for the input tolerance in both checks.
       below_freq <- c(TRUE, d > burst_gap_thresh)
-      freq_bounds <- freq_changes(as.numeric(d), freq_tol = freq_tol)
+      freq_bounds <- freq_changes(as.numeric(d), tolerance = as.numeric(tolerance))
 
       i[cumsum(below_freq | freq_bounds)]
     }
@@ -312,9 +322,17 @@ parse_bursts <- function(x, colset, min_freq = 1, freq_tol = 1e-6) {
 # when a change of frequency is detected, we create a new group of IMU
 # values. See `new_freq_regime()` for more on the logic of how split points
 # are determined in ambiguous cases.
-freq_changes <- function(x, freq_tol = 1e-6) {
+freq_changes <- function(x, tolerance = 1e-6) {
+  # When a timestamp deviates from expected, it perturbs the gap before it
+  # and the gap after it in opposite directions. This means the difference in
+  # these intervals is actually twice the tolerance value.
+  # Thus, we need to halve the interval difference when comparing to standardize
+  # between the way tolerance behaves here and in other checks (e.g. between
+  # mergable bursts).
+  midpoint_dev <- as.numeric(abs(diff(x))) / 2
+
   # Get runs of values within a given tolerance
-  freq_within_tol <- cumsum(c(TRUE, as.numeric(abs(diff(x))) > freq_tol))
+  freq_within_tol <- cumsum(c(TRUE, midpoint_dev > tolerance))
   r <- rle(freq_within_tol)
 
   # Adjust first run length to account for loss of initial value from `diff()`

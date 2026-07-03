@@ -17,6 +17,24 @@ acc_example <- function() {
   )
 }
 
+# Helper to snap a computed frequency to a stable precision.
+#
+# Both parsing (expanded-format data) and merging derive a burst's frequency
+# from its timestamp span: (n_samples - 1) / (last_time - first_time). POSIXct
+# stores time as seconds since 1970, but floating point representation
+# can only resolve so much precision for these large numbers. This leads to
+# small irregularities in frequencies after derivation.
+#
+# This noise also scales with the sampling frequency. We use signif() to 
+# avoid applying the uniform correction of round(), which would not account
+# for this fact. 6 significant figures clears the noise floor for bursts in 
+# normal frequency ranges (up to a few hundred Hz). Users can otherwise
+# do their own normalization post-hoc if this is not sufficient to make
+# their bursts uniform in frequency due to noise.
+snap_freq <- function(x, digits = 6) {
+  signif(x, digits = digits)
+}
+
 # From dplyr
 near <- function(x, y, tol = .Machine$double.eps^0.5) {
   abs(x - y) < tol
