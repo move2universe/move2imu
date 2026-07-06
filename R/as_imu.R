@@ -73,7 +73,14 @@ as_imu_move2_ <- function(x,
   type <- colset_type(colset)
 
   if (type == "expanded") {
-    out <- as_imu_move2_expanded(x, colset = colset, sensor = sensor, min_freq = min_freq, rate_tol = rate_tol, ...)
+    out <- as_imu_move2_expanded(
+      x,
+      colset = colset,
+      sensor = sensor,
+      min_freq = min_freq,
+      rate_tol = rate_tol,
+      ...
+    )
   } else if (type == "compact") {
     # eobs bursts are integer-encoded; other compact sources are numeric.
     # This is the only IMU-class-specific default in the compact pipeline.
@@ -164,52 +171,23 @@ as_imu_move2_expanded <- function(x,
     m <- m * units::as_units(units::deparse_unit(x[[colset[[1]]]]))
   }
 
-  # Generate vector of ids for each distinct burst based on sequential
-  # timestamps collected at a minimum frequency
-  ts_grps <- parse_bursts(
+  # Group samples into bursts. `parse_bursts()` returns, per burst, both its row
+  # indices (`bursts`) and its derived sampling frequency (`freq`), as parallel
+  # lists so the two stay aligned without a key.
+  parsed <- parse_bursts(
     x,
     colset = colset,
     min_freq = min_freq,
     rate_tol = rate_tol
   )
-
-  vals_i <- which_imu_vals(x, colset = colset)
-
-  # Split all rows with IMU data into burst groups based on timestamp groups
-  idx <- unname(split(vals_i, ts_grps))
+  burst_idx <- parsed$bursts
 
   # Extract records for each burst into a separate matrix
-  burst_lst <- lapply(idx, function(i) {
+  burst_lst <- lapply(burst_idx, function(i) {
     x <- m[i, , drop = FALSE]
     rownames(x) <- NULL # Standardize data.frame and tibble inputs
     x
   })
-
-  # Compute each burst's frequency from its span: number of intervals divided by
-  # the elapsed time from first to last sample. This equals the reciprocal of the
-  # mean interval, and avoids the upward bias of averaging the per-interval rates
-  # (the old mean(1/diff)), which overestimates the rate when spacing is uneven.
-  freq <- unname(
-    purrr::map_dbl(
-      split(move2::mt_time(x[vals_i, ]), ts_grps),
-      function(y) {
-        if (length(y) <= 1) {
-          return(NA_real_)
-        }
-        span <- as.numeric(y[length(y)] - y[1], units = "secs")
-
-        # Duplicate timestamps produce Inf rate. Make NA for consistency with
-        # merge_imu()
-        if (span <= 0) {
-          return(NA_real_)
-        }
-
-        (length(y) - 1) / span
-      }
-    )
-  )
-
-  freq <- snap_freq(freq)
 
   # Attach bursts to index of the first record that belongs to that burst
   out <- vec_rep(
@@ -222,7 +200,8 @@ as_imu_move2_expanded <- function(x,
     nrow(x)
   )
 
-  i <- sapply(idx, function(x) x[1]) # first index of each ts group
+  i <- purrr::map_int(burst_idx, 1L) # first index of each burst
+  freq <- snap_freq(parsed$freq)
 
   if (length(i) > 0) {
     out[i] <- imu(sensor, bursts = burst_lst, frequency = units::as_units(freq, "Hz"), start = timestamp[i])
@@ -282,16 +261,21 @@ which_imu_vals <- function(x, colset) {
 #'
 #' @description
 #' Based on the timestamps of the samples in expanded-format IMU
-#' data, identify bursts based on the observed time gaps between samples. Gaps
-#' that exceed a set threshold will be used to group samples into bursts.
-#' Further, any observed changes in data collection frequency will also be
-#' used to split samples into distinct bursts.
+#' data, identify bursts based on the observed sampling rate. Samples are first
+#' grouped into runs of consistent sampling rate; any run whose overall
+#' frequency falls below `min_freq` is then split into individual (length-1)
+#' bursts.
 #'
 #' @details
 #' For continuous data, IMUs may dynamically update collection frequency.
 #' However, a burst should not contain data from multiple collection
 #' frequencies, so we must split these data into distinct bursts, despite the
 #' fact that there may be no gap in collection.
+#'
+#' `min_freq` is evaluated on each run's derived frequency, not on the
+#' individual inter-sample gaps. A single anomalous gap
+#' therefore does not explode a run whose overall rate is still consistent with
+#' the input `min_freq`.
 #'
 #' For samples at the boundary of a frequency change, there is
 #' a fundamental ambiguity as to whether these samples should be included in
@@ -301,7 +285,10 @@ which_imu_vals <- function(x, colset) {
 #' @inheritParams as_acc
 #' @param x move2 object with expanded-format IMU data
 #'
-#' @returns Integer vector of IDs identifying burst groups
+#' @returns A list with elements `bursts` and `freq`. The former is a list
+#'   whose elements indicate the row indices of `x` belonging to that burst.
+#'   The latter is the derived sampling frequency of each burst. Elements of
+#'   each match by index.
 #' @noRd
 parse_bursts <- function(x, colset, min_freq = 0, rate_tol = 1e-2) {
   if (!inherits(min_freq, "units")) {
@@ -316,17 +303,7 @@ parse_bursts <- function(x, colset, min_freq = 0, rate_tol = 1e-2) {
     cli::cli_abort("{.arg rate_tol} must be greater than or equal to 0.")
   }
 
-  # `min_freq` is the slowest sampling rate allowed within a single burst: a gap
-  # longer than its period (1 / min_freq) starts a new burst. The comparison is
-  # strict, so samples collected exactly at `min_freq` are kept together, not
-  # split. `fp_time_floor` is a tiny absolute cushion that only absorbs
-  # floating-point noise in the timestamp differences (POSIXct ULP), so
-  # perfectly regular data sitting right at the boundary is not split by
-  # representation error alone. It is not a jitter allowance: to keep ragged
-  # data together, set `min_freq` below the true rate so the real gaps fall
-  # comfortably under its period.
-  burst_gap_thresh <- units::set_units(1 / min_freq, "s") +
-    units::set_units(fp_time_floor, "s")
+  min_interval <- (1 / as.numeric(min_freq)) + fp_time_floor
 
   vals_i <- which_imu_vals(x, colset = colset)
   idx <- split(vals_i, as.character(move2::mt_track_id(x[vals_i, ])))
@@ -334,18 +311,51 @@ parse_bursts <- function(x, colset, min_freq = 0, rate_tol = 1e-2) {
   grps <- lapply(
     idx,
     function(i) {
-      d <- units::as_units(diff(move2::mt_time(x[i, ])), "s")
+      i <- unname(i)
+      
+      if (length(i) < 2) {
+        return(list(bursts = list(i), freq = NA_real_))
+      }
 
-      # Split into new bursts at gaps longer than the `min_freq` period (an
-      # absolute floor) and at frequency changes (relative `rate_tol`).
-      below_freq <- c(TRUE, d > burst_gap_thresh)
-      freq_bounds <- freq_changes(as.numeric(d), rate_tol = rate_tol)
+      samp_times <- as.numeric(move2::mt_time(x[i, ]))
 
-      i[cumsum(below_freq | freq_bounds)]
+      # Identify runs of consistent sampling rate, within the tolerance
+      is_freq_change <- freq_changes(diff(samp_times), rate_tol = rate_tol)
+      run_id <- cumsum(is_freq_change)
+
+      # Explode any run collected slower than `min_freq` by calculating
+      # sample interval times and comparing to the `min_freq`-implied interval
+      run_intervals <- unname(
+        purrr::map_dbl(
+          split(samp_times, run_id),
+          function(z) {
+            if (length(z) < 2) NA_real_ else (max(z) - min(z)) / (length(z) - 1)
+          }
+        )
+      )
+      
+      too_slow <- !is.na(run_intervals) & (run_intervals > min_interval)
+      run_start <- is_freq_change | too_slow[run_id]
+
+      # Update `run_id` to split runs that were exploded by `min_freq` threshold
+      run_id <- run_id[run_start]
+
+      # Calculate frequencies for each run, assigning NA to length-1 runs
+      freq <- 1 / run_intervals[run_id]
+      freq[too_slow[run_id] | !is.finite(freq)] <- NA_real_
+
+      # Return as list of burst locations and frequencies
+      list(
+        bursts = unname(split(i, cumsum(run_start))),
+        freq = freq
+      )
     }
   )
 
-  unname(unlist(grps))
+  list(
+    bursts = unlist(purrr::map(grps, "bursts"), use.names = FALSE, recursive = FALSE),
+    freq = unlist(purrr::map(grps, "freq"), use.names = FALSE)
+  )
 }
 
 # Identify transition points from one frequency to another within a sequential

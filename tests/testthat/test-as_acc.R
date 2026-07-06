@@ -253,14 +253,16 @@ test_that("Can drop missing acc values", {
   cols <- acc_colset_raw_xyz()
 
   acc <- as_acc(gulls_data, colset = cols, drop = FALSE)
-  acc_i <- which(gulls_data$sensor_type_id == 2365683)
 
   expect_identical(as_acc(gulls_data, colset = cols, drop = TRUE), acc[!is.na(acc)])
   expect_length(acc, nrow(gulls_data))
-  expect_equal(
-    is.na(acc[acc_i]),
-    duplicated(parse_bursts(gulls_data, colset = cols))
+  
+  # Each burst is attached at its first row index; every other row is NA.
+  first_i <- sapply(
+    parse_bursts(gulls_data, colset = cols)$bursts,
+    function(x) x[1]
   )
+  expect_equal(which(!is.na(acc)), sort(first_i))
 
   acc <- as_acc(albatrosses(), drop = FALSE)
   expect_identical(as_acc(albatrosses(), drop = TRUE), acc[!is.na(acc)])
@@ -467,38 +469,29 @@ test_that("rate_tol and min_freq control burst parsing (gap_tol does not)", {
   ts <- cumsum(c(0, rep(1, 26), 1.001, 0.999, 1, 1))
   m <- expanded_acc(ts)
 
-  # The hiccup is a sub-percent frequency wobble, absorbed by the default
-  # (relative) rate_tol: a single burst.
+  # Hiccup is absorbed by default `rate_tol`
   expect_length(as_acc(m, drop = TRUE), 1)
 
-  # A rate_tol tighter than the wobble surfaces it as a fragment.
-  expect_gt(length(as_acc(m, rate_tol = 1e-5, drop = TRUE)), 1)
+  # A `rate_tol` tighter than the magnitude of the glitch triggers a split
+  expect_equal(length(as_acc(m, rate_tol = 1e-5, drop = TRUE)), 3)
 
-  # `min_freq` is the slowest rate allowed within a burst, tested strictly: the
-  # 1.001 s gap exceeds the 1 s period at min_freq = 1, so parsing splits there.
-  # `gap_tol` does not loosen parsing -- with merging disabled the split
-  # stands no matter its value.
-  expect_gt(
-    length(as_acc(
-      m,
-      min_freq = 1, gap_tol = 0.001,
-      merge_continuous = FALSE, drop = TRUE
-    )),
-    1
+  expect_length(as_acc(m, min_freq = 1, drop = TRUE), 1)
+
+  # Genuinely slow data (0.5 Hz) fall below the floor and are exploded into
+  # individual (length-1) bursts; with no floor they stay a single burst.
+  slow <- expanded_acc(cumsum(c(0, rep(2, 9))))
+  expect_length(as_acc(slow, min_freq = 1, drop = TRUE), 10)
+  expect_length(as_acc(slow, min_freq = 0, drop = TRUE), 1)
+
+  # `gap_tol` only acts when merging, not parsing:
+  two <- expanded_acc(c(0:9, 10.5 + 0:9))
+  expect_length(as_acc(two, merge_continuous = FALSE, drop = TRUE), 2)
+  expect_identical(
+    as_acc(two, gap_tol = 1e-6, merge_continuous = FALSE, drop = TRUE),
+    as_acc(two, gap_tol = 0.5, merge_continuous = FALSE, drop = TRUE)
   )
-
-  # `gap_tol` acts only when merging: it lets the two parsed bursts rejoin
-  # across the 1.001 s seam, recovering a single burst...
-  expect_length(as_acc(m, min_freq = 1, gap_tol = 0.001, drop = TRUE), 1)
-
-  # ...while the default (1e-6) merge seam is too tight to bridge the 1 ms
-  # excess, so the split remains.
-  expect_gt(length(as_acc(m, min_freq = 1, drop = TRUE)), 1)
-
-  # To keep ragged data together during parsing itself, set `min_freq` below the
-  # true rate so the real gaps fall under its period. At min_freq = 0.9 the
-  # 1.001 s gap is well within the ~1.111 s period, so it stays a single burst.
-  expect_length(as_acc(m, min_freq = 0.9, drop = TRUE), 1)
+  expect_length(as_acc(two, gap_tol = 0.5, drop = TRUE), 1)
+  expect_length(as_acc(two, drop = TRUE), 2)
 })
 
 test_that("zero-span bursts (duplicate timestamps) get NA frequency, not Inf", {
