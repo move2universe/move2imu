@@ -3,9 +3,9 @@
 #' @description
 #' For a given IMU vector, identify temporally adjacent bursts and
 #' merge them into a single burst. Bursts whose end time coincides with the
-#' start time of the next burst (within a given `tolerance`) are considered 
-#' adjacent. Bursts with different frequencies, axes, or burst data
-#' units will not be merged.
+#' start time of the next burst (within `gap_tol`) and whose frequencies
+#' agree (within the relative `rate_tol`) are considered adjacent. Bursts
+#' with different frequencies, axes, or burst data units will not be merged.
 #'
 #' To merge bursts with differing units, convert them to a common
 #' unit first with [set_imu_units()].
@@ -14,15 +14,19 @@
 #' @param ids Vector indicating groups to which the elements in `x` belong.
 #'   If provided, bursts in `x` will not be merged across different values of
 #'   this vector, even if their timestamps and frequencies align.
-#' @param tolerance Noise tolerance to use when determining whether two bursts
-#'   can be merged. Two bursts are considered adjacent when the gap between
-#'   the first burst's end and the second burst's start is within `tolerance`.
-#'   Two bursts are considered to have the same frequency when their sample gap
-#'   times (1 / frequency) are within `tolerance`.
-#'   
-#'   Increase this value to avoid merge failures at burst boundaries because
-#'   of small timestamp irregularities. Note that this may come at the cost of 
-#'   reducing sample timestamp precision in the merged bursts.
+#' @param gap_tol Absolute tolerance (in seconds) to use when determining
+#'   whether two bursts are adjacent in time and can be merged. Two bursts are
+#'   adjacent when the gap between the first burst's end and the second burst's
+#'   start is within `gap_tol`.
+#'
+#'   For example, setting `gap_tol = 0.02` would allow a burst that starts up
+#'   to 0.02 seconds after the end of the previous burst to be merged. See
+#'   details.
+#' @param rate_tol Relative tolerance to use when determining whether two bursts
+#'   share the same sampling frequency. Bursts can only be merged if their
+#'   frequencies are consistent, within `rate_tol`. For example,
+#'   `rate_tol = 0.01` would still merge two bursts whose frequencies differ
+#'   up to 1% of the earlier burst's frequency.
 #' @param drop Logical indicating whether to drop entries that have been merged
 #'   into other bursts. If `drop = FALSE` (default), the output will have the
 #'   same length as the input `x`, with `NA` values at positions where bursts
@@ -40,14 +44,22 @@
 #' )
 #'
 #' merge_imu(a)
-merge_imu <- function(x, ids = NULL, tolerance = 1e-6, drop = FALSE) {
+merge_imu <- function(x,
+                      ids = NULL,
+                      gap_tol = 1e-6,
+                      rate_tol = 1e-2,
+                      drop = FALSE) {
   n <- vec_size(x)
 
-  # Tolerance is an absolute time; normalize to seconds for comparison.
-  tolerance <- units::set_units(tolerance, "s")
+  # `gap_tol` is an absolute time; normalize to seconds for comparison.
+  gap_tol <- units::set_units(gap_tol, "s")
 
-  if (as.numeric(tolerance) < 0) {
-    cli::cli_abort("{.arg tolerance} must be greater than or equal to 0.")
+  if (as.numeric(gap_tol) < 0) {
+    cli::cli_abort("{.arg gap_tol} must be greater than or equal to 0.")
+  }
+
+  if (as.numeric(rate_tol) < 0) {
+    cli::cli_abort("{.arg rate_tol} must be greater than or equal to 0.")
   }
 
   # Work only with non-NA entries; track their original positions
@@ -67,10 +79,10 @@ merge_imu <- function(x, ids = NULL, tolerance = 1e-6, drop = FALSE) {
   nv <- length(valid)
 
   # Collapsible bursts must end at the start time of the subsequent burst,
-  # within `tolerance`. Normalize to seconds so `as_difftime()` accepts the
-  # result regardless of what time unit `burst_dur()` returns.
+  # within the absolute `gap_tol`. Normalize to seconds so `as_difftime()`
+  # accepts the result regardless of what time unit `burst_dur()` returns.
   timediff <- sv + units::as_difftime(units::set_units(burst_dur(xv), "s"))
-  is_adjacent_burst <- abs(units::as_units(sv[-1] - timediff[-nv], "s")) <= tolerance
+  is_adjacent_burst <- abs(units::as_units(sv[-1] - timediff[-nv], "s")) <= gap_tol
 
   # If no adjacent bursts, no need to proceed
   if (!any(is_adjacent_burst, na.rm = TRUE)) {
@@ -80,12 +92,16 @@ merge_imu <- function(x, ids = NULL, tolerance = 1e-6, drop = FALSE) {
     return(x)
   }
 
-  # Collapsible bursts must have the same frequency, compared as periods
-  # (1 / frequency, in seconds) so a single time tolerance applies regardless
-  # of the sampling rate.
+  # Collapsible bursts must have the same frequency. Compared relatively, as a
+  # fraction of the sample period, so one `rate_tol` applies across all
+  # sampling rates. `fp_time_floor` backstops the relative test so sub-
+  # microsecond timestamp noise on short periods is not read as a rate change.
   fq <- freqs(xv)
   period_s <- units::set_units(1 / fq, "s")
-  is_same_freq <- abs(period_s[-1] - period_s[-nv]) <= tolerance
+  period_num <- as.numeric(period_s)
+  period_dev <- abs(period_num[-1] - period_num[-nv])
+  is_same_freq <- !((period_dev / period_num[-nv] > rate_tol) &
+    (period_dev > fp_time_floor))
 
   # Collapsible bursts must have axis structure
   # Check both axis names and length to disambiguate possible name duplication
@@ -130,34 +146,34 @@ merge_imu <- function(x, ids = NULL, tolerance = 1e-6, drop = FALSE) {
   # frequency reflects variations within the tolerance, rather than inheriting
   # the first burst's frequency arbitrarily.
   ns <- n_samples(xv)
-  
+
   merged_freq <- purrr::map_dbl(
-    grp_idx, 
+    grp_idx,
     function(g) {
       if (length(g) == 1L) {
         return(as.numeric(fq[g]))
       }
-      
+
       merged_samps <- sum(ns[g])
-      
+
       if (is.na(merged_samps) || merged_samps <= 1) {
         return(NA_real_)
       }
-      
+
       last_burst <- g[length(g)]
       last_dur <- units::set_units((ns[last_burst] - 1) * period_s[last_burst], "s")
       last_samp_time <- sv[last_burst] + units::as_difftime(last_dur)
-      
+
       merged_span <- as.numeric(last_samp_time - sv[g[1]], units = "secs")
-      
+
       if (is.na(merged_span) || merged_span <= 0) {
         return(NA_real_)
       }
-      
+
       snap_freq((merged_samps - 1) / merged_span)
     }
   )
-  
+
   merged <- imu(
     sensor = class(x)[1],
     bursts = bursts_comb,

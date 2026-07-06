@@ -39,13 +39,21 @@ as_mag.default <- function(x, ...) {
 
 #' @rdname as_mag
 #' @export
-as_mag.move2 <- function(x, colset = NULL, min_freq = 0, tolerance = 1e-6, merge_continuous = TRUE, drop = FALSE, ...) {
+as_mag.move2 <- function(x,
+                         colset = NULL,
+                         min_freq = 0,
+                         gap_tol = 1e-6,
+                         rate_tol = 1e-2,
+                         merge_continuous = TRUE,
+                         drop = FALSE,
+                         ...) {
   as_imu(
     x,
     sensor = "mag",
     colset = colset,
     min_freq = min_freq,
-    tolerance = tolerance,
+    gap_tol = gap_tol,
+    rate_tol = rate_tol,
     merge_continuous = merge_continuous,
     drop = drop,
     ...

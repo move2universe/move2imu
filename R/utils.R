@@ -25,15 +25,28 @@ acc_example <- function() {
 # can only resolve so much precision for these large numbers. This leads to
 # small irregularities in frequencies after derivation.
 #
-# This noise also scales with the sampling frequency. We use signif() to 
+# This noise also scales with the sampling frequency. We use signif() to
 # avoid applying the uniform correction of round(), which would not account
-# for this fact. 6 significant figures clears the noise floor for bursts in 
+# for this fact. 6 significant figures clears the noise floor for bursts in
 # normal frequency ranges (up to a few hundred Hz). Users can otherwise
 # do their own normalization post-hoc if this is not sufficient to make
 # their bursts uniform in frequency due to noise.
 snap_freq <- function(x, digits = 6) {
   signif(x, digits = digits)
 }
+
+# Absolute floating-point noise floor for POSIXct-derived time differences, in
+# seconds. POSIXct is a double count of seconds since 1970; one ULP at a
+# contemporary epoch (~1.77e9 s) is ~4e-7 s, so a difference of two timestamps
+# carries ~sub-microsecond noise regardless of the sampling rate. Relative
+# frequency comparisons (which divide by the sample period) inflate this noise
+# at high sampling rates, so those comparisons are backstopped with this floor:
+# a deviation must exceed both the relative `rate_tol` AND this absolute
+# floor to count as a real rate change. This keeps sub-microsecond timestamp
+# jitter from being mistaken for a rate change on fast (e.g. >1 kHz) data, while
+# only ever declining to resolve rate differences too small for POSIXct to
+# represent anyway.
+fp_time_floor <- 1e-6
 
 # From dplyr
 near <- function(x, y, tol = .Machine$double.eps^0.5) {

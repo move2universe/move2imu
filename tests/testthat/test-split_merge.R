@@ -496,7 +496,7 @@ test_that("split_imu() round-trip in dataframe workflow", {
   expect_identical(result$a2, a[!is.na(a)])
 })
 
-test_that("merge_imu tolerance bridges a small boundary glitch", {
+test_that("gap_tol bridges a small boundary glitch", {
   # Two 10 Hz bursts (30 samples = 3 s each). The second starts 0.5 ms late, so
   # they are not exactly adjacent.
   a <- acc(
@@ -508,18 +508,19 @@ test_that("merge_imu tolerance bridges a small boundary glitch", {
     start = as.POSIXct(c(0, 3.0005), tz = "UTC")
   )
 
-  # Default tolerance keeps them separate (exact adjacency required).
+  # Default gap_tol keeps them separate (exact adjacency required).
   expect_length(merge_imu(a, drop = TRUE), 2)
 
-  # A tolerance larger than the glitch merges them into one burst.
-  merged <- merge_imu(a, tolerance = 0.001, drop = TRUE)
+  # A gap_tol larger than the glitch merges them into one burst.
+  merged <- merge_imu(a, gap_tol = 0.001, drop = TRUE)
   expect_length(merged, 1)
   expect_equal(n_samples(merged), 60L)
   expect_identical(starts(merged), as.POSIXct(0, tz = "UTC", origin = "1970-01-01"))
 })
 
-test_that("merge_imu tolerance bridges a small frequency glitch", {
-  # Same boundary, but the second burst's frequency is a hair different.
+test_that("rate_tol controls merging across a small frequency glitch", {
+  # Two exactly-abutting bursts; the second's frequency is a hair different
+  # (10 vs 10.001 Hz, a 0.01% relative difference).
   a <- acc(
     c(
       acc_burst_example(1:30, 1:30),
@@ -529,8 +530,12 @@ test_that("merge_imu tolerance bridges a small frequency glitch", {
     start = as.POSIXct(c(0, 3), tz = "UTC")
   )
 
-  expect_length(merge_imu(a, drop = TRUE), 2)
-  expect_length(merge_imu(a, tolerance = 0.001, drop = TRUE), 1)
+  # rate_tol is relative: the default (1%) treats a sub-percent glitch as
+  # the same rate, so the bursts merge.
+  expect_length(merge_imu(a, drop = TRUE), 1)
+
+  # A rate_tol tighter than the 1e-4 relative difference keeps them apart.
+  expect_length(merge_imu(a, rate_tol = 1e-5, drop = TRUE), 2)
 })
 
 test_that("merged frequency is recomputed from the burst span", {
@@ -556,6 +561,6 @@ test_that("merged frequency is recomputed from the burst span", {
     frequency = units::set_units(10, "Hz"),
     start = as.POSIXct(c(0, 3.0005), tz = "UTC")
   )
-  merged <- merge_imu(b, tolerance = 0.001, drop = TRUE)
+  merged <- merge_imu(b, gap_tol = 0.001, drop = TRUE)
   expect_equal(as.numeric(freqs(merged)), signif(59 / 5.9005, 6))
 })

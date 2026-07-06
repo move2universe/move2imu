@@ -4,7 +4,7 @@
 \alias{merge_imu}
 \title{Merge adjacent bursts in an IMU vector}
 \usage{
-merge_imu(x, ids = NULL, tolerance = 1e-06, drop = FALSE)
+merge_imu(x, ids = NULL, gap_tol = 1e-06, rate_tol = 0.01, drop = FALSE)
 }
 \arguments{
 \item{x}{An IMU vector (\code{acc}, \code{mag}, or \code{gyro})}
@@ -13,15 +13,20 @@ merge_imu(x, ids = NULL, tolerance = 1e-06, drop = FALSE)
 If provided, bursts in \code{x} will not be merged across different values of
 this vector, even if their timestamps and frequencies align.}
 
-\item{tolerance}{Noise tolerance to use when determining whether two bursts
-can be merged. Two bursts are considered adjacent when the gap between
-the first burst's end and the second burst's start is within \code{tolerance}.
-Two bursts are considered to have the same frequency when their sample gap
-times (1 / frequency) are within \code{tolerance}.
+\item{gap_tol}{Absolute tolerance (in seconds) to use when determining
+whether two bursts are adjacent in time and can be merged. Two bursts are
+adjacent when the gap between the first burst's end and the second burst's
+start is within \code{gap_tol}.
 
-Increase this value to avoid merge failures at burst boundaries because
-of small timestamp irregularities. Note that this may come at the cost of
-reducing sample timestamp precision in the merged bursts.}
+For example, setting \code{gap_tol = 0.02} would allow a burst that starts up
+to 0.02 seconds after the end of the previous burst to be merged. See
+details.}
+
+\item{rate_tol}{Relative tolerance to use when determining whether two bursts
+share the same sampling frequency. Bursts can only be merged if their
+frequencies are consistent, within \code{rate_tol}. For example,
+\code{rate_tol = 0.01} would still merge two bursts whose frequencies differ
+up to 1\% of the earlier burst's frequency.}
 
 \item{drop}{Logical indicating whether to drop entries that have been merged
 into other bursts. If \code{drop = FALSE} (default), the output will have the
@@ -35,9 +40,9 @@ A vector of the same class as \code{x}.
 \description{
 For a given IMU vector, identify temporally adjacent bursts and
 merge them into a single burst. Bursts whose end time coincides with the
-start time of the next burst (within a given \code{tolerance}) are considered
-adjacent. Bursts with different frequencies, axes, or burst data
-units will not be merged.
+start time of the next burst (within \code{gap_tol}) and whose frequencies
+agree (within the relative \code{rate_tol}) are considered adjacent. Bursts
+with different frequencies, axes, or burst data units will not be merged.
 
 To merge bursts with differing units, convert them to a common
 unit first with \code{\link[=set_imu_units]{set_imu_units()}}.

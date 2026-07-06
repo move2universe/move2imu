@@ -461,40 +461,50 @@ test_that("Custom expanded-format colset works end-to-end", {
   )
 })
 
-test_that("tolerance absorbs a timestamp glitch across both split tests", {
+test_that("rate_tol and min_freq control burst parsing (gap_tol does not)", {
   skip_if_not_installed("move2")
   # 1 Hz data with a single 1.001 s hiccup
   ts <- cumsum(c(0, rep(1, 26), 1.001, 0.999, 1, 1))
   m <- expanded_acc(ts)
 
-  # By default the glitch fragments the burst (frequency-change detection),
-  # surfacing the issue to the user.
-  expect_gt(length(as_acc(m, drop = TRUE)), 1)
+  # The hiccup is a sub-percent frequency wobble, absorbed by the default
+  # (relative) rate_tol: a single burst.
+  expect_length(as_acc(m, drop = TRUE), 1)
 
-  # Raising the tolerance absorbs the hiccup when testing for both frequency
-  # changes and period gaps
-  expect_length(as_acc(m, tolerance = 0.001, drop = TRUE), 1)
+  # A rate_tol tighter than the wobble surfaces it as a fragment.
+  expect_gt(length(as_acc(m, rate_tol = 1e-5, drop = TRUE)), 1)
 
-  # min_freq determines the period at which we refuse to include a sample in
-  # a burst. Previously, tolerance was not applied to this test. This means
-  # that with jitter when the real freq is at min_freq, we can fail to 
-  # build a complete burst because the period at the jitter point may be longer
-  # than the period implied by the min_freq, even if the overall burst would 
-  # still have a recomputed frequency of `min_freq`. Ensure that 
-  # min_freq respects the tolerance as well.
-  expect_length(as_acc(m, tolerance = 0.001, min_freq = 1, drop = TRUE), 1)
-
-  # A units-aware tolerance behaves identically.
-  expect_length(
-    as_acc(m, tolerance = units::set_units(10, "ms"), drop = TRUE),
+  # `min_freq` is the slowest rate allowed within a burst, tested strictly: the
+  # 1.001 s gap exceeds the 1 s period at min_freq = 1, so parsing splits there.
+  # `gap_tol` does not loosen parsing -- with merging disabled the split
+  # stands no matter its value.
+  expect_gt(
+    length(as_acc(
+      m,
+      min_freq = 1, gap_tol = 0.001,
+      merge_continuous = FALSE, drop = TRUE
+    )),
     1
   )
+
+  # `gap_tol` acts only when merging: it lets the two parsed bursts rejoin
+  # across the 1.001 s seam, recovering a single burst...
+  expect_length(as_acc(m, min_freq = 1, gap_tol = 0.001, drop = TRUE), 1)
+
+  # ...while the default (1e-6) merge seam is too tight to bridge the 1 ms
+  # excess, so the split remains.
+  expect_gt(length(as_acc(m, min_freq = 1, drop = TRUE)), 1)
+
+  # To keep ragged data together during parsing itself, set `min_freq` below the
+  # true rate so the real gaps fall under its period. At min_freq = 0.9 the
+  # 1.001 s gap is well within the ~1.111 s period, so it stays a single burst.
+  expect_length(as_acc(m, min_freq = 0.9, drop = TRUE), 1)
 })
 
 test_that("zero-span bursts (duplicate timestamps) get NA frequency, not Inf", {
   skip_if_not_installed("move2")
 
-  a <- as_acc(expanded_acc(c(0, 0, 0, 1, 2, 3)), tolerance = 0, drop = TRUE)
+  a <- as_acc(expanded_acc(c(0, 0, 0, 1, 2, 3)), gap_tol = 0, drop = TRUE)
 
   expect_true(any(is.na(freqs(a))))
   expect_false(any(is.infinite(as.numeric(freqs(a)))))
@@ -502,17 +512,17 @@ test_that("zero-span bursts (duplicate timestamps) get NA frequency, not Inf", {
 
 test_that("burst frequency is span-based (unbiased) for non-uniform spacing", {
   skip_if_not_installed("move2")
-  
+
   # Uniform spacing: span frequency equals the mean instantaneous rate.
   m_uniform <- expanded_acc(c(0, 1, 2))
   expect_equal(as.numeric(freqs(as_acc(m_uniform, drop = TRUE))), 1)
 
-  # Non-uniform gaps normally split bursts, but with tolerance they can
-  # be incorporated together. The derived frequency is biased with (mean(1/diff))
-  # Instead use (n - 1) / span.
+  # Non-uniform spacing normally splits bursts, but a rate_tol covering the
+  # 40% change from the 1 s to the 1.4 s interval incorporates them together.
+  # The derived frequency is biased with (mean(1/diff)); instead use (n-1)/span.
   m_jitter <- expanded_acc(c(0, 1, 2.4))
-  a <- as_acc(m_jitter, tolerance = 0.5, drop = TRUE)
-  
+  a <- as_acc(m_jitter, rate_tol = 0.5, drop = TRUE)
+
   expect_length(a, 1)
   expect_equal(as.numeric(freqs(a)), signif(2 / 2.4, 6))
 })

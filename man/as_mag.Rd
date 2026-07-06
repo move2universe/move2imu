@@ -14,7 +14,8 @@ as_mag(x, ...)
   x,
   colset = NULL,
   min_freq = 0,
-  tolerance = 1e-06,
+  gap_tol = 1e-06,
+  rate_tol = 0.01,
   merge_continuous = TRUE,
   drop = FALSE,
   ...
@@ -45,21 +46,29 @@ intervals will be combined into bursts, regardless of their sampling rate.
 Ignored for compact-format data, where values are already in predefined
 bursts.}
 
-\item{tolerance}{Tolerance (in seconds) to use when identifying timestamp
-irregularities that should be treated as noise when constructing bursts.
-This is the largest amount by which a sample's timestamp may deviate
-from the value suggested by the adjacent samples, assuming samples are
-collected at a consistent rate. For example, for 1 Hz data with a tolerance
-of 0.001, a timestamp recorded 1.001 seconds after another would still
-be considered to belong to the same burst.
+\item{gap_tol}{Absolute tolerance (in seconds) to use when determining
+whether two bursts are adjacent in time and can be merged. Two bursts are
+adjacent when the gap between the first burst's end and the second burst's
+start is within \code{gap_tol}.
 
-Increase this value to avoid splitting samples into separate IMU bursts
-because of small timestamp irregularities. See details.}
+For example, setting \code{gap_tol = 0.02} would allow a burst that starts up
+to 0.02 seconds after the end of the previous burst to be merged. See
+details.}
+
+\item{rate_tol}{Relative tolerance to use when detecting differences in
+sampling rates when building or merging bursts. This determines how much
+two sampling rates may differ before they're treated as belonging to
+separate sampling regimes. For example, \code{rate_tol = 0.01} would allow
+deviations up to 1\% of the earlier sampling rate to belong to the same
+burst.
+
+Increase this value to prevent small deviations in sample timing
+from initiating the creation of new bursts. See details.}
 
 \item{merge_continuous}{Logical value indicating whether to merge
 adjacent bursts. Two adjacent bursts can be merged if the end of the first
-burst coincides with the start of the second burst (within \code{tolerance})
-and the burst frequency is consistent between the two. This is useful for
+burst coincides with the start of the second burst (within \code{gap_tol})
+and their frequencies agree (within \code{rate_tol}). This is useful for
 processing continuous data that have been stored in chunks
 split at regular intervals (e.g. e-obs data).}
 
