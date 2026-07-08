@@ -17,12 +17,12 @@
 #'
 #'   Several common colsets are listed under [movebank_acc_colsets()]. To
 #'   specify a custom set of columns, use [imu_colset()].
-#' @param min_freq Numeric value indicating the minimum allowable burst
-#'   frequency in the output. Any burst whose derived frequency falls below this
-#'   value is instead split into individual (length-1) bursts. Increase this
-#'   value to avoid producing slow-frequency bursts. By default, all samples
-#'   recorded at consistent intervals will be combined into bursts, regardless
-#'   of their sampling frequency.
+#' @param min_freq Minimum allowable burst frequency in the output, in Hz. 
+#'   Any burst whose derived frequency falls below this value is instead split
+#'   into individual (length-1) bursts. Increase this value to avoid producing
+#'   slow-frequency bursts. By default, all samples recorded at consistent
+#'   intervals will be combined into bursts, regardless of their sampling
+#'   frequency.
 #'
 #'   Ignored for compact-format data, where values are already in predefined
 #'   bursts.

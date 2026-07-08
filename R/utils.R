@@ -35,6 +35,20 @@ snap_freq <- function(x, digits = 6) {
   signif(x, digits = digits)
 }
 
+# Coerce a frequency to Hz. Used so interior code can easily coerce values to Hz
+# for operations that are units-sensitive. Hz is the canonical storage format
+# for IMU vector objects.
+as_hz <- function(x, arg = rlang::caller_arg(x), call = rlang::caller_env()) {
+  if (inherits(x, "units") &&
+    !units::ud_are_convertible(units::deparse_unit(x), "Hz")) {
+    cli::cli_abort(
+      "{.arg {arg}} must be convertible to a frequency unit (Hz).",
+      call = call
+    )
+  }
+  units::set_units(x, "Hz")
+}
+
 # Absolute floating-point noise floor for POSIXct-derived time differences, in
 # seconds. POSIXct is a double count of seconds since 1970; one ULP at a
 # contemporary epoch (~1.77e9 s) is ~4e-7 s, so a difference of two timestamps

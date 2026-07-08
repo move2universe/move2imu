@@ -14,11 +14,9 @@ imu <- function(sensor,
   bursts <- burst_list(bursts, sensor)
   n <- vec_size(bursts)
 
-  if (!inherits(frequency, "units")) {
-    frequency <- units::set_units(frequency, "Hz")
-  } else if (!units::ud_are_convertible(units::deparse_unit(frequency), "Hz")) {
-    cli::cli_abort("{.arg frequency} must be convertible to a frequency unit.")
-  }
+  # Convert frequency to Hz so downstream code can assume a canonical frequency
+  # unit
+  frequency <- as_hz(frequency)
 
   start <- start %||% NA_real_
 
@@ -130,6 +128,5 @@ imu_ptype2 <- function(x, y, ..., x_arg = "", y_arg = "") {
 }
 
 imu_cast <- function(x, to, ..., x_arg = "", to_arg = "") {
-  freqs(x) <- units::set_units(freqs(x), units::deparse_unit(freqs(to)), mode = "standard")
   x
 }

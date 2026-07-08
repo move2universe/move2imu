@@ -33,7 +33,8 @@ to represent missing bursts.}
 
 \item{frequency}{Sampling frequency of the recordings in \code{bursts},
 either length 1 (recycled to all bursts) or the same length as
-\code{bursts}. If no units are specified, the frequency is assumed to
+\code{bursts}. Frequencies with compatible \link[units:units]{units} are converted
+to Hz internally. If no units are specified, the frequency is assumed to
 be in Hz.}
 
 \item{start}{Optional; burst start times in POSIXct format. Either length 1

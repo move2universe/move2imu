@@ -123,11 +123,9 @@ merge_imu <- function(x,
   }
 
   # Collapsible bursts must share a sampling frequency, within `(1 + freq_tol)`:
-  # the faster is at most that many times the slower. The stored frequency may
-  # be in any frequency-convertible unit, so normalize to Hz before stripping
-  # units. The ratio itself is unit-invariant, but the `fp_time_floor` backstop
-  # and the frequencies recomputed below are only meaningful in Hz and seconds.
-  fq <- as.numeric(units::set_units(freqs(xv), "Hz"))
+  # the faster is at most that many times the slower. `freqs()` is stored in Hz,
+  # so `1 / fq` is the sample period in seconds.
+  fq <- as.numeric(freqs(xv))
   period_s <- 1 / fq
   prev_freq <- fq[-nv]
   next_freq <- fq[-1]
@@ -232,11 +230,15 @@ merge_imu <- function(x,
 #' Split the bursts in an IMU vector into bursts of a given time
 #' duration. The result is a list of vectors of the same length as the input,
 #' with the same class as `x`.
+#' 
+#' @details
+#' Bursts with `NA` frequency will not be split, as a burst duration can't
+#' be derived. In these cases, the burst is returned unchanged.
 #'
 #' @inheritParams merge_imu
-#' @param interval Numeric or units object defining the time intervals at which
-#'   `x` will be split. If no units are provided, the interval is assumed to
-#'   be in period units of `x` (i.e., 1 divided by the frequency units).
+#' @param interval Numeric or [units][units::units] object defining the time
+#'   intervals at which `x` will be split. If no units are provided, the
+#'   interval is assumed to be in seconds.
 #'
 #' @returns A list of vectors (same class as `x`), the same length as `x`.
 #'   Each element contains the split pieces of the corresponding input burst.
@@ -295,6 +297,11 @@ split_imu <- function(x, interval) {
     function(.br, .fq, .st) {
       if (rlang::is_empty(.br) || nrow(.br) < 1) {
         return(imu(sensor, list(NULL), .fq, .st))
+      }
+
+      # Return input burst if missing frequency
+      if (is.na(.fq)) {
+        return(imu(sensor, list(.br), .fq, .st))
       }
 
       # coerce user interval into units of (1 / frequency) which is what

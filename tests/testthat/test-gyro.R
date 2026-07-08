@@ -35,22 +35,16 @@ test_that("is_gyro(), is_acc(), and is_mag() don't cross-match", {
   expect_false(is_gyro(NA))
 })
 
-test_that("c(gyro, gyro) preserves the gyro subclass", {
-  g1 <- gyro(list(cbind(X = 1:5)), units::set_units(20, "Hz"))
-  g2 <- gyro(list(cbind(X = 6:10)), units::set_units(20, "Hz"))
-
-  r <- c(g1, g2)
-
-  expect_s3_class(r, "gyro")
-  expect_length(r, 2)
-})
-
-test_that("c(gyro, gyro) unifies frequency units via sensor_ptype2", {
+test_that("c(gyro, gyro) preserves the gyro subclass and stays in Hz", {
+  # A non-Hz frequency is normalized to Hz at construction (1200 min^-1 = 20 Hz),
+  # so combining always yields a single Hz-valued frequency.
   g1 <- gyro(list(cbind(X = 1:5)), units::set_units(20, "Hz"))
   g2 <- gyro(list(cbind(X = 6:10)), units::set_units(1200, "min^-1"))
 
   r <- c(g1, g2)
 
+  expect_s3_class(r, "gyro")
+  expect_length(r, 2)
   expect_identical(units::deparse_unit(freqs(r)), "Hz")
   expect_equal(as.numeric(freqs(r)), c(20, 20))
 })
@@ -64,15 +58,6 @@ test_that("c(acc, gyro) and c(mag, gyro) error — cross-sensor combination reje
   expect_error(c(g, a))
   expect_error(c(m, g))
   expect_error(c(g, m))
-})
-
-test_that("vec_cast between gyro vectors harmonizes frequency units", {
-  g <- gyro(list(cbind(X = 1:5)), units::set_units(1200, "min^-1"))
-  target <- gyro(frequency = units::set_units(double(), "Hz"))
-
-  r <- vctrs::vec_cast(g, target)
-
-  expect_identical(units::deparse_unit(freqs(r)), "Hz")
 })
 
 test_that("gyro() enforces X/Y/Z axis names via burst_list validation", {

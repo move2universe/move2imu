@@ -103,6 +103,11 @@ NULL
 #' Access or update the underlying burst matrices, sampling frequencies, or
 #' start times for each burst in an IMU vector.
 #'
+#' @details
+#' Frequencies assigned with `freqs<-` are converted to Hz if they are provided
+#' with compatible units attached. If no units are provided, the values are
+#' assumed to be in Hz already.
+#' 
 #' @param x An IMU vector (`acc`, `mag`, or `gyro`)
 #' @param value Replacement value.
 #'
@@ -233,7 +238,7 @@ freqs <- function(x) {
 #' @rdname imu-fields
 #' @export
 `freqs<-` <- function(x, value) {
-  field(x, "frequency") <- value
+  field(x, "frequency") <- as_hz(value)
   x
 }
 

@@ -1,7 +1,8 @@
 #' Calculate the peak frequency per axis for bursts
 #'
 #' @inheritParams n_axis
-#' @param resolution A scalar with the [units][units::units] Hertz
+#' @param resolution A scalar frequency, in [units][units::units] convertible to
+#'   Hz.
 #'
 #' @returns returns a list with the same length as `x` with the peak frequency per axis
 #'
@@ -43,6 +44,10 @@
 #'
 #' peak_frequency(a, units::set_units(.005, "Hz"))
 peak_frequency <- function(x, resolution = NA) {
+  if (!is.na(resolution)) {
+    resolution <- as_hz(resolution)
+  }
+
   x_na <- is.na(x)
 
   if (all(x_na)) {
@@ -78,10 +83,8 @@ peak_freq_ <- function(burst, freq, resolution = NA) {
   b_centered <- t(burst) - colMeans(burst)
 
   if (!is.na(resolution)) {
-    # force both units to Hz so the ratio is truly dimensionless
-    to_pad <- units::drop_units(
-      units::set_units(freq, "Hz") / units::set_units(resolution, "Hz")
-    ) - nrow(burst)
+    # freq and resolution are both Hz, so ratio is unitless
+    to_pad <- units::drop_units(freq / resolution) - nrow(burst)
     b_centered <- cbind(b_centered, matrix(0, ncol = to_pad, nrow = nrow(b_centered)))
   }
 
