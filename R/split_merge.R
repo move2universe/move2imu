@@ -10,6 +10,22 @@
 #' To merge bursts with differing units, convert them to a common
 #' unit first with [set_imu_units()].
 #'
+#' @details
+#' A burst's end is taken as one sample period after its last sample.
+#' A burst of `n` samples at frequency `f` therefore ends `n / f` seconds after
+#' its start. The next burst is adjacent when it starts within `gap_tol` of
+#' that point.
+#'
+#' Bursts with missing frequencies (e.g. a burst with only one sample)
+#' are not merged. To merge such bursts, you must assign them a sampling
+#' frequency (see [freqs()]).
+#'
+#' Note that because the burst duration incorporates the elapsed time of the
+#' period after the last recorded sample, timestamp noise can make a
+#' subsequent burst appear to start slightly "before" the previous burst
+#' ends (a small negative time gap). This jitter will also be incorporated into
+#' `gap_tol`.
+#'
 #' @inheritParams n_axis
 #' @param ids Vector indicating groups to which the elements in `x` belong.
 #'   If provided, bursts in `x` will not be merged across different values of
@@ -168,8 +184,8 @@ merge_imu <- function(x,
       }
 
       last_burst <- g[length(g)]
-      last_dur <- units::set_units((ns[last_burst] - 1) * period_s[last_burst], "s")
-      last_samp_time <- sv[last_burst] + units::as_difftime(last_dur)
+      last_samp_time <- timediff[last_burst] -
+        units::as_difftime(units::set_units(period_s[last_burst], "s"))
 
       merged_span <- as.numeric(last_samp_time - sv[g[1]], units = "secs")
 

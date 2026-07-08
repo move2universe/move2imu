@@ -48,6 +48,22 @@ with different frequencies, axes, or burst data units will not be merged.
 To merge bursts with differing units, convert them to a common
 unit first with \code{\link[=set_imu_units]{set_imu_units()}}.
 }
+\details{
+A burst's end is taken as one sample period after its last sample.
+A burst of \code{n} samples at frequency \code{f} therefore ends \code{n / f} seconds after
+its start. The next burst is adjacent when it starts within \code{gap_tol} of
+that point.
+
+Bursts with missing frequencies (e.g. a burst with only one sample)
+are not merged. To merge such bursts, you must assign them a sampling
+frequency (see \code{\link[=freqs]{freqs()}}).
+
+Note that because the burst duration incorporates the elapsed time of the
+period after the last recorded sample, timestamp noise can make a
+subsequent burst appear to start slightly "before" the previous burst
+ends (a small negative time gap). This jitter will also be incorporated into
+\code{gap_tol}.
+}
 \examples{
 a <- acc(
   list(cbind(X = 1:60, Y = 1:60), cbind(X = 61:100, Y = 61:100), cbind(X = 101:140)),
