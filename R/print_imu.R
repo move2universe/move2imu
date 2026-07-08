@@ -84,9 +84,12 @@ pillar_shaft.imu <- function(x, ...) {
 
 #' @export
 obj_print_footer.imu <- function(x, ...) {
-  f <- freqs(x)[!is.na(x)]
+  f <- freqs(x[!is.na(x)])
+  f <- f[!is.na(f)]
 
-  if (length(unique(f)) <= 1) {
+  if (length(f) == 0) {
+    r <- "[ no data ]"
+  } else if (length(unique(f)) <= 1) {
     r <- format(f[1])
   } else {
     r <- paste(format(range(f)), collapse = " - ")

@@ -175,6 +175,7 @@ format_num <- function(x) {
 
 # Safe range function for storage in summary object
 .range <- function(x) {
+  x <- x[!is.na(x)]
   if (length(x) == 0) {
     return(NULL)
   }
