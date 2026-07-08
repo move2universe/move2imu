@@ -308,9 +308,9 @@ which_imu_vals <- function(x, colset) {
 #'   each match by index.
 #' @noRd
 parse_bursts <- function(x, colset, min_freq = 0, freq_tol = 1e-2) {
-  if (!inherits(min_freq, "units")) {
-    min_freq <- units::set_units(min_freq, "Hz")
-  }
+  # Coerce to Hz at the boundary so `1 / min_freq` below is in seconds,
+  # matching the second-based sample intervals, regardless of the unit supplied.
+  min_freq <- as_hz(min_freq)
 
   if (as.numeric(min_freq) < 0) {
     cli::cli_abort("{.arg min_freq} must be greater than or equal to 0.")

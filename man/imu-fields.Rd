@@ -35,6 +35,11 @@ with the updated value in the indicated field.
 Access or update the underlying burst matrices, sampling frequencies, or
 start times for each burst in an IMU vector.
 }
+\details{
+Frequencies assigned with \verb{freqs<-} are converted to Hz if they are provided
+with compatible units attached. If no units are provided, the values are
+assumed to be in Hz already.
+}
 \examples{
 x <- acc(
   bursts = list(

@@ -9,9 +9,9 @@ split_imu(x, interval)
 \arguments{
 \item{x}{An IMU vector (\code{acc}, \code{mag}, or \code{gyro})}
 
-\item{interval}{Numeric or units object defining the time intervals at which
-\code{x} will be split. If no units are provided, the interval is assumed to
-be in period units of \code{x} (i.e., 1 divided by the frequency units).}
+\item{interval}{Numeric or \link[units:units]{units} object defining the time
+intervals at which \code{x} will be split. If no units are provided, the
+interval is assumed to be in seconds.}
 }
 \value{
 A list of vectors (same class as \code{x}), the same length as \code{x}.
@@ -21,6 +21,10 @@ Each element contains the split pieces of the corresponding input burst.
 Split the bursts in an IMU vector into bursts of a given time
 duration. The result is a list of vectors of the same length as the input,
 with the same class as \code{x}.
+}
+\details{
+Bursts with \code{NA} frequency will not be split, as a burst duration can't
+be derived. In these cases, the burst is returned unchanged.
 }
 \examples{
 a <- acc(

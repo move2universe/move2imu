@@ -91,15 +91,36 @@ test_that("frequency must be in frequency-compatible units", {
     "frequency unit"
   )
 
-  # Valid frequency units should work
+  # Valid frequency units are accepted and converted to Hz
   expect_no_error(
     a <- acc(list(cbind(X = 1:3)), frequency = units::set_units(10, "kHz"))
   )
-  expect_equal(units::deparse_unit(freqs(a)), "kHz")
+  expect_equal(units::deparse_unit(freqs(a)), "Hz")
+  expect_equal(as.numeric(freqs(a)), 10000)
 
   # Bare numeric is coerced to Hz
   a <- acc(list(cbind(X = 1:3)), frequency = 10)
   expect_equal(units::deparse_unit(freqs(a)), "Hz")
+})
+
+test_that("`freqs<-` coerces the replacement to Hz", {
+  a <- acc(list(cbind(X = 1:3)), frequency = units::set_units(20, "Hz"))
+
+  # Compatible frequency units are converted to Hz
+  freqs(a) <- units::set_units(1, "kHz")
+  expect_equal(units::deparse_unit(freqs(a)), "Hz")
+  expect_equal(as.numeric(freqs(a)), 1000)
+
+  # Bare numeric is assumed to be Hz
+  freqs(a) <- 50
+  expect_equal(units::deparse_unit(freqs(a)), "Hz")
+  expect_equal(as.numeric(freqs(a)), 50)
+
+  # Non-frequency units are rejected
+  expect_error(
+    freqs(a) <- units::set_units(1, "km"),
+    "frequency unit"
+  )
 })
 
 test_that("burst matrix columns must be named X, Y, or Z", {
@@ -127,7 +148,7 @@ test_that("burst matrix columns must be named X, Y, or Z", {
   )
 })
 
-test_that("c() handles different frequency units", {
+test_that("c() normalizes different frequency units to Hz", {
   a1 <- acc(
     acc_burst_example(1:10, 1:10),
     frequency = units::set_units(20, "kHz"),
@@ -142,29 +163,26 @@ test_that("c() handles different frequency units", {
   a <- c(a1, a2)
   expect_length(a, 2)
 
-  # Both frequencies should be in the same unit
-  expect_identical(
-    units::deparse_unit(freqs(a)[1]),
-    units::deparse_unit(freqs(a)[2])
-  )
+  # Frequency is always stored in Hz, so combined vectors share the unit
+  expect_identical(units::deparse_unit(freqs(a)), "Hz")
 
-  # Numeric values should be correctly converted
-  expect_equal(as.numeric(freqs(a)[1]), 20)
-  expect_equal(as.numeric(freqs(a)[2]), 0.02)
+  # Each input is converted to Hz (20 kHz -> 20000 Hz; 20 Hz -> 20 Hz)
+  expect_equal(as.numeric(freqs(a)[1]), 20000)
+  expect_equal(as.numeric(freqs(a)[2]), 20)
 
   # NA frequencies are preserved
   a_na <- acc(list(NULL), frequency = units::set_units(NA, "Hz"))
   a <- c(a1, a_na)
   expect_length(a, 2)
-  expect_equal(as.numeric(freqs(a)[1]), 20)
+  expect_equal(as.numeric(freqs(a)[1]), 20000)
   expect_true(is.na(freqs(a)[2]))
 
   # Combining with empty acc
   a <- c(a1, acc())
   expect_length(a, 1)
-  expect_equal(as.numeric(freqs(a)[1]), 20)
+  expect_equal(as.numeric(freqs(a)[1]), 20000)
 
-  # Three-way combine with mixed units
+  # Three-way combine with mixed units, all normalized to Hz
   a3 <- acc(
     acc_burst_example(1:10, 1:10),
     frequency = units::set_units(0.001, "MHz"),
@@ -172,11 +190,8 @@ test_that("c() handles different frequency units", {
   )
   a <- c(a1, a2, a3)
   expect_length(a, 3)
-  expect_equal(as.numeric(freqs(a)), c(20, 0.02, 1))
-  expect_identical(
-    units::deparse_unit(freqs(a)),
-    "kHz"
-  )
+  expect_equal(as.numeric(freqs(a)), c(20000, 20, 1000))
+  expect_identical(units::deparse_unit(freqs(a)), "Hz")
 })
 
 test_that("c() preserves non-UTC timezone", {

@@ -36,12 +36,12 @@ contain data (see \code{\link[=active_gyro_colsets]{active_gyro_colsets()}}).
 Several common colsets are listed under \code{\link[=movebank_gyro_colsets]{movebank_gyro_colsets()}}. To
 specify a custom set of columns, use \code{\link[=imu_colset]{imu_colset()}}.}
 
-\item{min_freq}{Numeric value indicating the minimum allowable burst
-frequency in the output. Any burst whose derived frequency falls below this
-value is instead split into individual (length-1) bursts. Increase this
-value to avoid producing slow-frequency bursts. By default, all samples
-recorded at consistent intervals will be combined into bursts, regardless
-of their sampling frequency.
+\item{min_freq}{Minimum allowable burst frequency in the output, in Hz.
+Any burst whose derived frequency falls below this value is instead split
+into individual (length-1) bursts. Increase this value to avoid producing
+slow-frequency bursts. By default, all samples recorded at consistent
+intervals will be combined into bursts, regardless of their sampling
+frequency.
 
 Ignored for compact-format data, where values are already in predefined
 bursts.}

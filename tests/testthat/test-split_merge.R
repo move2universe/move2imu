@@ -430,18 +430,20 @@ test_that("Long intervals do not modify input acc", {
 test_that("Can standardize interval units when splitting", {
   a <- acc(
     c(acc_burst_example(1:60, 1:60), acc_burst_example(101:140)),
-    frequency = c(units::set_units(20, "kHz"), units::set_units(40, "kHz")),
+    frequency = c(units::set_units(20, "Hz"), units::set_units(40, "Hz")),
     start = as.POSIXct(c(0, 10), tz = "UTC")
   )
 
   split <- split_imu(a, interval = 0.5)
   flat <- purrr::reduce(split, c)
 
-  # Default should be in 1/freq units
+  # Frequency is stored in Hz, so a bare-numeric interval is in seconds
+  # (the implied period unit is 1/Hz = s); an explicit time unit is
+  # standardized to the same interval.
   expect_length(flat, 8)
   expect_identical(
     split,
-    split_imu(a, interval = units::set_units(0.5 / 1000, "s"))
+    split_imu(a, interval = units::set_units(500, "ms"))
   )
 })
 
@@ -454,6 +456,34 @@ test_that("split_imu() errors on invalid interval", {
 
   expect_error(split_imu(a, 0), "`interval` must be a positive")
   expect_error(split_imu(a, -1), "`interval` must be a positive")
+})
+
+test_that("split_imu() passes through non-empty bursts with a missing frequency", {
+  a_naf <- acc(
+    list(cbind(X = 1:5)),
+    frequency = units::set_units(NA, "Hz"),
+    start = as.POSIXct(0, tz = "UTC")
+  )
+
+  split <- split_imu(a_naf, 0.5)
+  expect_length(split, 1)
+  expect_length(split[[1]], 1)
+  expect_equal(n_samples(split[[1]]), 5L)
+  expect_equal(as.numeric(bursts(split[[1]])[[1]]), 1:5)
+
+  # In a mixed vector the good burst still splits; the NA-freq one passes through
+  mix <- c(
+    acc(
+      list(cbind(X = 1:40)),
+      frequency = units::set_units(20, "Hz"),
+      start = as.POSIXct(0, tz = "UTC")
+    ),
+    a_naf
+  )
+  split_mix <- split_imu(mix, 0.5)
+  expect_length(split_mix, 2)
+  expect_length(split_mix[[1]], 4L) # 40 samples / (0.5 s * 20 Hz = 10) = 4
+  expect_length(split_mix[[2]], 1L) # NA-freq burst unsplit
 })
 
 test_that("split_imu() round-trip in dataframe workflow", {

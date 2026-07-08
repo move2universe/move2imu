@@ -15,7 +15,8 @@
 #'   to represent missing bursts.
 #' @param frequency Sampling frequency of the recordings in `bursts`,
 #'   either length 1 (recycled to all bursts) or the same length as
-#'   `bursts`. If no units are specified, the frequency is assumed to
+#'   `bursts`. Frequencies with compatible [units][units::units] are converted
+#'   to Hz internally. If no units are specified, the frequency is assumed to
 #'   be in Hz.
 #' @param start Optional; burst start times in POSIXct format. Either length 1
 #'   (recycled), the same length as `bursts`, or `NULL` if start
