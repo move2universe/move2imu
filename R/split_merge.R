@@ -23,10 +23,11 @@
 #'   to 0.02 seconds after the end of the previous burst to be merged. See
 #'   details.
 #' @param rate_tol Relative tolerance to use when determining whether two bursts
-#'   share the same sampling frequency. Bursts can only be merged if their
-#'   frequencies are consistent, within `rate_tol`. For example,
-#'   `rate_tol = 0.01` would still merge two bursts whose frequencies differ
-#'   up to 1% of the earlier burst's frequency.
+#'   share a sampling frequency. Bursts can only be merged if their
+#'   frequencies are consistent, within `rate_tol`. Bursts can be merged when
+#'   the faster frequencies is at most `(1 + rate_tol)` times the slower.
+#'   For example, `rate_tol = 0.01` merges bursts whose frequencies
+#'   are within 1% of each other.
 #' @param drop Logical indicating whether to drop entries that have been merged
 #'   into other bursts. If `drop = FALSE` (default), the output will have the
 #'   same length as the input `x`, with `NA` values at positions where bursts
@@ -92,16 +93,17 @@ merge_imu <- function(x,
     return(x)
   }
 
-  # Collapsible bursts must have the same frequency. Compared relatively, as a
-  # fraction of the sample period, so one `rate_tol` applies across all
-  # sampling rates. `fp_time_floor` backstops the relative test so sub-
+  # Collapsible bursts must have the same frequency, within `(1 + rate_tol)`
+  # `fp_time_floor` backstops the test so sub-
   # microsecond timestamp noise on short periods is not read as a rate change.
   fq <- freqs(xv)
   period_s <- units::set_units(1 / fq, "s")
   period_num <- as.numeric(period_s)
-  period_dev <- abs(period_num[-1] - period_num[-nv])
-  is_same_freq <- !((period_dev / period_num[-nv] > rate_tol) &
-    (period_dev > fp_time_floor))
+  prev_period <- period_num[-nv]
+  next_period <- period_num[-1]
+  interval_dev <- abs(next_period - prev_period)
+  ratio_dev <- pmax(prev_period, next_period) / pmin(prev_period, next_period) - 1
+  is_same_freq <- !((ratio_dev > rate_tol) & (interval_dev > fp_time_floor))
 
   # Collapsible bursts must have axis structure
   # Check both axis names and length to disambiguate possible name duplication

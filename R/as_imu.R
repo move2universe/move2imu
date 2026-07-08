@@ -374,17 +374,16 @@ freq_changes <- function(x, rate_tol = 1e-2) {
   # change in the implied rate from one sample to the next.
   interval_dev <- abs(diff(d))
 
-  # `rate_tol` is relative to the sampling rate, so express the change as a
-  # fraction of the previous interval. This matches how `merge_imu()` compares
-  # whole-burst rates (difference over the earlier burst's period): in both
-  # cases `rate_tol` is the fractional difference between two consecutive rate
-  # estimates, anchored on the earlier one, so it reads the same way as the
-  # ratios in `diff(mt_time(x))`. `fp_time_floor` backstops it so sub-microsecond
-  # timestamp noise on short (high-frequency) intervals is not mistaken for a
-  # rate change.
+  # `rate_tol` is the largest fractional gap allowed between two rate estimates.
+  # Two intervals belong to the same regime when the longer is at most 
+  # `(1 + rate_tol)` times the shorter. This allows us to build a symmetric
+  # tolerance interval around the rate.
+  # `fp_time_floor` is included to avoid sub-microsecond timestamp noise on
+  # short intervals being mistaken for a rate change.
   prev_period <- d[-length(d)]
-  rel_dev <- interval_dev / prev_period
-  is_change <- (rel_dev > rate_tol) & (interval_dev > fp_time_floor)
+  next_period <- d[-1]
+  ratio_dev <- pmax(prev_period, next_period) / pmin(prev_period, next_period) - 1
+  is_change <- (ratio_dev > rate_tol) & (interval_dev > fp_time_floor)
 
   # Get runs of values within a given tolerance
   freq_within_tol <- cumsum(c(TRUE, is_change))

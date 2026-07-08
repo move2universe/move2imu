@@ -58,9 +58,10 @@ details.}
 \item{rate_tol}{Relative tolerance to use when detecting differences in
 sampling rates when building or merging bursts. This determines how much
 two sampling rates may differ before they're treated as belonging to
-separate sampling regimes. For example, \code{rate_tol = 0.01} would allow
-deviations up to 1\% of the earlier sampling rate to belong to the same
-burst.
+separate sampling regimes. Two rates belong to
+the same burst when the faster is at most \code{(1 + rate_tol)} times the
+slower. For example, \code{rate_tol = 0.01} keeps rates that
+are within 1\% of each other in the same burst.
 
 Increase this value to prevent small deviations in sample timing
 from initiating the creation of new bursts. See details.}

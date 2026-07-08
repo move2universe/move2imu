@@ -59,9 +59,10 @@ details.}
 \item{rate_tol}{Relative tolerance to use when detecting differences in
 sampling rates when building or merging bursts. This determines how much
 two sampling rates may differ before they're treated as belonging to
-separate sampling regimes. For example, \code{rate_tol = 0.01} would allow
-deviations up to 1\% of the earlier sampling rate to belong to the same
-burst.
+separate sampling regimes. Two rates belong to
+the same burst when the faster is at most \code{(1 + rate_tol)} times the
+slower. For example, \code{rate_tol = 0.01} keeps rates that
+are within 1\% of each other in the same burst.
 
 Increase this value to prevent small deviations in sample timing
 from initiating the creation of new bursts. See details.}
@@ -108,16 +109,15 @@ and \code{gap_tol} arguments.
 \itemize{
 \item \code{rate_tol} determines how much sampling rate noise is tolerated when
 identifying changes in sampling rate over the course of a series of recorded
-samples, as a proportion of the current sampling rate. That is,
-at \code{rate_tol = 0.01}, a new burst will be initiated only when the sampling
-rate between concurrent samples differs by more than 1\% of the running rate.
+samples. For example, at \code{rate_tol = 0.01}, a new burst is initiated only
+when two consecutive intervals differ by more than 1\%.
 
 Thus, at low values of \code{rate_tol}, small deviations in the sampling
 rate will trigger a new burst. Larger \code{rate_tol} values will smooth these
 inconsistencies, combining samples into single bursts. However, at high
 values, \code{rate_tol} may mask true changes in the sampling rate, producing
-bursts with spurious sampling frequencies (e.g. \code{rate_tol = 0.5}
-risks combining samples from a 40Hz signal with those from a 20Hz signal).
+bursts with spurious sampling frequencies. (For example, \code{rate_tol = 0.5}
+risks combining samples from a 30Hz signal with those from a 20Hz signal.)
 
 \code{rate_tol} also governs the similarity tolerance for two burst sampling
 frequencies when merging bursts (see below).
@@ -139,6 +139,11 @@ as the gap between the bursts (which deviates from the expected sampling
 rate) will be incorporated into the samples of
 a single burst.
 }
+
+Because of floating-point timestamp noise, some values of \code{rate_tol} and
+\code{gap_tol} may not always admit the frequencies or gaps that you expect. To
+reliably allow rates and gaps within a given tolerance, you may want to set
+it slightly above your desired output tolerance.
 }
 }
 \examples{

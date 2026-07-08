@@ -23,10 +23,11 @@ to 0.02 seconds after the end of the previous burst to be merged. See
 details.}
 
 \item{rate_tol}{Relative tolerance to use when determining whether two bursts
-share the same sampling frequency. Bursts can only be merged if their
-frequencies are consistent, within \code{rate_tol}. For example,
-\code{rate_tol = 0.01} would still merge two bursts whose frequencies differ
-up to 1\% of the earlier burst's frequency.}
+share a sampling frequency. Bursts can only be merged if their
+frequencies are consistent, within \code{rate_tol}. Bursts can be merged when
+the faster frequencies is at most \code{(1 + rate_tol)} times the slower.
+For example, \code{rate_tol = 0.01} merges bursts whose frequencies
+are within 1\% of each other.}
 
 \item{drop}{Logical indicating whether to drop entries that have been merged
 into other bursts. If \code{drop = FALSE} (default), the output will have the
