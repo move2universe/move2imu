@@ -4,7 +4,7 @@
 #' For a given IMU vector, identify temporally adjacent bursts and
 #' merge them into a single burst. Bursts whose end time coincides with the
 #' start time of the next burst (within `gap_tol`) and whose frequencies
-#' agree (within the relative `rate_tol`) are considered adjacent. Bursts
+#' agree (within the relative `freq_tol`) are considered adjacent. Bursts
 #' with different frequencies, axes, or burst data units will not be merged.
 #'
 #' To merge bursts with differing units, convert them to a common
@@ -22,11 +22,11 @@
 #'   For example, setting `gap_tol = 0.02` would allow a burst that starts up
 #'   to 0.02 seconds after the end of the previous burst to be merged. See
 #'   details.
-#' @param rate_tol Relative tolerance to use when determining whether two bursts
+#' @param freq_tol Relative tolerance to use when determining whether two bursts
 #'   share a sampling frequency. Bursts can only be merged if their
-#'   frequencies are consistent, within `rate_tol`. Bursts can be merged when
-#'   the faster frequencies is at most `(1 + rate_tol)` times the slower.
-#'   For example, `rate_tol = 0.01` merges bursts whose frequencies
+#'   frequencies are consistent, within `freq_tol`. Bursts can be merged when
+#'   the faster frequency is at most `(1 + freq_tol)` times the slower.
+#'   For example, `freq_tol = 0.01` merges bursts whose frequencies
 #'   are within 1% of each other.
 #' @param drop Logical indicating whether to drop entries that have been merged
 #'   into other bursts. If `drop = FALSE` (default), the output will have the
@@ -48,7 +48,7 @@
 merge_imu <- function(x,
                       ids = NULL,
                       gap_tol = 1e-6,
-                      rate_tol = 1e-2,
+                      freq_tol = 1e-2,
                       drop = FALSE) {
   n <- vec_size(x)
 
@@ -59,8 +59,8 @@ merge_imu <- function(x,
     cli::cli_abort("{.arg gap_tol} must be greater than or equal to 0.")
   }
 
-  if (as.numeric(rate_tol) < 0) {
-    cli::cli_abort("{.arg rate_tol} must be greater than or equal to 0.")
+  if (as.numeric(freq_tol) < 0) {
+    cli::cli_abort("{.arg freq_tol} must be greater than or equal to 0.")
   }
 
   # Work only with non-NA entries; track their original positions
@@ -93,17 +93,22 @@ merge_imu <- function(x,
     return(x)
   }
 
-  # Collapsible bursts must have the same frequency, within `(1 + rate_tol)`
-  # `fp_time_floor` backstops the test so sub-
-  # microsecond timestamp noise on short periods is not read as a rate change.
-  fq <- freqs(xv)
-  period_s <- units::set_units(1 / fq, "s")
-  period_num <- as.numeric(period_s)
-  prev_period <- period_num[-nv]
-  next_period <- period_num[-1]
-  interval_dev <- abs(next_period - prev_period)
-  ratio_dev <- pmax(prev_period, next_period) / pmin(prev_period, next_period) - 1
-  is_same_freq <- !((ratio_dev > rate_tol) & (interval_dev > fp_time_floor))
+  # Collapsible bursts must share a sampling frequency, within `(1 + freq_tol)`:
+  # the faster is at most that many times the slower. The stored frequency may
+  # be in any frequency-convertible unit, so normalize to Hz before stripping
+  # units. The ratio itself is unit-invariant, but the `fp_time_floor` backstop
+  # and the frequencies recomputed below are only meaningful in Hz and seconds.
+  fq <- as.numeric(units::set_units(freqs(xv), "Hz"))
+  period_s <- 1 / fq
+  prev_freq <- fq[-nv]
+  next_freq <- fq[-1]
+  ratio_dev <- pmax(prev_freq, next_freq) / pmin(prev_freq, next_freq) - 1
+
+  # `fp_time_floor` backstops the relative test against sub-microsecond timestamp
+  # jitter. That noise is a time-domain quantity, so the backstop is evaluated on
+  # the implied sample period (1/freq) in seconds, not on the frequency itself.
+  period_dev <- abs(period_s[-1] - period_s[-nv])
+  is_same_freq <- !((ratio_dev > freq_tol) & (period_dev > fp_time_floor))
 
   # Collapsible bursts must have axis structure
   # Check both axis names and length to disambiguate possible name duplication

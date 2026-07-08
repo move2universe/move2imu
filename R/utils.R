@@ -38,14 +38,14 @@ snap_freq <- function(x, digits = 6) {
 # Absolute floating-point noise floor for POSIXct-derived time differences, in
 # seconds. POSIXct is a double count of seconds since 1970; one ULP at a
 # contemporary epoch (~1.77e9 s) is ~4e-7 s, so a difference of two timestamps
-# carries ~sub-microsecond noise regardless of the sampling rate. Relative
+# carries ~sub-microsecond noise regardless of the sampling frequency. Relative
 # frequency comparisons (which divide by the sample period) inflate this noise
-# at high sampling rates, so those comparisons are backstopped with this floor:
-# a deviation must exceed both the relative `rate_tol` AND this absolute
-# floor to count as a real rate change. This keeps sub-microsecond timestamp
-# jitter from being mistaken for a rate change on fast (e.g. >1 kHz) data, while
-# only ever declining to resolve rate differences too small for POSIXct to
-# represent anyway.
+# at high sampling frequencies, so those comparisons are backstopped with this
+# floor: a deviation must exceed both the relative `freq_tol` AND this absolute
+# floor to count as a real frequency change. This keeps sub-microsecond
+# timestamp jitter from being mistaken for a frequency change on fast (e.g.
+# >1 kHz) data, while only ever declining to resolve frequency differences too
+# small for POSIXct to represent anyway.
 fp_time_floor <- 1e-6
 
 # From dplyr

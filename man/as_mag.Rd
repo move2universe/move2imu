@@ -14,8 +14,8 @@ as_mag(x, ...)
   x,
   colset = NULL,
   min_freq = 0,
+  freq_tol = 0.01,
   gap_tol = 1e-06,
-  rate_tol = 0.01,
   merge_continuous = TRUE,
   drop = FALSE,
   ...
@@ -41,10 +41,21 @@ frequency in the output. Any burst whose derived frequency falls below this
 value is instead split into individual (length-1) bursts. Increase this
 value to avoid producing slow-frequency bursts. By default, all samples
 recorded at consistent intervals will be combined into bursts, regardless
-of their sampling rate.
+of their sampling frequency.
 
 Ignored for compact-format data, where values are already in predefined
 bursts.}
+
+\item{freq_tol}{Relative tolerance to use when detecting differences in
+sampling frequency when building or merging bursts. This determines how
+much two sampling frequencies may differ before they're treated as
+belonging to separate sampling regimes. Two frequencies belong to
+the same burst when the faster is at most \code{(1 + freq_tol)} times the
+slower. For example, \code{freq_tol = 0.01} keeps frequencies that
+are within 1\% of each other in the same burst.
+
+Increase this value to prevent small deviations in sample timing
+from initiating the creation of new bursts. See details.}
 
 \item{gap_tol}{Absolute tolerance (in seconds) to use when determining
 whether two bursts are adjacent in time and can be merged. Two bursts are
@@ -55,21 +66,10 @@ For example, setting \code{gap_tol = 0.02} would allow a burst that starts up
 to 0.02 seconds after the end of the previous burst to be merged. See
 details.}
 
-\item{rate_tol}{Relative tolerance to use when detecting differences in
-sampling rates when building or merging bursts. This determines how much
-two sampling rates may differ before they're treated as belonging to
-separate sampling regimes. Two rates belong to
-the same burst when the faster is at most \code{(1 + rate_tol)} times the
-slower. For example, \code{rate_tol = 0.01} keeps rates that
-are within 1\% of each other in the same burst.
-
-Increase this value to prevent small deviations in sample timing
-from initiating the creation of new bursts. See details.}
-
 \item{merge_continuous}{Logical value indicating whether to merge
 adjacent bursts. Two adjacent bursts can be merged if the end of the first
 burst coincides with the start of the second burst (within \code{gap_tol})
-and their frequencies agree (within \code{rate_tol}). This is useful for
+and their frequencies agree (within \code{freq_tol}). This is useful for
 processing continuous data that have been stored in chunks
 split at regular intervals (e.g. e-obs data).}
 

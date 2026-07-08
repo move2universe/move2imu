@@ -12,8 +12,8 @@ as_imu.move2 <- function(x,
                          sensor,
                          colset = NULL,
                          min_freq = 0,
+                         freq_tol = 1e-2,
                          gap_tol = 1e-6,
-                         rate_tol = 1e-2,
                          merge_continuous = TRUE,
                          drop = FALSE,
                          ...) {
@@ -38,8 +38,8 @@ as_imu.move2 <- function(x,
         sensor = sensor,
         colset = cols,
         min_freq = min_freq,
+        freq_tol = freq_tol,
         gap_tol = gap_tol,
-        rate_tol = rate_tol,
         merge_continuous = merge_continuous,
         drop = FALSE,
         ...
@@ -62,8 +62,8 @@ as_imu_move2_ <- function(x,
                           sensor,
                           colset,
                           min_freq = 0,
+                          freq_tol = 1e-2,
                           gap_tol = 1e-6,
-                          rate_tol = 1e-2,
                           merge_continuous = TRUE,
                           drop = FALSE,
                           force_int = NULL,
@@ -78,7 +78,7 @@ as_imu_move2_ <- function(x,
       colset = colset,
       sensor = sensor,
       min_freq = min_freq,
-      rate_tol = rate_tol,
+      freq_tol = freq_tol,
       ...
     )
   } else if (type == "compact") {
@@ -104,7 +104,7 @@ as_imu_move2_ <- function(x,
       out,
       ids = move2::mt_track_id(x),
       gap_tol = gap_tol,
-      rate_tol = rate_tol,
+      freq_tol = freq_tol,
       drop = drop
     )
   }
@@ -158,7 +158,7 @@ as_imu_move2_expanded <- function(x,
                                   colset,
                                   sensor,
                                   min_freq = 0,
-                                  rate_tol = 1e-2,
+                                  freq_tol = 1e-2,
                                   timestamp = move2::mt_time(x),
                                   ...) {
   col_names <- as.character(colset)
@@ -178,7 +178,7 @@ as_imu_move2_expanded <- function(x,
     x,
     colset = colset,
     min_freq = min_freq,
-    rate_tol = rate_tol
+    freq_tol = freq_tol
   )
   burst_idx <- parsed$bursts
 
@@ -261,10 +261,10 @@ which_imu_vals <- function(x, colset) {
 #'
 #' @description
 #' Based on the timestamps of the samples in expanded-format IMU
-#' data, identify bursts based on the observed sampling rate. Samples are first
-#' grouped into runs of consistent sampling rate; any run whose overall
-#' frequency falls below `min_freq` is then split into individual (length-1)
-#' bursts.
+#' data, identify bursts based on the observed sampling frequency. Samples are
+#' first grouped into runs of consistent sampling frequency; any run whose
+#' overall frequency falls below `min_freq` is then split into individual
+#' (length-1) bursts.
 #'
 #' @details
 #' For continuous data, IMUs may dynamically update collection frequency.
@@ -274,8 +274,8 @@ which_imu_vals <- function(x, colset) {
 #'
 #' `min_freq` is evaluated on each run's derived frequency, not on the
 #' individual inter-sample gaps. A single anomalous gap
-#' therefore does not explode a run whose overall rate is still consistent with
-#' the input `min_freq`.
+#' therefore does not explode a run whose overall frequency is still consistent
+#' with the input `min_freq`.
 #'
 #' For samples at the boundary of a frequency change, there is
 #' a fundamental ambiguity as to whether these samples should be included in
@@ -290,7 +290,7 @@ which_imu_vals <- function(x, colset) {
 #'   The latter is the derived sampling frequency of each burst. Elements of
 #'   each match by index.
 #' @noRd
-parse_bursts <- function(x, colset, min_freq = 0, rate_tol = 1e-2) {
+parse_bursts <- function(x, colset, min_freq = 0, freq_tol = 1e-2) {
   if (!inherits(min_freq, "units")) {
     min_freq <- units::set_units(min_freq, "Hz")
   }
@@ -299,8 +299,8 @@ parse_bursts <- function(x, colset, min_freq = 0, rate_tol = 1e-2) {
     cli::cli_abort("{.arg min_freq} must be greater than or equal to 0.")
   }
 
-  if (as.numeric(rate_tol) < 0) {
-    cli::cli_abort("{.arg rate_tol} must be greater than or equal to 0.")
+  if (as.numeric(freq_tol) < 0) {
+    cli::cli_abort("{.arg freq_tol} must be greater than or equal to 0.")
   }
 
   min_interval <- (1 / as.numeric(min_freq)) + fp_time_floor
@@ -319,8 +319,8 @@ parse_bursts <- function(x, colset, min_freq = 0, rate_tol = 1e-2) {
 
       samp_times <- as.numeric(move2::mt_time(x[i, ]))
 
-      # Identify runs of consistent sampling rate, within the tolerance
-      is_freq_change <- freq_changes(diff(samp_times), rate_tol = rate_tol)
+      # Identify runs of consistent sampling frequency, within the tolerance
+      is_freq_change <- freq_changes(diff(samp_times), freq_tol = freq_tol)
       run_id <- cumsum(is_freq_change)
 
       # Explode any run collected slower than `min_freq` by calculating
@@ -366,24 +366,27 @@ parse_bursts <- function(x, colset, min_freq = 0, rate_tol = 1e-2) {
 # when a change of frequency is detected, we create a new group of IMU
 # values. See `new_freq_regime()` for more on the logic of how split points
 # are determined in ambiguous cases.
-freq_changes <- function(x, rate_tol = 1e-2) {
+freq_changes <- function(x, freq_tol = 1e-2) {
   d <- as.numeric(x)
 
-  # Difference between each pair of consecutive sample intervals. Each interval
-  # is a local, one-sample estimate of the sampling period, so this is the
-  # change in the implied rate from one sample to the next.
+  # Absolute difference between each pair of consecutive sample intervals, in
+  # seconds. Each interval is a local, one-sample estimate of the sampling
+  # period, so this is the change in the implied frequency from one sample to
+  # the next.
   interval_dev <- abs(diff(d))
 
-  # `rate_tol` is the largest fractional gap allowed between two rate estimates.
-  # Two intervals belong to the same regime when the longer is at most 
-  # `(1 + rate_tol)` times the shorter. This allows us to build a symmetric
-  # tolerance interval around the rate.
-  # `fp_time_floor` is included to avoid sub-microsecond timestamp noise on
-  # short intervals being mistaken for a rate change.
+  # `freq_tol` is the largest fractional gap allowed between two frequency
+  # estimates: two intervals belong to the same regime when the faster
+  # frequency is at most `(1 + freq_tol)` times the slower. Because the ratio of
+  # the larger to the smaller is invariant under reciprocal, this is identical
+  # whether taken on frequencies or on periods, so we take it directly on the
+  # periods `d` we already have. `fp_time_floor` backstops the relative test
+  # against sub-microsecond timestamp noise on short intervals; that noise is a
+  # time-domain quantity, so the backstop stays on the period difference.
   prev_period <- d[-length(d)]
   next_period <- d[-1]
   ratio_dev <- pmax(prev_period, next_period) / pmin(prev_period, next_period) - 1
-  is_change <- (ratio_dev > rate_tol) & (interval_dev > fp_time_floor)
+  is_change <- (ratio_dev > freq_tol) & (interval_dev > fp_time_floor)
 
   # Get runs of values within a given tolerance
   freq_within_tol <- cumsum(c(TRUE, is_change))

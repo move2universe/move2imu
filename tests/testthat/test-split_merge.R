@@ -518,7 +518,7 @@ test_that("gap_tol bridges a small boundary glitch", {
   expect_identical(starts(merged), as.POSIXct(0, tz = "UTC", origin = "1970-01-01"))
 })
 
-test_that("rate_tol controls merging across a small frequency glitch", {
+test_that("freq_tol controls merging across a small frequency glitch", {
   # Two exactly-abutting bursts; the second's frequency is a hair different
   # (10 vs 10.001 Hz, a 0.01% relative difference).
   a <- acc(
@@ -530,12 +530,12 @@ test_that("rate_tol controls merging across a small frequency glitch", {
     start = as.POSIXct(c(0, 3), tz = "UTC")
   )
 
-  # rate_tol is relative: the default (1%) treats a sub-percent glitch as
-  # the same rate, so the bursts merge.
+  # freq_tol is relative: the default (1%) treats a sub-percent glitch as
+  # the same frequency, so the bursts merge.
   expect_length(merge_imu(a, drop = TRUE), 1)
 
-  # A rate_tol tighter than the 1e-4 relative difference keeps them apart.
-  expect_length(merge_imu(a, rate_tol = 1e-5, drop = TRUE), 2)
+  # A freq_tol tighter than the 1e-4 relative difference keeps them apart.
+  expect_length(merge_imu(a, freq_tol = 1e-5, drop = TRUE), 2)
 })
 
 test_that("merged frequency is recomputed from the burst span", {

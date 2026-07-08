@@ -463,17 +463,17 @@ test_that("Custom expanded-format colset works end-to-end", {
   )
 })
 
-test_that("rate_tol and min_freq control burst parsing (gap_tol does not)", {
+test_that("freq_tol and min_freq control burst parsing (gap_tol does not)", {
   skip_if_not_installed("move2")
   # 1 Hz data with a single 1.001 s hiccup
   ts <- cumsum(c(0, rep(1, 26), 1.001, 0.999, 1, 1))
   m <- expanded_acc(ts)
 
-  # Hiccup is absorbed by default `rate_tol`
+  # Hiccup is absorbed by default `freq_tol`
   expect_length(as_acc(m, drop = TRUE), 1)
 
-  # A `rate_tol` tighter than the magnitude of the glitch triggers a split
-  expect_equal(length(as_acc(m, rate_tol = 1e-5, drop = TRUE)), 3)
+  # A `freq_tol` tighter than the magnitude of the glitch triggers a split
+  expect_equal(length(as_acc(m, freq_tol = 1e-5, drop = TRUE)), 3)
 
   expect_length(as_acc(m, min_freq = 1, drop = TRUE), 1)
 
@@ -506,15 +506,15 @@ test_that("zero-span bursts (duplicate timestamps) get NA frequency, not Inf", {
 test_that("burst frequency is span-based (unbiased) for non-uniform spacing", {
   skip_if_not_installed("move2")
 
-  # Uniform spacing: span frequency equals the mean instantaneous rate.
+  # Uniform spacing: span frequency equals the mean instantaneous frequency.
   m_uniform <- expanded_acc(c(0, 1, 2))
   expect_equal(as.numeric(freqs(as_acc(m_uniform, drop = TRUE))), 1)
 
-  # Non-uniform spacing normally splits bursts, but a rate_tol covering the
+  # Non-uniform spacing normally splits bursts, but a freq_tol covering the
   # 40% change from the 1 s to the 1.4 s interval incorporates them together.
   # The derived frequency is biased with (mean(1/diff)); instead use (n-1)/span.
   m_jitter <- expanded_acc(c(0, 1, 2.4))
-  a <- as_acc(m_jitter, rate_tol = 0.5, drop = TRUE)
+  a <- as_acc(m_jitter, freq_tol = 0.5, drop = TRUE)
 
   expect_length(a, 1)
   expect_equal(as.numeric(freqs(a)), signif(2 / 2.4, 6))
