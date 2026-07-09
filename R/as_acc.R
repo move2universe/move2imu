@@ -51,6 +51,12 @@
 #' @param ... currently not used
 #'
 #' @details
+#' `as_*()` functions require that the input `move2` object be sorted by track
+#' and  strictly increasing in time. Duplicate timestamps within a single
+#' track must be resolved before calling `as_*()`. See 
+#' [move2::mt_is_track_id_cleaved()], [move2::mt_is_time_ordered()], and
+#' [move2::mt_filter_unique()] for help diagnosing issues with data organization.
+#' 
 #' ## Dealing with noise in recorded timestamps
 #'
 #' Noise in the recorded timestamps of an input `move2` object can disrupt the
@@ -81,9 +87,10 @@
 #'   frequency will trigger a new burst. Larger `freq_tol` values will smooth
 #'   these inconsistencies, combining samples into single bursts. However, at
 #'   high values, `freq_tol` may mask true changes in the sampling frequency,
-#'   producing bursts with spurious sampling frequencies. (For example,
+#'   producing bursts with spurious sampling frequencies. For example,
 #'   `freq_tol = 0.5` risks combining samples from a 30Hz signal with those from
-#'   a 20Hz signal.)
+#'   a 20Hz signal. Similarly, gradual timestamp drift within the `freq_tol`
+#'   can produce misleading output frequencies for a burst.
 #'
 #'   `freq_tol` also governs the similarity tolerance for two burst sampling
 #'   frequencies when merging bursts (see below).
@@ -105,12 +112,16 @@
 #'   as the gap between the bursts (which deviates from the expected sampling
 #'   frequency) will be incorporated into the samples of
 #'   a single burst.
+#'   
+#' In general, it is best to keep the tolerance parameters as low as possible
+#' while still accommodating the noise inherent in the timestamp recordings
+#' in your data.
 #'
 #' Because of floating-point timestamp noise, some values of `freq_tol` and
 #' `gap_tol` may not always admit the frequencies or gaps that you expect. To
 #' reliably allow frequencies and gaps within a given tolerance, you may want to
 #' set the values slightly above your desired output tolerance.
-#'
+#' 
 #' @seealso [movebank_acc_colsets()] for supported acceleration column sets
 #'   in Movebank.
 #'

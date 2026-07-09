@@ -17,6 +17,10 @@ as_imu.move2 <- function(x,
                          merge_continuous = TRUE,
                          drop = FALSE,
                          ...) {
+  if (nrow(x) == 0) {
+    return(new_imu(sensor))
+  }
+
   colsets <- parse_colsets(x, colset, sensor)
   dup <- duplicated_imu_rows(x, colsets = colsets)
 
@@ -69,7 +73,20 @@ as_imu_move2_ <- function(x,
                           force_int = NULL,
                           ...) {
   check_colset(x, colset)
-
+  
+  imu_rows <- has_imu_(x, sensor = sensor, colset = colset)
+  
+  if (any(imu_rows) && any(is.na(move2::mt_time(x[imu_rows, ])))) {
+    cli::cli_abort("All timestamps associated with IMU data must be non-NA.")
+  }
+  
+  if (any(imu_rows) && !isTRUE(move2::mt_is_time_ordered(x[imu_rows, ], non_zero = TRUE))) {
+    cli::cli_abort(c(
+      "Timestamps must be strictly increasing within each track.",
+      "i" = "Order data by track and time and remove duplicate timestamps. See `move2::mt_filter_unique()`."
+    ))
+  }
+  
   type <- colset_type(colset)
 
   if (type == "expanded") {

@@ -16,6 +16,19 @@
 #' its start. The next burst is adjacent when it starts within `gap_tol` of
 #' that point.
 #'
+#' After merging, the burst's frequency is recomputed from its new
+#' sample count and overall time span. The gap between the bursts therefore
+#' impacts the derived output frequency of the new burst. If the `gap_tol` is
+#' set to allow any timestamp noise, the gap between the two bursts may not
+#' precisely correspond with the sampling periods of the bursts being merged.
+#' In these cases, the recorded output frequency of the merged burst will 
+#' vary slightly from the values of its component bursts.
+#' 
+#' This approach preserves overall burst time span at the expense of preserving
+#' a consistent burst frequency. If you instead prefer to preserve frequency,
+#' you will need to manually adjust the frequency of the 
+#' output burst (see [freqs()]) or correct timestamps in the input data.
+#'
 #' Bursts with missing frequencies (e.g. a burst with only one sample)
 #' are not merged. To merge such bursts, you must assign them a sampling
 #' frequency (see [freqs()]).

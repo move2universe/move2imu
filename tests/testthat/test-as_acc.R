@@ -494,13 +494,144 @@ test_that("freq_tol and min_freq control burst parsing (gap_tol does not)", {
   expect_length(as_acc(two, drop = TRUE), 2)
 })
 
-test_that("zero-span bursts (duplicate timestamps) get NA frequency, not Inf", {
+test_that("duplicate timestamps within a track are rejected", {
   skip_if_not_installed("move2")
 
-  a <- as_acc(expanded_acc(c(0, 0, 0, 1, 2, 3)), gap_tol = 0, drop = TRUE)
+  expect_error(
+    as_acc(expanded_acc(c(0, 0, 0, 1, 2, 3))),
+    "strictly increasing"
+  )
 
-  expect_true(any(is.na(freqs(a))))
-  expect_false(any(is.infinite(as.numeric(freqs(a)))))
+  # Duplicates shared across different tracks should be fine
+  two_tracks <- expanded_acc(c(0, 0), id = c("a", "b"))
+  expect_no_error(as_acc(two_tracks))
+})
+
+test_that("out-of-order timestamps within a track are rejected", {
+  skip_if_not_installed("move2")
+
+  # Put problem timestamp in second track to also ensure all tracks are checked
+  expect_error(
+    as_acc(expanded_acc(
+      c(0, 0.05, 0.10, 0, 0.10, 0.05),
+      id = c("a", "a", "a", "b", "b", "b")
+    )),
+    "strictly increasing"
+  )
+})
+
+test_that("NA timestamps on IMU records are rejected", {
+  skip_if_not_installed("move2")
+
+  expect_error(
+    as_acc(expanded_acc(c(0, 0.05, NA, 0.10))),
+    "must be non-NA"
+  )
+
+  # NA values outside of IMU data rows don't error
+  d <- data.frame(
+    id = 1,
+    acceleration_x = c(1, 2, NA, 3),
+    acceleration_y = c(1, 2, NA, 3),
+    acceleration_z = c(1, 2, NA, 3),
+    timestamp = as.POSIXct(c(0, 0.05, NA, 0.10), tz = "UTC", origin = "2020-01-01"),
+    x = 1, y = 1
+  )
+  m <- move2::mt_as_move2(
+    d,
+    coords = c("x", "y"),
+    time_column = "timestamp",
+    track_id_column = "id"
+  )
+  expect_no_error(as_acc(m, drop = TRUE))
+})
+
+test_that("Can resolve IMU timestamp ordering issues with move2 helpers", {
+  skip_if_not_installed("move2")
+  
+  m <- expanded_acc(c(0, 0, 0, 1, 2, 1.5, 3))
+  move2::mt_track_id(m) <- c(1, 2, 1, 1, 1, 2, 2)
+  
+  expect_error(as_acc(m), "Not all tracks are grouped")
+  expect_error(as_acc(m[order(move2::mt_track_id(m)), ]), "strictly increasing")
+  
+  m <- m[order(move2::mt_track_id(m), move2::mt_time(m)), ]
+  
+  expect_error(as_acc(m), "strictly increasing")
+  
+  m <- move2::mt_filter_unique(m, "first")
+  
+  expect_no_error(as_acc(m))
+})
+
+test_that("Only IMU records are considered when checking data ordering", {
+  d <- data.frame(
+    id = 1,
+    acceleration_raw_x = c(1, NA, 2, NA, 3),
+    acceleration_raw_y = c(4, NA, 5, NA, 6),
+    acceleration_raw_z = c(7, NA, 8, NA, 9),
+    timestamp = as.POSIXct(
+      c(0, 0.05, 0.05, 0.02, 0.10),
+      tz = "UTC", origin = "2020-01-01"
+    ),
+    x = 1, y = 1
+  )
+  
+  m <- move2::mt_as_move2(
+    d,
+    coords = c("x", "y"),
+    time_column = "timestamp",
+    track_id_column = "id"
+  )
+
+  # Across all records the timestamps are neither ordered nor unique
+  expect_false(move2::mt_is_time_ordered(m, non_zero = TRUE))
+
+  # But the acc records alone are strictly increasing
+  expect_no_error(a <- as_acc(m, drop = TRUE))
+  expect_length(a, 1)
+  expect_identical(n_samples(a), 3L)
+  expect_equal(as.numeric(freqs(a)), 20)
+  expect_identical(bursts(a)[[1]][, "X"], c(1, 2, 3))
+})
+
+test_that("compact bursts must also be ordered and unique within a track", {
+  skip_if_not_installed("move2")
+
+  compact_acc <- function(starts) {
+    t <- data.frame(
+      id = 1,
+      eobs_acceleration_axes = "XYZ",
+      eobs_acceleration_sampling_frequency_per_axis = 20,
+      eobs_accelerations_raw = vapply(
+        seq_along(starts), function(i) paste(1:30, collapse = " "), character(1)
+      ),
+      timestamp = as.POSIXct(starts, tz = "UTC"),
+      x = 1, y = 1
+    )
+    move2::mt_as_move2(
+      t, coords = c("x", "y"), time_column = "timestamp", track_id_column = "id"
+    )
+  }
+
+  expect_error(as_acc(compact_acc(c(2, 0))), "strictly increasing")
+  expect_error(as_acc(compact_acc(c(0, 0))), "strictly increasing")
+  expect_no_error(as_acc(compact_acc(c(0, 2))))
+  
+  comp <- compact_acc(c(0, 0))
+  move2::mt_track_id(comp) <- c(1, 2)
+  
+  expect_no_error(as_acc(comp))
+})
+
+test_that("an empty input returns an empty vector", {
+  skip_if_not_installed("move2")
+
+  empty <- gulls()[0, ]
+  a <- as_acc(empty)
+
+  expect_s3_class(a, "acc")
+  expect_length(a, 0)
 })
 
 test_that("burst frequency is span-based (unbiased) for non-uniform spacing", {
