@@ -44,8 +44,15 @@ snap_freq <- function(x, digits = 6) {
 # floor: a deviation must exceed both the relative `freq_tol` AND this absolute
 # floor to count as a real frequency change. This keeps sub-microsecond
 # timestamp jitter from being mistaken for a frequency change on fast (e.g.
-# >1 kHz) data, while only ever declining to resolve frequency differences too
-# small for POSIXct to represent anyway.
+# >1 kHz) data.
+#
+# The floor (1e-6 s) sits a few times above the raw ULP (~4e-7 s) to absorb
+# noise accumulated across a burst's timestamps. The trade-off is that a genuine
+# frequency change between two adjacent, gap-free regimes whose sample periods
+# differ by less than the floor will not be split (it merges into one burst with
+# a blended frequency). This is only an issue when `freq_tol / f` drops below the
+# floor -- i.e. above roughly `freq_tol * 1e6` Hz -- well beyond normal IMU
+# sampling rates, and near the resolution POSIXct can represent anyway.
 fp_time_floor <- 1e-6
 
 # From dplyr

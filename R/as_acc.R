@@ -7,10 +7,9 @@
 #' [active_acc_colsets()].
 #'
 #' @inheritParams merge_imu
-#' @param x A `move2` containing acceleration data as collected by EOBS,
-#'   Ornitela, or similar tracking devices. Most of the time this will be
-#'   either loaded from disk using [move2::mt_read] or downloaded using
-#'   [move2::movebank_download_study].
+#' @param x A `move2` object containing acceleration data. Typically this will
+#'   be loaded from disk with [move2::mt_read()] or downloaded using
+#'   [move2::movebank_download_study()].
 #' @param colset An `imu_colset` object or list of `imu_colset` objects
 #'   specifying the columns of `x` that contain acceleration data. By default,
 #'   constructs bursts for all column sets that are detected in `x` that also
@@ -42,7 +41,7 @@
 #'   burst coincides with the start of the second burst (within `gap_tol`)
 #'   and their frequencies agree (within `freq_tol`). This is useful for
 #'   processing continuous data that have been stored in chunks
-#'   split at regular intervals (e.g. e-obs data).
+#'   split at regular intervals (e.g. e-obs data). See [merge_imu()].
 #' @param drop Logical indicating whether empty bursts should
 #'   be dropped from the output. If `drop = FALSE`, then the length of the
 #'   output will match the number of rows in the input data `x` and
@@ -51,12 +50,20 @@
 #' @param ... currently not used
 #'
 #' @details
+#' By default (`drop = FALSE`), the output vector will be the same length
+#' as the input. This facilitates the use of an IMU burst vector as a column
+#' in a data.frame. For expanded data formats, multiple rows of input data will
+#' be represented in a single row in the output (corresponding to the start
+#' timestamp of the burst).
+#'
+#' ## Input requirements
+#'
 #' `as_*()` functions require that the input `move2` object be sorted by track
-#' and  strictly increasing in time. Duplicate timestamps within a single
-#' track must be resolved before calling `as_*()`. See 
+#' and strictly increasing in time. Duplicate timestamps within a single
+#' track must be resolved before calling `as_*()`. See
 #' [move2::mt_is_track_id_cleaved()], [move2::mt_is_time_ordered()], and
 #' [move2::mt_filter_unique()] for help diagnosing issues with data organization.
-#' 
+#'
 #' ## Dealing with noise in recorded timestamps
 #'
 #' Noise in the recorded timestamps of an input `move2` object can disrupt the
@@ -92,8 +99,11 @@
 #'   a 20Hz signal. Similarly, gradual timestamp drift within the `freq_tol`
 #'   can produce misleading output frequencies for a burst.
 #'
-#'   `freq_tol` also governs the similarity tolerance for two burst sampling
-#'   frequencies when merging bursts (see below).
+#' - `freq_tol` also governs the similarity tolerance between two burst sampling
+#'   frequencies when merging bursts (if `merge_continuous = TRUE`). Note that
+#'   bursts that do not clear the `min_freq` threshold are automatically
+#'   recorded in individual samples with `NA` frequency, meaning these cannot
+#'   later be merged.
 #'
 #' - `gap_tol` determines how much deviation in the time gap between bursts
 #'   is tolerated when merging two bursts together, in seconds
@@ -121,10 +131,12 @@
 #' `gap_tol` may not always admit the frequencies or gaps that you expect. To
 #' reliably allow frequencies and gaps within a given tolerance, you may want to
 #' set the values slightly above your desired output tolerance.
+#'
+#' @return An object of class `acc` inheriting from class `imu`.
 #' 
 #' @seealso [movebank_acc_colsets()] for supported acceleration column sets
 #'   in Movebank.
-#'
+#' 
 #' @export
 #'
 #' @examplesIf rlang::is_installed("move2")

@@ -22,9 +22,9 @@ as_mag(x, ...)
 )
 }
 \arguments{
-\item{x}{A \code{move2} containing magnetometer data. Most of the time this will be
-either loaded from disk using \link[move2:mt_read]{move2::mt_read} or downloaded using
-\link[move2:movebank_download_study]{move2::movebank_download_study}.}
+\item{x}{A \code{move2} object containing magnetometer data. Typically this will
+be loaded from disk with \code{\link[move2:mt_read]{move2::mt_read()}} or downloaded using
+\code{\link[move2:movebank_download_study]{move2::movebank_download_study()}}.}
 
 \item{...}{currently not used}
 
@@ -71,13 +71,16 @@ adjacent bursts. Two adjacent bursts can be merged if the end of the first
 burst coincides with the start of the second burst (within \code{gap_tol})
 and their frequencies agree (within \code{freq_tol}). This is useful for
 processing continuous data that have been stored in chunks
-split at regular intervals (e.g. e-obs data).}
+split at regular intervals (e.g. e-obs data). See \code{\link[=merge_imu]{merge_imu()}}.}
 
 \item{drop}{Logical indicating whether empty bursts should
 be dropped from the output. If \code{drop = FALSE}, then the length of the
 output will match the number of rows in the input data \code{x} and
 bursts will be stored at the index location corresponding to the start time
 of the burst.}
+}
+\value{
+An object of class \code{mag} inheriting from class \code{imu}.
 }
 \description{
 Extract \code{mag} data from a \code{move2} or convert an object to a \code{mag} vector.
@@ -86,10 +89,87 @@ For a \code{move2}, \code{mag} data are extracted from the object's
 \code{\link[=active_mag_colsets]{active_mag_colsets()}}.
 }
 \details{
-The resulting vector will be as long as the input. This means it
-can, for example, be added as a column to a \code{data.frame}. For some tags
-this means \code{NA} values are inserted when one burst is stored over multiple
-rows of a \code{data.frame}.
+By default (\code{drop = FALSE}), the output vector will be the same length
+as the input. This facilitates the use of an IMU burst vector as a column
+in a data.frame. For expanded data formats, multiple rows of input data will
+be represented in a single row in the output (corresponding to the start
+timestamp of the burst).
+\subsection{Input requirements}{
+
+\verb{as_*()} functions require that the input \code{move2} object be sorted by track
+and strictly increasing in time. Duplicate timestamps within a single
+track must be resolved before calling \verb{as_*()}. See
+\code{\link[move2:assertions]{move2::mt_is_track_id_cleaved()}}, \code{\link[move2:assertions]{move2::mt_is_time_ordered()}}, and
+\code{\link[move2:mt_filter_unique]{move2::mt_filter_unique()}} for help diagnosing issues with data organization.
+}
+
+\subsection{Dealing with noise in recorded timestamps}{
+
+Noise in the recorded timestamps of an input \code{move2} object can disrupt the
+correct identification of the IMU bursts identified by \verb{as_*()}.
+\itemize{
+\item For data stored in expanded format, \verb{as_*()} must derive the implied sampling
+frequency from the individual timestamps recorded in the data. Within each
+burst, all samples must be collected at a fixed frequency. However, timestamp
+errors may make it appear as if the sampling frequency
+has changed, artificially splitting a run of samples into multiple bursts.
+\item For data stored in compact format, sampling frequencies are recorded
+explicitly. However, when data are collected continuously, adjacent bursts
+need to be merged together. Here again, timestamp noise can prevent bursts
+from merging properly if gaps between bursts differ from the sampling
+period implied by the frequency of those two bursts.
+}
+
+You can fine-tune the burst parsing and merging process with the \code{freq_tol}
+and \code{gap_tol} arguments.
+\itemize{
+\item \code{freq_tol} determines how much sampling frequency noise is tolerated when
+identifying changes in sampling frequency over the course of a series of
+recorded samples. For example, at \code{freq_tol = 0.01}, a new burst is
+initiated only when two consecutive sampling frequencies differ by more
+than 1\%.
+
+Thus, at low values of \code{freq_tol}, small deviations in the sampling
+frequency will trigger a new burst. Larger \code{freq_tol} values will smooth
+these inconsistencies, combining samples into single bursts. However, at
+high values, \code{freq_tol} may mask true changes in the sampling frequency,
+producing bursts with spurious sampling frequencies. For example,
+\code{freq_tol = 0.5} risks combining samples from a 30Hz signal with those from
+a 20Hz signal. Similarly, gradual timestamp drift within the \code{freq_tol}
+can produce misleading output frequencies for a burst.
+\item \code{freq_tol} also governs the similarity tolerance between two burst sampling
+frequencies when merging bursts (if \code{merge_continuous = TRUE}). Note that
+bursts that do not clear the \code{min_freq} threshold are automatically
+recorded in individual samples with \code{NA} frequency, meaning these cannot
+later be merged.
+\item \code{gap_tol} determines how much deviation in the time gap between bursts
+is tolerated when merging two bursts together, in seconds
+(if \code{merge_continuous = TRUE}). Two adjacent
+bursts can be merged when the gap between the two matches the sampling
+period (the reciprocal of the frequency) of each burst, and each burst has
+the same sampling frequency (within \code{freq_tol}). This implies that the two
+bursts represent one continuous stream of data. Small values of \code{gap_tol}
+require that the gap be a near-exact match to the period implied by the
+sampling frequency of the bursts. Larger values of \code{gap_tol} will ignore
+larger deviations in gap timing.
+
+Note that a burst's frequency is recalculated after merging using the number
+of samples and the recorded start and end of the burst. Thus, setting
+a large \code{gap_tol} may produce bursts that have non-standard frequencies,
+as the gap between the bursts (which deviates from the expected sampling
+frequency) will be incorporated into the samples of
+a single burst.
+}
+
+In general, it is best to keep the tolerance parameters as low as possible
+while still accommodating the noise inherent in the timestamp recordings
+in your data.
+
+Because of floating-point timestamp noise, some values of \code{freq_tol} and
+\code{gap_tol} may not always admit the frequencies or gaps that you expect. To
+reliably allow frequencies and gaps within a given tolerance, you may want to
+set the values slightly above your desired output tolerance.
+}
 }
 \seealso{
 \code{\link[=movebank_mag_colsets]{movebank_mag_colsets()}} for supported magnetometer column sets
