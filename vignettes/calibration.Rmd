@@ -30,8 +30,6 @@ local({
     hook_output(x, options)
   })
 })
-
-Sys.setlocale("LC_TIME", "en_US.utf8")
 ```
 
 Many accelerometer tags store their measurements as raw integers produced by
