@@ -253,14 +253,16 @@ test_that("Can drop missing acc values", {
   cols <- acc_colset_raw_xyz()
 
   acc <- as_acc(gulls_data, colset = cols, drop = FALSE)
-  acc_i <- which(gulls_data$sensor_type_id == 2365683)
 
   expect_identical(as_acc(gulls_data, colset = cols, drop = TRUE), acc[!is.na(acc)])
   expect_length(acc, nrow(gulls_data))
-  expect_equal(
-    is.na(acc[acc_i]),
-    duplicated(parse_bursts(gulls_data, colset = cols))
+  
+  # Each burst is attached at its first row index; every other row is NA.
+  first_i <- sapply(
+    parse_bursts(gulls_data, colset = cols)$bursts,
+    function(x) x[1]
   )
+  expect_equal(which(!is.na(acc)), sort(first_i))
 
   acc <- as_acc(albatrosses(), drop = FALSE)
   expect_identical(as_acc(albatrosses(), drop = TRUE), acc[!is.na(acc)])
@@ -461,58 +463,190 @@ test_that("Custom expanded-format colset works end-to-end", {
   )
 })
 
-test_that("tolerance absorbs a timestamp glitch across both split tests", {
+test_that("freq_tol and min_freq control burst parsing (gap_tol does not)", {
   skip_if_not_installed("move2")
   # 1 Hz data with a single 1.001 s hiccup
   ts <- cumsum(c(0, rep(1, 26), 1.001, 0.999, 1, 1))
   m <- expanded_acc(ts)
 
-  # By default the glitch fragments the burst (frequency-change detection),
-  # surfacing the issue to the user.
-  expect_gt(length(as_acc(m, drop = TRUE)), 1)
+  # Hiccup is absorbed by default `freq_tol`
+  expect_length(as_acc(m, drop = TRUE), 1)
 
-  # Raising the tolerance absorbs the hiccup when testing for both frequency
-  # changes and period gaps
-  expect_length(as_acc(m, tolerance = 0.001, drop = TRUE), 1)
+  # A `freq_tol` tighter than the magnitude of the glitch triggers a split
+  expect_equal(length(as_acc(m, freq_tol = 1e-5, drop = TRUE)), 3)
 
-  # min_freq determines the period at which we refuse to include a sample in
-  # a burst. Previously, tolerance was not applied to this test. This means
-  # that with jitter when the real freq is at min_freq, we can fail to 
-  # build a complete burst because the period at the jitter point may be longer
-  # than the period implied by the min_freq, even if the overall burst would 
-  # still have a recomputed frequency of `min_freq`. Ensure that 
-  # min_freq respects the tolerance as well.
-  expect_length(as_acc(m, tolerance = 0.001, min_freq = 1, drop = TRUE), 1)
+  expect_length(as_acc(m, min_freq = 1, drop = TRUE), 1)
 
-  # A units-aware tolerance behaves identically.
-  expect_length(
-    as_acc(m, tolerance = units::set_units(10, "ms"), drop = TRUE),
-    1
+  # Genuinely slow data (0.5 Hz) fall below the floor and are exploded into
+  # individual (length-1) bursts; with no floor they stay a single burst.
+  slow <- expanded_acc(cumsum(c(0, rep(2, 9))))
+  expect_length(as_acc(slow, min_freq = 1, drop = TRUE), 10)
+  expect_length(as_acc(slow, min_freq = 0, drop = TRUE), 1)
+
+  # `gap_tol` only acts when merging, not parsing:
+  two <- expanded_acc(c(0:9, 10.5 + 0:9))
+  expect_length(as_acc(two, merge_continuous = FALSE, drop = TRUE), 2)
+  expect_identical(
+    as_acc(two, gap_tol = 1e-6, merge_continuous = FALSE, drop = TRUE),
+    as_acc(two, gap_tol = 0.5, merge_continuous = FALSE, drop = TRUE)
+  )
+  expect_length(as_acc(two, gap_tol = 0.5, drop = TRUE), 1)
+  expect_length(as_acc(two, drop = TRUE), 2)
+})
+
+test_that("duplicate timestamps within a track are rejected", {
+  skip_if_not_installed("move2")
+
+  expect_error(
+    as_acc(expanded_acc(c(0, 0, 0, 1, 2, 3))),
+    "strictly increasing"
+  )
+
+  # Duplicates shared across different tracks should be fine
+  two_tracks <- expanded_acc(c(0, 0), id = c("a", "b"))
+  expect_no_error(as_acc(two_tracks))
+})
+
+test_that("out-of-order timestamps within a track are rejected", {
+  skip_if_not_installed("move2")
+
+  # Put problem timestamp in second track to also ensure all tracks are checked
+  expect_error(
+    as_acc(expanded_acc(
+      c(0, 0.05, 0.10, 0, 0.10, 0.05),
+      id = c("a", "a", "a", "b", "b", "b")
+    )),
+    "strictly increasing"
   )
 })
 
-test_that("zero-span bursts (duplicate timestamps) get NA frequency, not Inf", {
+test_that("NA timestamps on IMU records are rejected", {
   skip_if_not_installed("move2")
 
-  a <- as_acc(expanded_acc(c(0, 0, 0, 1, 2, 3)), tolerance = 0, drop = TRUE)
+  expect_error(
+    as_acc(expanded_acc(c(0, 0.05, NA, 0.10))),
+    "must be non-NA"
+  )
 
-  expect_true(any(is.na(freqs(a))))
-  expect_false(any(is.infinite(as.numeric(freqs(a)))))
+  # NA values outside of IMU data rows don't error
+  d <- data.frame(
+    id = 1,
+    acceleration_x = c(1, 2, NA, 3),
+    acceleration_y = c(1, 2, NA, 3),
+    acceleration_z = c(1, 2, NA, 3),
+    timestamp = as.POSIXct(c(0, 0.05, NA, 0.10), tz = "UTC", origin = "2020-01-01"),
+    x = 1, y = 1
+  )
+  m <- move2::mt_as_move2(
+    d,
+    coords = c("x", "y"),
+    time_column = "timestamp",
+    track_id_column = "id"
+  )
+  expect_no_error(as_acc(m, drop = TRUE))
+})
+
+test_that("Can resolve IMU timestamp ordering issues with move2 helpers", {
+  skip_if_not_installed("move2")
+  
+  m <- expanded_acc(c(0, 0, 0, 1, 2, 1.5, 3))
+  move2::mt_track_id(m) <- c(1, 2, 1, 1, 1, 2, 2)
+  
+  expect_error(as_acc(m), "Not all tracks are grouped")
+  expect_error(as_acc(m[order(move2::mt_track_id(m)), ]), "strictly increasing")
+  
+  m <- m[order(move2::mt_track_id(m), move2::mt_time(m)), ]
+  
+  expect_error(as_acc(m), "strictly increasing")
+  
+  m <- move2::mt_filter_unique(m, "first")
+  
+  expect_no_error(as_acc(m))
+})
+
+test_that("Only IMU records are considered when checking data ordering", {
+  d <- data.frame(
+    id = 1,
+    acceleration_raw_x = c(1, NA, 2, NA, 3),
+    acceleration_raw_y = c(4, NA, 5, NA, 6),
+    acceleration_raw_z = c(7, NA, 8, NA, 9),
+    timestamp = as.POSIXct(
+      c(0, 0.05, 0.05, 0.02, 0.10),
+      tz = "UTC", origin = "2020-01-01"
+    ),
+    x = 1, y = 1
+  )
+  
+  m <- move2::mt_as_move2(
+    d,
+    coords = c("x", "y"),
+    time_column = "timestamp",
+    track_id_column = "id"
+  )
+
+  # Across all records the timestamps are neither ordered nor unique
+  expect_false(move2::mt_is_time_ordered(m, non_zero = TRUE))
+
+  # But the acc records alone are strictly increasing
+  expect_no_error(a <- as_acc(m, drop = TRUE))
+  expect_length(a, 1)
+  expect_identical(n_samples(a), 3L)
+  expect_equal(as.numeric(freqs(a)), 20)
+  expect_identical(bursts(a)[[1]][, "X"], c(1, 2, 3))
+})
+
+test_that("compact bursts must also be ordered and unique within a track", {
+  skip_if_not_installed("move2")
+
+  compact_acc <- function(starts) {
+    t <- data.frame(
+      id = 1,
+      eobs_acceleration_axes = "XYZ",
+      eobs_acceleration_sampling_frequency_per_axis = 20,
+      eobs_accelerations_raw = vapply(
+        seq_along(starts), function(i) paste(1:30, collapse = " "), character(1)
+      ),
+      timestamp = as.POSIXct(starts, tz = "UTC"),
+      x = 1, y = 1
+    )
+    move2::mt_as_move2(
+      t, coords = c("x", "y"), time_column = "timestamp", track_id_column = "id"
+    )
+  }
+
+  expect_error(as_acc(compact_acc(c(2, 0))), "strictly increasing")
+  expect_error(as_acc(compact_acc(c(0, 0))), "strictly increasing")
+  expect_no_error(as_acc(compact_acc(c(0, 2))))
+  
+  comp <- compact_acc(c(0, 0))
+  move2::mt_track_id(comp) <- c(1, 2)
+  
+  expect_no_error(as_acc(comp))
+})
+
+test_that("an empty input returns an empty vector", {
+  skip_if_not_installed("move2")
+
+  empty <- gulls()[0, ]
+  a <- as_acc(empty)
+
+  expect_s3_class(a, "acc")
+  expect_length(a, 0)
 })
 
 test_that("burst frequency is span-based (unbiased) for non-uniform spacing", {
   skip_if_not_installed("move2")
-  
-  # Uniform spacing: span frequency equals the mean instantaneous rate.
+
+  # Uniform spacing: span frequency equals the mean instantaneous frequency.
   m_uniform <- expanded_acc(c(0, 1, 2))
   expect_equal(as.numeric(freqs(as_acc(m_uniform, drop = TRUE))), 1)
 
-  # Non-uniform gaps normally split bursts, but with tolerance they can
-  # be incorporated together. The derived frequency is biased with (mean(1/diff))
-  # Instead use (n - 1) / span.
+  # Non-uniform spacing normally splits bursts, but a freq_tol covering the
+  # 40% change from the 1 s to the 1.4 s interval incorporates them together.
+  # The derived frequency is biased with (mean(1/diff)); instead use (n-1)/span.
   m_jitter <- expanded_acc(c(0, 1, 2.4))
-  a <- as_acc(m_jitter, tolerance = 0.5, drop = TRUE)
-  
+  a <- as_acc(m_jitter, freq_tol = 0.5, drop = TRUE)
+
   expect_length(a, 1)
   expect_equal(as.numeric(freqs(a)), signif(2 / 2.4, 6))
 })

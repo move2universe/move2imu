@@ -30,8 +30,6 @@ local({
     hook_output(x, options)
   })
 })
-
-Sys.setlocale("LC_TIME", "en_US.utf8")
 ```
 
 ```{css, echo = FALSE}

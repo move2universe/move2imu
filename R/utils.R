@@ -25,15 +25,35 @@ acc_example <- function() {
 # can only resolve so much precision for these large numbers. This leads to
 # small irregularities in frequencies after derivation.
 #
-# This noise also scales with the sampling frequency. We use signif() to 
+# This noise also scales with the sampling frequency. We use signif() to
 # avoid applying the uniform correction of round(), which would not account
-# for this fact. 6 significant figures clears the noise floor for bursts in 
+# for this fact. 6 significant figures clears the noise floor for bursts in
 # normal frequency ranges (up to a few hundred Hz). Users can otherwise
 # do their own normalization post-hoc if this is not sufficient to make
 # their bursts uniform in frequency due to noise.
 snap_freq <- function(x, digits = 6) {
   signif(x, digits = digits)
 }
+
+# Absolute floating-point noise floor for POSIXct-derived time differences, in
+# seconds. POSIXct is a double count of seconds since 1970; one ULP at a
+# contemporary epoch (~1.77e9 s) is ~4e-7 s, so a difference of two timestamps
+# carries ~sub-microsecond noise regardless of the sampling frequency. Relative
+# frequency comparisons (which divide by the sample period) inflate this noise
+# at high sampling frequencies, so those comparisons are backstopped with this
+# floor: a deviation must exceed both the relative `freq_tol` AND this absolute
+# floor to count as a real frequency change. This keeps sub-microsecond
+# timestamp jitter from being mistaken for a frequency change on fast (e.g.
+# >1 kHz) data.
+#
+# The floor (1e-6 s) sits a few times above the raw ULP (~4e-7 s) to absorb
+# noise accumulated across a burst's timestamps. The trade-off is that a genuine
+# frequency change between two adjacent, gap-free regimes whose sample periods
+# differ by less than the floor will not be split (it merges into one burst with
+# a blended frequency). This is only an issue when `freq_tol / f` drops below the
+# floor -- i.e. above roughly `freq_tol * 1e6` Hz -- well beyond normal IMU
+# sampling rates, and near the resolution POSIXct can represent anyway.
+fp_time_floor <- 1e-6
 
 # From dplyr
 near <- function(x, y, tol = .Machine$double.eps^0.5) {
