@@ -128,6 +128,21 @@ test_that("peak_frequency returns NA for NA elements", {
   expect_false(is.na(result[[1]][[1]]))
 })
 
+test_that("peak_frequency returns NA for a burst with a missing frequency", {
+  a <- acc(list(cbind(X = sin(1:64 / 3))), units::set_units(NA, "Hz"))
+
+  expect_identical(peak_frequency(a), list(NA_real_))
+  expect_identical(
+    peak_frequency(a, resolution = units::set_units(.5, "Hz")),
+    list(NA_real_)
+  )
+
+  ok <- acc(acc_burst_example(sin(1:64 / 3)), units::set_units(20, "Hz"))
+  res <- peak_frequency(c(ok, a))
+  expect_false(is.na(res[[1]][[1]]))
+  expect_identical(res[[2]], NA_real_)
+})
+
 test_that("works with and without units", {
   acc_l <- acc_burst_example(c(1:5, 5:1, 1:5), rep(c(4, 3, 4), 5))
 

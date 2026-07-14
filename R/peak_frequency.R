@@ -48,7 +48,10 @@ peak_frequency <- function(x, resolution = NA) {
     resolution <- as_hz(resolution)
   }
 
-  x_na <- is.na(x)
+  # A peak frequency is undefined without both a burst and a known sampling
+  # frequency, so missing bursts and present bursts with an unknown frequency
+  # (e.g. single-sample bursts) both resolve to NA.
+  x_na <- is.na(x) | is.na(freqs(x))
 
   if (all(x_na)) {
     return(as.list(rep(NA_real_, length(x))))
