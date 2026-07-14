@@ -26,21 +26,28 @@ plot_time <- function(x, ylab = "Value") {
   rlang::check_installed("dygraphs", "dplyr")
 
   time <- starts(x)
+  freq <- freqs(x)
+  present <- !is.na(x)
 
-  # Only plot bursts that have both data and a start timestamp
-  keep <- !is.na(x) & !is.na(time)
-
+  # Only plot bursts that have data, start time, and freq
+  keep <- present & !is.na(time) & !is.na(freq)
+  
   if (!any(keep)) {
-    cli::cli_abort(c(
-      "{.fn plot_time} requires burst start timestamps in {.arg x}.",
-      "i" = "Use {.code starts(x) <- ...} to assign timestamps."
-    ))
+    cli::cli_abort(
+      "Can't plot bursts without start timestamps and sampling frequencies."
+    )
   }
-
-  n_no_start <- sum(!is.na(x) & is.na(time))
+  
+  n_no_start <- sum(present & is.na(time))
   if (n_no_start > 0) {
     cli::cli_warn("Omitting {n_no_start} burst{?s} with no start timestamp.")
   }
+
+  n_no_freq <- sum(present & !is.na(time) & is.na(freq))
+  if (n_no_freq > 0) {
+    cli::cli_warn("Omitting {n_no_freq} burst{?s} with no sampling frequency.")
+  }
+
 
   dt <- mapply(
     # Convert to seconds before stripping units — otherwise non-Hz
