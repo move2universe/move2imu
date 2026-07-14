@@ -17,7 +17,23 @@ test_that("plot_time handles missing start times", {
 
   # All starts NA: errors.
   starts(a) <- as.POSIXct(c(NA, NA), tz = "UTC")
-  expect_error(plot_time(a), "requires burst start timestamps")
+  expect_error(plot_time(a), "start timestamps and sampling frequencies")
+})
+
+test_that("plot_time omits bursts with a missing frequency", {
+  a <- acc_example()
+  # Second burst loses its frequency (as a single-sample burst would)
+  freqs(a) <- units::set_units(c(20, NA), "Hz")
+
+  expect_warning(
+    g <- plot_time(a),
+    "Omitting 1 burst.* no sampling frequency"
+  )
+  expect_s3_class(g, "dygraphs")
+
+  # All frequencies missing: errors rather than producing NA timestamps
+  freqs(a) <- units::set_units(c(NA, NA), "Hz")
+  expect_error(plot_time(a), "start timestamps and sampling frequencies")
 })
 
 test_that("plot_time uses seconds regardless of frequency unit", {
