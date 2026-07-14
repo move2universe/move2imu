@@ -321,11 +321,16 @@ split_imu <- function(x, interval) {
       idx <- unname(split(seq_len(nrow(.br)), ceiling(seq_len(nrow(.br)) / i)))
       b_split <- lapply(idx, function(j) .br[j, , drop = FALSE])
 
+      # Derive start times from sample index and frequency to keep starts
+      # aligned with data when chunk sizes vary
+      first_idx <- purrr::map_int(idx, 1L)
+      offset_s <- (first_idx - 1) / as.numeric(.fq)
+
       imu(
         sensor = sensor,
         bursts = b_split,
         frequency = .fq,
-        start = .st + cumsum(c(0, rep(interval, length(b_split) - 1)))
+        start = .st + offset_s
       )
     }
   )

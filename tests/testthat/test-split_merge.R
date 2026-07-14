@@ -458,6 +458,22 @@ test_that("split_imu() errors on invalid interval", {
   expect_error(split_imu(a, -1), "`interval` must be a positive")
 })
 
+test_that("split_imu start times track actual samples for non-integer chunks", {
+  # 0.125 s at 20 Hz = 2.5 samples/chunk: chunk sizes alternate, so a fixed
+  # `interval` step would drift. Starts must match each chunk's first sample.
+  b <- acc(
+    list(cbind(X = 1:30)),
+    frequency = units::set_units(20, "Hz"),
+    start = as.POSIXct(0, tz = "UTC")
+  )
+  sp <- split_imu(b, 0.125)[[1]]
+
+  first_idx <- cumsum(c(1L, utils::head(n_samples(sp), -1)))
+  expected <- as.POSIXct(0, tz = "UTC") + (first_idx - 1) / 20
+
+  expect_identical(starts(sp), expected)
+})
+
 test_that("split_imu() passes through non-empty bursts with a missing frequency", {
   a_naf <- acc(
     list(cbind(X = 1:5)),
