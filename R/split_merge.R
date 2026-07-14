@@ -81,6 +81,10 @@ merge_imu <- function(x,
                       drop = FALSE) {
   n <- vec_size(x)
 
+  if (!is.null(ids) && length(ids) != n) {
+    cli::cli_abort("{.arg ids} must be the same length as {.arg x}.")
+  }
+
   # `gap_tol` is an absolute time; normalize to seconds for comparison.
   gap_tol <- units::set_units(gap_tol, "s")
 

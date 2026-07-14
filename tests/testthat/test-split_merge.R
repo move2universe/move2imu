@@ -458,6 +458,16 @@ test_that("split_imu() errors on invalid interval", {
   expect_error(split_imu(a, -1), "`interval` must be a positive")
 })
 
+test_that("merge_imu validates ids length", {
+  a <- acc(
+    c(acc_burst_example(1:30), acc_burst_example(31:60), acc_burst_example(61:90)),
+    frequency = units::set_units(10, "Hz"),
+    start = as.POSIXct(c(0, 3, 6), tz = "UTC")
+  )
+
+  expect_error(merge_imu(a, ids = c(1, 1)), "same length")
+})
+
 test_that("split_imu start times track actual samples for non-integer chunks", {
   # 0.125 s at 20 Hz = 2.5 samples/chunk: chunk sizes alternate, so a fixed
   # `interval` step would drift. Starts must match each chunk's first sample.
