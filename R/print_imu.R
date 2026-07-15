@@ -88,7 +88,7 @@ obj_print_footer.imu <- function(x, ...) {
   f <- f[!is.na(f)]
 
   if (length(f) == 0) {
-    r <- "[ no data ]"
+    r <- "NA"
   } else if (length(unique(f)) <= 1) {
     r <- format(f[1])
   } else {
