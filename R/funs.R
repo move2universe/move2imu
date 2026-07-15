@@ -40,13 +40,16 @@ NULL
 #'
 #' @details
 #' `burst_intervals()` measures intervals between consecutive bursts in vector
-#' order. Element `i` is the interval preceding burst `i` (measured against
-#' burst `i - 1`), so the first element is always `NA`. An interval is also
-#' `NA` wherever either burst lacks a start time, meaning that missing bursts
-#' may mask the true intervals between bursts that do exist. To avoid this,
-#' remove missing bursts from your IMU vector prior to running
-#' `burst_intervals()`.
-#'
+#' order. Missing (`NA`) bursts are ignored when calculating intervals. Thus,
+#' element `i` is the interval in between the most recent preceding non-NA burst 
+#' and burst `i`.
+#' 
+#' Only bursts flagged with `is.na()` are considered missing. Bursts with
+#' data but lacking a start time are retained but will produce `NA`
+#' intervals. Bursts with data but lacking a frequency are also retained and
+#' will produce `NA` intervals when `from = "end"`, as the frequency is
+#' required to determine the burst end time.
+#' 
 #' Pass `ids` to measure intervals within groups (e.g. per animal). Intervals
 #' are not measured across group boundaries. Intervals
 #' are taken in vector order, so a vector mixing sources should be ordered by
@@ -90,6 +93,16 @@ NULL
 #'
 #' # Or measure between consecutive burst starts
 #' burst_intervals(x, from = "start")
+#'
+#' # The interval value shows the interval to the preceding present burst,
+#' # ignoring intervening NA bursts.
+#' x_na <- c(
+#'   x[1], 
+#'   acc(list(NULL), frequency = units::set_units(NA, "Hz")),
+#'   x[2]
+#' )
+#' 
+#' burst_intervals(x_na)
 #'
 #' # Units for the burst data
 #' imu_units(x)
@@ -162,33 +175,47 @@ burst_intervals <- function(x, ids = NULL, from = "end") {
 
   n <- vec_size(x)
 
+  if (!is.null(ids) && length(ids) != n) {
+    cli::cli_abort("{.arg ids} must be the same length as {.arg x}.")
+  }
+
   if (n == 0) {
     return(units::set_units(numeric(0), "s"))
   }
 
-  st <- as.numeric(starts(x))
-  gap <- st - c(NA_real_, utils::head(st, -1L))
+  # Measure intervals to preceding non-NA burst, then reassign to correct
+  # index position
+  non_na <- !is.na(x)
+  intvls <- rep(NA_real_, n)
 
-  if (from == "end") {
-    dur <- as.numeric(burst_dur(x))
-    gap <- gap - c(NA_real_, utils::head(dur, -1L))
-  }
+  if (any(non_na)) {
+    x <- x[non_na]
+    n <- vec_size(x)
 
-  # Don't get interval across an ID boundary
-  if (!is.null(ids)) {
-    if (length(ids) != n) {
-      cli::cli_abort("{.arg ids} must be the same length as {.arg x}.")
+    st <- as.numeric(starts(x))
+    gap <- st - c(NA_real_, utils::head(st, -1L))
+
+    if (from == "end") {
+      dur <- as.numeric(burst_dur(x))
+      gap <- gap - c(NA_real_, utils::head(dur, -1L))
     }
-    same_group <- c(
-      FALSE,
-      (ids[-1] == ids[-n]) | (is.na(ids[-1]) & is.na(ids[-n]))
-    )
-    same_group[is.na(same_group)] <- FALSE
-    gap[!same_group] <- NA_real_
+
+    # Don't get interval across an ID boundary
+    if (!is.null(ids)) {
+      ids <- ids[non_na]
+      same_group <- c(
+        FALSE,
+        (ids[-1] == ids[-n]) | (is.na(ids[-1]) & is.na(ids[-n]))
+      )
+      same_group[is.na(same_group)] <- FALSE
+      gap[!same_group] <- NA_real_
+    }
+
+    intvls[non_na] <- gap
   }
 
   # POSIXct as.numeric is seconds since epoch, so differences are seconds.
-  units::set_units(gap, "s")
+  units::set_units(intvls, "s")
 }
 
 #' @export
