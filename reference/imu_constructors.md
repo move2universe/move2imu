@@ -41,8 +41,11 @@ gyro(
 - frequency:
 
   Sampling frequency of the recordings in `bursts`, either length 1
-  (recycled to all bursts) or the same length as `bursts`. If no units
-  are specified, the frequency is assumed to be in Hz.
+  (recycled to all bursts) or the same length as `bursts`. Frequencies
+  with compatible
+  [units](https://r-quantities.github.io/units/reference/units.html) are
+  converted to Hz internally. If no units are specified, the frequency
+  is assumed to be in Hz.
 
 - start:
 

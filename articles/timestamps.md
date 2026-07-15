@@ -144,7 +144,7 @@ summary(a)
 #> Intervals: [ 0 / 12 / 24 / 26.2 / 28.4 ] [s]  (min/Q1/med/Q3/max) 
 #> 
 #> Values:  [ -288 / -2.5 / 308 / 1878.25 / 2150 ]  (min/Q1/med/Q3/max) 
-#> Units:   [no units]
+#> Units:   NULL
 ```
 
 As we can see, we have bursts that span from a 1Hz to a 20Hz sampling
@@ -416,7 +416,7 @@ summary(a)
 #> Intervals: [ -660.02 / -0.01 / -0.01 / 0.02 / 600.02 ] [s]  (min/Q1/med/Q3/max) 
 #> 
 #> Values:  [ 1462 / 1875 / 1936 / 2010 / 2988 ]  (min/Q1/med/Q3/max) 
-#> Units:   [no units]
+#> Units:   NULL
 ```
 
 However, notice that our distribution of burst *intervals* has some very

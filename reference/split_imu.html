@@ -64,15 +64,20 @@ with the same class as <code>x</code>.</p>
 
 
 <dt id="arg-interval">interval<a class="anchor" aria-label="anchor" href="#arg-interval"></a></dt>
-<dd><p>Numeric or units object defining the time intervals at which
-<code>x</code> will be split. If no units are provided, the interval is assumed to
-be in period units of <code>x</code> (i.e., 1 divided by the frequency units).</p></dd>
+<dd><p>Numeric or <a href="https://r-quantities.github.io/units/reference/units.html" class="external-link">units</a> object defining the time
+intervals at which <code>x</code> will be split. If no units are provided, the
+interval is assumed to be in seconds.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A list of vectors (same class as <code>x</code>), the same length as <code>x</code>.
 Each element contains the split pieces of the corresponding input burst.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Bursts with <code>NA</code> frequency will not be split, as a burst duration can't
+be derived. In these cases, the burst is returned unchanged.</p>
     </div>
 
     <div class="section level2">

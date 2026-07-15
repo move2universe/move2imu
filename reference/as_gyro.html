@@ -94,14 +94,16 @@ specify a custom set of columns, use <code><a href="imu_colset.html">imu_colset(
 
 
 <dt id="arg-min-freq">min_freq<a class="anchor" aria-label="anchor" href="#arg-min-freq"></a></dt>
-<dd><p>Numeric value indicating the minimum allowable burst
-frequency in the output. Any burst whose derived frequency falls below this
-value is instead split into individual (length-1) bursts. Increase this
-value to avoid producing slow-frequency bursts. By default, all samples
-recorded at consistent intervals will be combined into bursts, regardless
-of their sampling frequency.</p>
-<p>Ignored for compact-format data, where values are already in predefined
-bursts.</p></dd>
+<dd><p>For expanded-format data, the minimum allowable burst
+frequency in the output.
+Any burst whose derived frequency falls below this value is instead split
+into individual (length-1) bursts. Increase this value to avoid producing
+slow-frequency bursts. By default, all samples recorded at consistent
+intervals will be combined into bursts, regardless of their sampling
+frequency.</p>
+<p>Inputs with compatible <a href="https://r-quantities.github.io/units/reference/units.html" class="external-link">units</a> are converted to Hz
+internally. If no units are specified, <code>min_freq</code> is assumed to
+be in Hz.</p></dd>
 
 
 <dt id="arg-freq-tol">freq_tol<a class="anchor" aria-label="anchor" href="#arg-freq-tol"></a></dt>

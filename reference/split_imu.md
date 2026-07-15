@@ -18,14 +18,20 @@ split_imu(x, interval)
 
 - interval:
 
-  Numeric or units object defining the time intervals at which `x` will
-  be split. If no units are provided, the interval is assumed to be in
-  period units of `x` (i.e., 1 divided by the frequency units).
+  Numeric or
+  [units](https://r-quantities.github.io/units/reference/units.html)
+  object defining the time intervals at which `x` will be split. If no
+  units are provided, the interval is assumed to be in seconds.
 
 ## Value
 
 A list of vectors (same class as `x`), the same length as `x`. Each
 element contains the split pieces of the corresponding input burst.
+
+## Details
+
+Bursts with `NA` frequency will not be split, as a burst duration can't
+be derived. In these cases, the burst is returned unchanged.
 
 ## Examples
 

@@ -326,7 +326,7 @@ summary(a)
 #> Intervals: [ -3598 / 833 / 888 / 888 / 891 ] [s]  (min/Q1/med/Q3/max) 
 #> 
 #> Values:  [ 1462 / 1875 / 1936 / 2010 / 2988 ]  (min/Q1/med/Q3/max) 
-#> Units:   [no units]
+#> Units:   NULL
 ```
 
 For a more detailed look at these properties, you can use move2imu’s

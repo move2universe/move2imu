@@ -50,7 +50,7 @@ summary(a)
 #> Intervals: [ 1197 / 1199 / 1200.5 / 1214.75 / 3624 ] [s]  (min/Q1/med/Q3/max) 
 #> 
 #> Values:  [ -1383 / 142 / 355 / 1782.25 / 4073 ]  (min/Q1/med/Q3/max) 
-#> Units:   [no units]
+#> Units:   NULL
 
 # Standardize raw ADC counts to physical units with a built-in tag calibration
 a <- transform_imu(a, acc_calibration("ornitela", units = "standard_free_fall"))

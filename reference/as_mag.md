@@ -56,15 +56,17 @@ as_mag(
 
 - min_freq:
 
-  Numeric value indicating the minimum allowable burst frequency in the
+  For expanded-format data, the minimum allowable burst frequency in the
   output. Any burst whose derived frequency falls below this value is
   instead split into individual (length-1) bursts. Increase this value
   to avoid producing slow-frequency bursts. By default, all samples
   recorded at consistent intervals will be combined into bursts,
   regardless of their sampling frequency.
 
-  Ignored for compact-format data, where values are already in
-  predefined bursts.
+  Inputs with compatible
+  [units](https://r-quantities.github.io/units/reference/units.html) are
+  converted to Hz internally. If no units are specified, `min_freq` is
+  assumed to be in Hz.
 
 - freq_tol:
 

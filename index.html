@@ -101,7 +101,7 @@
 <span><span class="co">#&gt; Intervals: [ 1197 / 1199 / 1200.5 / 1214.75 / 3624 ] [s]  (min/Q1/med/Q3/max) </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Values:  [ -1383 / 142 / 355 / 1782.25 / 4073 ]  (min/Q1/med/Q3/max) </span></span>
-<span><span class="co">#&gt; Units:   [no units]</span></span>
+<span><span class="co">#&gt; Units:   NULL</span></span>
 <span></span>
 <span><span class="co"># Standardize raw ADC counts to physical units with a built-in tag calibration</span></span>
 <span><span class="va">a</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/transform_imu.html">transform_imu</a></span><span class="op">(</span><span class="va">a</span>, <span class="fu"><a href="reference/acc_calibration.html">acc_calibration</a></span><span class="op">(</span><span class="st">"ornitela"</span>, units <span class="op">=</span> <span class="st">"standard_free_fall"</span><span class="op">)</span><span class="op">)</span></span>

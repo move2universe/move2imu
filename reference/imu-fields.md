@@ -34,6 +34,12 @@ starts(x) <- value
 For accessors, the corresponding field of `x`. For setters, `x` with the
 updated value in the indicated field.
 
+## Details
+
+Frequencies assigned with `freqs<-` are converted to Hz if they are
+provided with compatible units attached. If no units are provided, the
+values are assumed to be in Hz already.
+
 ## Examples
 
 ``` r

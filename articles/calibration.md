@@ -80,7 +80,7 @@ summary(alb$acceleration)
 #> Intervals: [ -3598 / 833 / 888 / 888 / 891 ] [s]  (min/Q1/med/Q3/max) 
 #> 
 #> Values:  [ 1462 / 1875 / 1936 / 2010 / 2988 ]  (min/Q1/med/Q3/max) 
-#> Units:   [no units]
+#> Units:   NULL
 ```
 
 Note as well that the raw acc values are in the thousands, which would
