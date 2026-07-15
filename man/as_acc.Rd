@@ -36,15 +36,17 @@ contain data (see \code{\link[=active_acc_colsets]{active_acc_colsets()}}).
 Several common colsets are listed under \code{\link[=movebank_acc_colsets]{movebank_acc_colsets()}}. To
 specify a custom set of columns, use \code{\link[=imu_colset]{imu_colset()}}.}
 
-\item{min_freq}{Minimum allowable burst frequency in the output, in Hz.
+\item{min_freq}{For expanded-format data, the minimum allowable burst
+frequency in the output.
 Any burst whose derived frequency falls below this value is instead split
 into individual (length-1) bursts. Increase this value to avoid producing
 slow-frequency bursts. By default, all samples recorded at consistent
 intervals will be combined into bursts, regardless of their sampling
 frequency.
 
-Ignored for compact-format data, where values are already in predefined
-bursts.}
+Inputs with compatible \link[units:units]{units} are converted to Hz
+internally. If no units are specified, \code{min_freq} is assumed to
+be in Hz.}
 
 \item{freq_tol}{Relative tolerance to use when detecting differences in
 sampling frequency when building or merging bursts. This determines how
