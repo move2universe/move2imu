@@ -323,6 +323,80 @@ test_that("burst_intervals does not bridge across an interleaved group", {
   )
 })
 
+test_that("burst_intervals skips missing bursts", {
+  m <- cbind(X = 1:20, Y = 1:20, Z = 1:20)
+
+  # Position 2 is a missing burst; the constructor forces its start to NA.
+  a <- acc(
+    list(m, NULL, m, m),
+    frequency = units::as_units(20, "Hz"),
+    start = as.POSIXct("2020-01-01", tz = "UTC") + c(0, 60, 120, 180)
+  )
+
+  # The interval bridges the missing burst rather than being masked by it; the
+  # missing burst itself stays NA. Bursts are 20 samples at 20 Hz -> 1 s each.
+  expect_equal(
+    burst_intervals(a, from = "start"),
+    units::set_units(c(NA, NA, 120, 60), "s")
+  )
+  expect_equal(
+    burst_intervals(a, from = "end"),
+    units::set_units(c(NA, NA, 119, 59), "s")
+  )
+})
+
+test_that("burst_intervals does not skip bursts with missing metadata", {
+  m <- cbind(X = 1:20, Y = 1:20, Z = 1:20)
+  
+  # Burst with one entry with no frequency
+  a <- acc(
+    list(m, m, m),
+    frequency = units::as_units(c(20, NA, 20), "Hz"),
+    start = as.POSIXct("2020-01-01", tz = "UTC") + c(0, 60, 120)
+  )
+  
+  expect_equal(
+    burst_intervals(a, from = "start"),
+    units::set_units(c(NA, 60, 60), "s")
+  )
+  expect_equal(
+    burst_intervals(a, from = "end"),
+    units::set_units(c(NA, 59, NA), "s")
+  )
+  
+  # Burst with one entry with no start
+  a <- acc(
+    list(m, m, m, m),
+    frequency = units::as_units(20, "Hz"),
+    start = as.POSIXct(
+      c("2020-01-01 00:00:00", NA, "2020-01-01 00:02:00", "2020-01-01 00:03:00"),
+      tz = "UTC"
+    )
+  )
+  
+  expect_equal(
+    burst_intervals(a, from = "start"),
+    units::set_units(c(NA, NA, NA, 60), "s")
+  )
+})
+
+test_that("burst_intervals respects ID boundaries around missing bursts", {
+  m <- cbind(X = 1:20, Y = 1:20, Z = 1:20)
+
+  a <- acc(
+    list(m, NULL, m, m),
+    frequency = units::as_units(20, "Hz"),
+    start = as.POSIXct("2020-01-01", tz = "UTC") + c(0, 60, 120, 180)
+  )
+
+  # Missing burst in idx 2 is skipped, but idx 3 is still computed
+  # as they belong to the same group
+  expect_equal(
+    burst_intervals(a, from = "start", ids = c("a", "a", "a", "b")),
+    units::set_units(c(NA, NA, 120, NA), "s")
+  )
+})
+
 test_that("imu_units are safely extracted", {
   a <- acc_example()
 

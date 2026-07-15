@@ -53,12 +53,15 @@ a consistent structure (axes, frequency, sample count, and units)
 }
 \details{
 \code{burst_intervals()} measures intervals between consecutive bursts in vector
-order. Element \code{i} is the interval preceding burst \code{i} (measured against
-burst \code{i - 1}), so the first element is always \code{NA}. An interval is also
-\code{NA} wherever either burst lacks a start time, meaning that missing bursts
-may mask the true intervals between bursts that do exist. To avoid this,
-remove missing bursts from your IMU vector prior to running
-\code{burst_intervals()}.
+order. Missing (\code{NA}) bursts are ignored when calculating intervals. Thus,
+element \code{i} is the interval in between the most recent preceding non-NA burst
+and burst \code{i}.
+
+Only bursts flagged with \code{is.na()} are considered missing. Bursts with
+data but lacking a start time are retained but will produce \code{NA}
+intervals. Bursts with data but lacking a frequency are also retained and
+will produce \code{NA} intervals when \code{from = "end"}, as the frequency is
+required to determine the burst end time.
 
 Pass \code{ids} to measure intervals within groups (e.g. per animal). Intervals
 are not measured across group boundaries. Intervals
@@ -89,6 +92,16 @@ burst_intervals(x)
 
 # Or measure between consecutive burst starts
 burst_intervals(x, from = "start")
+
+# The interval value shows the interval to the preceding present burst,
+# ignoring intervening NA bursts.
+x_na <- c(
+  x[1], 
+  acc(list(NULL), frequency = units::set_units(NA, "Hz")),
+  x[2]
+)
+
+burst_intervals(x_na)
 
 # Units for the burst data
 imu_units(x)
