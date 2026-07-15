@@ -34,7 +34,7 @@ test_that("summary shows units when present", {
 
 test_that("summary shows no units when bursts are unitless", {
   out <- capture.output(print(summary(acc_example())))
-  expect_true(any(grepl("Units:.*no units", out)))
+  expect_true(any(grepl("Units:.*NULL", out)))
 })
 
 test_that("summary shows ranges and quantiles", {
@@ -67,7 +67,7 @@ test_that("summary excludes NA frequencies from the frequency range", {
   expect_false(grepl("NA", freq_line))
 })
 
-test_that("summary shows 'no data' when every frequency is NA", {
+test_that("summary shows NA when every frequency is NA", {
   a <- acc(
     list(cbind(X = 1, Y = 2, Z = 3), cbind(X = 4, Y = 5, Z = 6)),
     frequency = units::set_units(c(NA, NA), "Hz"),
@@ -78,7 +78,7 @@ test_that("summary shows 'no data' when every frequency is NA", {
 
   out <- capture.output(print(s))
   freq_line <- out[grepl("^Frequencies:", out)]
-  expect_match(freq_line, "no data")
+  expect_match(freq_line, "NA")
 })
 
 # Single-burst: always-present empty intervals --------------------------------
@@ -96,11 +96,11 @@ test_that("single-burst summary has no interval quantiles", {
   expect_null(s$intervals_q)
 })
 
-test_that("single-burst summary prints 'no data' for intervals", {
+test_that("single-burst summary prints NA for intervals", {
   out <- capture.output(print(summary(single_burst_acc())))
   intervals_line <- out[grepl("^Intervals:", out)]
   expect_length(intervals_line, 1)
-  expect_match(intervals_line, "no data")
+  expect_match(intervals_line, "NA")
 })
 
 # Mixed-unit path -------------------------------------------------------------
@@ -127,7 +127,7 @@ test_that("summary lists multiple unit groups in Units footer when mixed", {
   units_line <- out[grepl("^Units:", out)]
   expect_length(units_line, 1)
   expect_match(units_line, "m/s\\^2")
-  expect_match(units_line, "no units")
+  expect_match(units_line, "NULL")
 })
 
 # format_range / format_quantiles helpers ------------------------------------
@@ -137,9 +137,9 @@ test_that("format_range renders", {
   expect_equal(format_range(c(1, 5)), "1 -- 5")
 })
 
-test_that("format_range renders empty input as 'no data'", {
-  expect_equal(format_range(NULL), "[ no data ]")
-  expect_equal(format_range(numeric(0), "s"), "[ no data ]")
+test_that("format_range renders empty input as NA", {
+  expect_equal(format_range(NULL), "NA")
+  expect_equal(format_range(numeric(0), "s"), "NA")
 })
 
 test_that("format_quantiles renders", {
@@ -153,11 +153,11 @@ test_that("format_quantiles renders", {
   expect_false(grepl("[s]", no_unit, fixed = TRUE))
 })
 
-test_that("format_quantiles renders empty input as 'no data'", {
-  expect_equal(format_quantiles(NULL), "[ no data ]")
-  expect_equal(format_quantiles(NULL, "s"), "[ no data ]")
-  expect_equal(format_quantiles(numeric(0)), "[ no data ]")
-  expect_equal(format_quantiles(numeric(0), "s"), "[ no data ]")
+test_that("format_quantiles renders empty input as NA", {
+  expect_equal(format_quantiles(NULL), "NA")
+  expect_equal(format_quantiles(NULL, "s"), "NA")
+  expect_equal(format_quantiles(numeric(0)), "NA")
+  expect_equal(format_quantiles(numeric(0), "s"), "NA")
 })
 
 test_that(".range / .quantile precompute summaries or NULL", {

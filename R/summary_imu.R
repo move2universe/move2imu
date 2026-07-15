@@ -154,8 +154,8 @@ print.imu_summary <- function(x, ...) {
   cat("Values: ", format_quantiles(x$values_q), "\n")
   labels <- character(0)
   if (length(x$imu_units) > 0) labels <- paste0("[", x$imu_units, "]")
-  if (isTRUE(x$has_unitless)) labels <- c(labels, "[no units]")
-  if (length(labels) == 0) labels <- "[no units]"
+  if (isTRUE(x$has_unitless)) labels <- c(labels, "NULL")
+  if (length(labels) == 0) labels <- "NULL"
   cat("Units:  ", paste(labels, collapse = ", "), "\n")
 
   invisible(x)
@@ -193,7 +193,7 @@ format_num <- function(x) {
 
 format_range <- function(rng, unit = NULL) {
   if (length(rng) == 0) {
-    return("[ no data ]")
+    return("NA")
   }
   mn <- format_num(rng[1])
   mx <- format_num(rng[2])
@@ -206,7 +206,7 @@ format_range <- function(rng, unit = NULL) {
 
 format_quantiles <- function(q, unit = NULL) {
   if (length(q) == 0) {
-    return("[ no data ]")
+    return("NA")
   }
   parts <- paste(vapply(q, format_num, ""), collapse = " / ")
   out <- paste0("[ ", parts, " ]")

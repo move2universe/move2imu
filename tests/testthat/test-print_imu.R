@@ -73,8 +73,8 @@ test_that("footer excludes NA frequencies from the range", {
   expect_false(grepl("NA", line))
 })
 
-test_that("footer shows 'no data' when every frequency is NA", {
-  expect_match(freq_footer(footer_acc(c(NA, NA))), "no data")
+test_that("footer shows NA when every frequency is NA", {
+  expect_match(freq_footer(footer_acc(c(NA, NA))), "NA")
 })
 
 test_that("footer ignores fully-missing bursts", {
