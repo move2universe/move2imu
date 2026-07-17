@@ -74,7 +74,7 @@ as_imu_move2_ <- function(x,
                           ...) {
   check_colset(x, colset)
   
-  imu_rows <- has_imu_(x, sensor = sensor, colset = colset)
+  imu_rows <- imu_sample_rows(x, sensor = sensor, colset = colset)
   
   if (any(imu_rows) && any(is.na(move2::mt_time(x[imu_rows, ])))) {
     cli::cli_abort("All timestamps associated with IMU data must be non-NA.")

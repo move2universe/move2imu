@@ -1,17 +1,20 @@
 #' Identify rows in a `move2` that contain IMU data
 #'
 #' @description
-#' These functions return logical vectors indicating the rows of an input
-#' `move2` object that contain IMU data for the specified sensor.
+#' These functions return a logical vector flagging the rows of an input
+#' `move2` object that contain sample data for the specified sensor. These are
+#' the rows that will be used to build IMU bursts when calling `as_acc()`, 
+#' `as_mag()`, or `as_gyro()`.
 #'
 #' @details
-#' If `x` has data in more than one active IMU column set, `has_*()` will return
-#' `TRUE`. However, these rows cannot be parsed by [as_acc()], [as_mag()], etc.
-#' as they contain duplicated IMU data. To ensure that `has_*()` only considers
-#' certain column sets, use the `colset` argument.
+#' If `x` has data in more than one active IMU column set, `*_sample_rows()`
+#' will return `TRUE`. However, these rows cannot be parsed by [as_acc()],
+#' [as_mag()], etc. as they contain duplicated IMU data. To ensure that
+#' `*_sample_rows()` only considers certain column sets, use the `colset`
+#' argument.
 #'
 #' If no active colset is detected (e.g. a `move2` with only GPS data),
-#' `has_*()` returns `FALSE` for all rows.
+#' `*_sample_rows()` returns `FALSE` for all rows.
 #'
 #' For expanded-format data (where multiple rows compose a single burst)
 #' all rows that contain IMU data are flagged `TRUE`. However, the output
@@ -32,39 +35,39 @@
 #'   [active_acc_colsets()], [active_mag_colsets()], [active_gyro_colsets()]
 #'   to inspect which colsets are detected in `x`.
 #'
-#' @name has_imu
+#' @name sample_rows
 #'
 #' @examples
 #' alb <- albatrosses()
 #'
-#' head(has_acc(alb))
+#' head(acc_sample_rows(alb))
 #'
 #' # Filter to rows with acc data without building bursts
-#' nrow(alb[has_acc(alb), ])
+#' nrow(alb[acc_sample_rows(alb), ])
 NULL
 
-#' @rdname has_imu
+#' @rdname sample_rows
 #' @export
-has_acc <- function(x, colset = NULL) {
-  has_imu_(x, sensor = "acc", colset = colset)
+acc_sample_rows <- function(x, colset = NULL) {
+  imu_sample_rows(x, sensor = "acc", colset = colset)
 }
 
-#' @rdname has_imu
+#' @rdname sample_rows
 #' @export
-has_mag <- function(x, colset = NULL) {
-  has_imu_(x, sensor = "mag", colset = colset)
+mag_sample_rows <- function(x, colset = NULL) {
+  imu_sample_rows(x, sensor = "mag", colset = colset)
 }
 
-#' @rdname has_imu
+#' @rdname sample_rows
 #' @export
-has_gyro <- function(x, colset = NULL) {
-  has_imu_(x, sensor = "gyro", colset = colset)
+gyro_sample_rows <- function(x, colset = NULL) {
+  imu_sample_rows(x, sensor = "gyro", colset = colset)
 }
 
-# Check whether each row has IMU data for the given sensor and colset.
+# Flag each row that has IMU data for the given sensor and colset.
 # Returns TRUE if any valid colset has data. Does not check for duplicate
 # IMU data in a given row. Returns FALSE if no valid colsets are found.
-has_imu_ <- function(x, sensor, colset = NULL) {
+imu_sample_rows <- function(x, sensor, colset = NULL) {
   colsets <- tryCatch(
     parse_colsets(x, colset, sensor, quiet = TRUE),
     move2imu_no_active_colset = function(e) NULL
