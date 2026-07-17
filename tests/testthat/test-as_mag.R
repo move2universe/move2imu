@@ -62,7 +62,10 @@ test_that("duplicated_mag_rows() detects overlap across colsets", {
   m$magnetic_field_y[burst_rows[1]] <- 1
   m$magnetic_field_z[burst_rows[1]] <- 1
 
-  expect_true(length(duplicated_mag_rows(m)) > 0)
+  expected <- logical(nrow(m))
+  expected[burst_rows[1]] <- TRUE
+  
+  expect_identical(duplicated_mag_rows(m), expected)
 })
 
 test_that("as_mag() errors on overlapping mag rows with a mag-specific message", {

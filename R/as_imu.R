@@ -24,10 +24,10 @@ as_imu.move2 <- function(x,
   colsets <- parse_colsets(x, colset, sensor)
   dup <- duplicated_imu_rows(x, colsets = colsets)
 
-  if (length(dup) > 0) {
+  if (any(dup)) {
     dup_fn <- paste0("duplicated_", sensor, "_rows")
     cli::cli_abort(c(
-      "{.arg x} contains {length(dup)} timestamp{?s} with multiple sources of {sensor} data.",
+      "{.arg x} contains {sum(dup)} timestamp{?s} with multiple sources of {sensor} data.",
       "i" = "Use {.help [{.fun {dup_fn}}](move2imu::{dup_fn})} to identify duplications."
     ))
   }

@@ -61,7 +61,10 @@ test_that("duplicated_gyro_rows() detects overlap across colsets", {
   g$angular_velocity_y[burst_rows[1]] <- 1
   g$angular_velocity_z[burst_rows[1]] <- 1
 
-  expect_true(length(duplicated_gyro_rows(g)) > 0)
+  expected <- logical(nrow(g))
+  expected[burst_rows[1]] <- TRUE
+  
+  expect_identical(duplicated_gyro_rows(g), expected)
 })
 
 test_that("as_gyro() errors on overlapping gyro rows with a gyro-specific message", {
