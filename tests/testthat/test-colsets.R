@@ -330,7 +330,7 @@ test_that("Overlapping data in API and alt col names reported as duplicated rows
     g[[to_alt_names(col)]] <- g[[col]]
   }
   
-  expect_gt(length(duplicated_acc_rows(g)), 0)
+  expect_true(any(duplicated_acc_rows(g)))
   expect_error(suppressWarnings(as_acc(g)), "multiple sources")
 })
 
