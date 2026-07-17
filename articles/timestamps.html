@@ -125,7 +125,7 @@ use a subset of the data and add some fake timestamps:</p>
 <code class="sourceCode R"><span><span class="va">gul</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/example_data.html">gulls</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Select first 21 rows where ACC data are present</span></span>
-<span><span class="va">gul</span> <span class="op">&lt;-</span> <span class="va">gul</span><span class="op">[</span><span class="fu"><a href="../reference/has_imu.html">has_acc</a></span><span class="op">(</span><span class="va">gul</span><span class="op">)</span>, <span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">21</span>, <span class="op">]</span></span>
+<span><span class="va">gul</span> <span class="op">&lt;-</span> <span class="va">gul</span><span class="op">[</span><span class="fu"><a href="../reference/sample_rows.html">acc_sample_rows</a></span><span class="op">(</span><span class="va">gul</span><span class="op">)</span>, <span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">21</span>, <span class="op">]</span></span>
 <span></span>
 <span><span class="co"># Artificially modify the timestamps for this vignette</span></span>
 <span><span class="va">ts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>

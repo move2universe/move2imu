@@ -67,9 +67,9 @@ Identify IMU data in a `move2` object and extract into an IMU vector.
   [`movebank_gyro_colsets()`](https://move2universe.github.io/move2imu/reference/movebank_colsets.md)
   : View standard Movebank IMU data column sets
 
-- [`has_acc()`](https://move2universe.github.io/move2imu/reference/has_imu.md)
-  [`has_mag()`](https://move2universe.github.io/move2imu/reference/has_imu.md)
-  [`has_gyro()`](https://move2universe.github.io/move2imu/reference/has_imu.md)
+- [`acc_sample_rows()`](https://move2universe.github.io/move2imu/reference/sample_rows.md)
+  [`mag_sample_rows()`](https://move2universe.github.io/move2imu/reference/sample_rows.md)
+  [`gyro_sample_rows()`](https://move2universe.github.io/move2imu/reference/sample_rows.md)
   :
 
   Identify rows in a `move2` that contain IMU data

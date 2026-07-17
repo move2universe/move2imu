@@ -18,7 +18,6 @@
 <url><loc>https://move2universe.github.io/move2imu/reference/duplicated_rows.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/eobs_default_specs.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/example_data.html</loc></url>
-<url><loc>https://move2universe.github.io/move2imu/reference/has_imu.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/imu-fields.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/imu-predicates.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/imu-properties.html</loc></url>
@@ -30,6 +29,7 @@
 <url><loc>https://move2universe.github.io/move2imu/reference/move2imu-package.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/movebank_colsets.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/plot_time.html</loc></url>
+<url><loc>https://move2universe.github.io/move2imu/reference/sample_rows.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/set_imu_units.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/split_imu.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/transform_imu.html</loc></url>

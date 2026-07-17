@@ -54,7 +54,7 @@ the data and add some fake timestamps:
 gul <- gulls()
 
 # Select first 21 rows where ACC data are present
-gul <- gul[has_acc(gul), ][1:21, ]
+gul <- gul[acc_sample_rows(gul), ][1:21, ]
 
 # Artificially modify the timestamps for this vignette
 ts <- c(
