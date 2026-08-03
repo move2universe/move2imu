@@ -26,7 +26,7 @@ Suggests:
     curl,
     dplyr,
     dygraphs,
-    ggplot2,
+    ggplot2 (>= 3.5.0),
     keyring,
     knitr,
     leaflet,
