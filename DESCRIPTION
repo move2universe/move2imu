@@ -41,10 +41,10 @@ Suggests:
     tidyr,
     withr
 Config/testthat/edition: 3
-RoxygenNote: 7.3.3
 Roxygen: list(markdown = TRUE)
 VignetteBuilder: knitr
 URL: https://github.com/move2universe/move2imu, https://move2universe.github.io/move2imu/
 BugReports: https://github.com/move2universe/move2imu/issues
 Depends: 
     R (>= 3.5)
+Config/roxygen2/version: 8.0.0

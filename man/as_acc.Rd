@@ -101,7 +101,7 @@ timestamp of the burst).
 \verb{as_*()} functions require that the input \code{move2} object be sorted by track
 and strictly increasing in time. Duplicate timestamps within a single
 track must be resolved before calling \verb{as_*()}. See
-\code{\link[move2:assertions]{move2::mt_is_track_id_cleaved()}}, \code{\link[move2:assertions]{move2::mt_is_time_ordered()}}, and
+\code{\link[move2:mt_is_track_id_cleaved]{move2::mt_is_track_id_cleaved()}}, \code{\link[move2:mt_is_time_ordered]{move2::mt_is_time_ordered()}}, and
 \code{\link[move2:mt_filter_unique]{move2::mt_filter_unique()}} for help diagnosing issues with data organization.
 }
 
