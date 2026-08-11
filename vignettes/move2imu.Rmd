@@ -270,6 +270,7 @@ plot_sampling_effort(
   to = as.POSIXct("2008-07-27 00:02:00", tz = "UTC")
 )
 ```
+
 ### Plotting IMU data
 
 You can also plot IMU data over time with `plot_time()`. This
