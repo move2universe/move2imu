@@ -58,7 +58,7 @@
 #' panel.grid.major.y = element_blank()
 #' panel.grid.minor = element_blank()
 #' panel.grid.major.x = element_line(linetype = "dashed", color = "gray80", linewidth = 0.3)
-#' panel.border = element_rect(color = "gray88", fill = NA, linewidth = 0.4)
+#' panel.border = element_rect(color = "gray80", fill = NA, linewidth = 0.4)
 #' strip.text.y.left = element_text(angle = 0, hjust = 1)
 #' strip.placement = "outside"
 #' plot.caption = element_text(color = "gray20")
@@ -70,6 +70,8 @@
 #'   [bin_samples()].
 #'
 #' @seealso [bin_samples()] for the underlying counts.
+#'
+#'   [plot_time()] to plot the data values recorded by an `imu` vector.
 #'
 #' @export
 #'

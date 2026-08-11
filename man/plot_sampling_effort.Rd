@@ -87,7 +87,7 @@ The default theme includes these theme parameters:
 \if{html}{\out{<div class="sourceCode">}}\preformatted{panel.grid.major.y = element_blank()
 panel.grid.minor = element_blank()
 panel.grid.major.x = element_line(linetype = "dashed", color = "gray80", linewidth = 0.3)
-panel.border = element_rect(color = "gray88", fill = NA, linewidth = 0.4)
+panel.border = element_rect(color = "gray80", fill = NA, linewidth = 0.4)
 strip.text.y.left = element_text(angle = 0, hjust = 1)
 strip.placement = "outside"
 plot.caption = element_text(color = "gray20")
@@ -161,4 +161,6 @@ plot_sampling_effort(acceleration = acc, ids = tracks)
 }
 \seealso{
 \code{\link[=bin_samples]{bin_samples()}} for the underlying counts.
+
+\code{\link[=plot_time]{plot_time()}} to plot the data values recorded by an \code{imu} vector.
 }

@@ -8,6 +8,8 @@
 #' @inheritParams n_axis
 #' @param ylab A character with the y axis label
 #'
+#' @seealso [plot_sampling_effort()] to plot sample collection times.
+#'
 #' @export
 #'
 #' @examplesIf rlang::is_installed(c("dygraphs", "move2"))

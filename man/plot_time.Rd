@@ -33,3 +33,6 @@ plot_time(a)
 plot_time(a[move2::mt_track_id(alb) == "4261-2228"])
 \dontshow{\}) # examplesIf}
 }
+\seealso{
+\code{\link[=plot_sampling_effort]{plot_sampling_effort()}} to plot sample collection times.
+}

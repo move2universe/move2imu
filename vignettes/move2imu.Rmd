@@ -246,11 +246,25 @@ where tags stopped and started collecting data, and how densely certain
 time ranges were sampled.
 
 ```{r}
+track_ids <- mt_track_id(albatrosses())
+
+plot_sampling_effort(acc = a, ids = track_ids)
+```
+
+Modify the width of the aggregation bins and the plot's time range to explore
+time periods in more detail:
+
+```{r}
+start <- as.POSIXct("2008-07-27 00:00:00", tz = "UTC")
+end <- as.POSIXct("2008-07-27 00:02:00", tz = "UTC")
+width <- units::set_units(0.3, "s")
+
 plot_sampling_effort(
-  a,
-  ids = mt_track_id(albatrosses()),
-  from = as.POSIXct("2008-07-27 00:00:00", tz = "UTC"),
-  to = as.POSIXct("2008-07-27 00:02:00", tz = "UTC")
+  acc = a,
+  ids = track_ids,
+  bin_width = width,
+  from = start,
+  to = end
 )
 ```
 
@@ -265,9 +279,10 @@ gps <- replace(mt_time(albatrosses()), sf::st_is_empty(albatrosses()), NA)
 plot_sampling_effort(
   acc = a,
   gps = gps,
-  ids = mt_track_id(albatrosses()),
-  from = as.POSIXct("2008-07-27 00:00:00", tz = "UTC"),
-  to = as.POSIXct("2008-07-27 00:02:00", tz = "UTC")
+  ids = track_ids,
+  bin_width = width,
+  from = start,
+  to = end
 )
 ```
 
