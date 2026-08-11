@@ -46,6 +46,8 @@ remotes::install_github("move2universe/move2imu")
 
 ## Usage
 
+Extract and standardize IMU bursts from a data source:
+
 ```{r}
 library(move2imu)
 library(move2)
@@ -58,12 +60,20 @@ head(a)
 
 # Overview of acceleration bursts
 summary(a)
+```
 
+Calibrate tags:
+
+```{r}
 # Standardize raw ADC counts to physical units with a built-in tag calibration
 a <- transform_imu(a, acc_calibration("ornitela", units = "standard_free_fall"))
 
 head(a)
+```
 
+Visualize sampling regimes:
+
+```{r sampling-effort, fig.alt = "Sampling effort for nine albatross tracks over a two-minute window. Each track is drawn as its own row, with shaded bins marking the times at which acceleration samples were recorded."}
 # Visualize sampling patterns in your data
 alb <- albatrosses()
 
