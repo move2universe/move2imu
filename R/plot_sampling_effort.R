@@ -24,16 +24,17 @@
 #'    sampling effort values are relative to the maximum sampling effort
 #'    recorded in that vector, across all groups in `ids`.
 #'
+#' The shade of each bin is mapped to effort with a square-root transform and is
+#' limited to a minimum alpha value of 0.28 to ensure sparse bursts remain
+#' visible. A bin in which a sensor recorded nothing is left blank, so a gap in
+#' a row reflects a period with no samples recorded.
+#'
 #' Note that because the shade of each bin is normalized within each input
 #' vector provided to `...`, shade says nothing about the absolute sampling
 #' rate of a vector, and shades cannot be compared across inputs.
-#'
 #' Because normalization spans all groups in `ids`, panels can be compared
 #' with one another, but a track that sampled less intensively than its peers
 #' appears uniformly faint.
-#'
-#' A bin in which a sensor recorded nothing is left blank, so a gap in a
-#' row reflects a period with no samples recorded.
 #'
 #' You can directly access the data produced by this calculation and passed to
 #' the plot by calling [bin_samples()].
