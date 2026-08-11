@@ -162,5 +162,5 @@ plot_sampling_effort(acceleration = acc, ids = tracks)
 \seealso{
 \code{\link[=bin_samples]{bin_samples()}} for the underlying counts.
 
-\code{\link[=plot_time]{plot_time()}} to plot the data values recorded by an \code{imu} vector.
+\code{\link[=plot_imu_trace]{plot_imu_trace()}} to plot the data values recorded by an \code{imu} vector.
 }

@@ -1,4 +1,4 @@
-#' Plot IMU values over time
+#' Plot IMU traces over time
 #'
 #' Plot the trace of IMU values from an IMU vector with time on the x-axis.
 #'
@@ -13,18 +13,18 @@
 #' @export
 #'
 #' @examplesIf rlang::is_installed(c("dygraphs", "move2"))
-#' plot_time(acc_example())
+#' plot_imu_trace(acc_example())
 #'
 #' # If bursts come from multiple sources (in this case, deployments),
 #' # then lines from different bursts may be incorrectly connected:
 #' alb <- albatrosses()
 #' a <- as_acc(alb)
 #'
-#' plot_time(a)
+#' plot_imu_trace(a)
 #'
 #' # To avoid this issue, plot only a single deployment's values:
-#' plot_time(a[move2::mt_track_id(alb) == "4261-2228"])
-plot_time <- function(x, ylab = "Value") {
+#' plot_imu_trace(a[move2::mt_track_id(alb) == "4261-2228"])
+plot_imu_trace <- function(x, ylab = "Value") {
   rlang::check_installed("dygraphs", "dplyr")
 
   time <- starts(x)

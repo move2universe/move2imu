@@ -12,7 +12,7 @@ reference:
   - imu-properties
   - imu-fields
   - imu_summary
-  - plot_time
+  - plot_imu_trace
   - plot_sampling_effort
 
 - title: Extracting IMU data from move2 / Movebank

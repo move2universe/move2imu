@@ -237,7 +237,7 @@ hist(burst_intervals(a), main = "Burst intervals (s)")
 hist(unlist(bursts(a)), main = "Sample values")
 ```
 
-### Plotting samples
+### Plotting sampling effort
 
 Many tags change their sampling settings over the course of a study. To
 visualize how the IMU data were sampled, use `plot_sampling_effort()`. This can
@@ -286,24 +286,24 @@ plot_sampling_effort(
 )
 ```
 
-### Plotting IMU data
+### Plotting IMU traces
 
-You can also plot IMU data over time with `plot_time()`. This
-produces an interactive
+You can also plot the values recorded by an IMU vector over time with
+`plot_imu_trace()`. This produces an interactive
 [`dygraph`](https://rstudio.github.io/dygraphs/) that you can zoom
 into with the mouse:
 
 ```{r plot, fig.width=6}
 a <- as_acc(gulls())
 
-plot_time(a)
+plot_imu_trace(a)
 ```
 
 You can also pass a single burst (or a subset) for a focused view —
 here, the wing beats are clearly visible on the Z axis:
 
 ```{r plot_one, fig.width=6}
-plot_time(a[422])
+plot_imu_trace(a[422])
 ```
 
 <!-- ## A single burst in 3D -->

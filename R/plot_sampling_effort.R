@@ -71,7 +71,7 @@
 #'
 #' @seealso [bin_samples()] for the underlying counts.
 #'
-#'   [plot_time()] to plot the data values recorded by an `imu` vector.
+#'   [plot_imu_trace()] to plot the data values recorded by an `imu` vector.
 #'
 #' @export
 #'
