@@ -17,7 +17,7 @@ the same length as each of the vectors in \code{...}.}
 \item{bin_width}{Width of the time bins within which samples are counted.
 Provided as a \link[units:units]{units} object, a \link{difftime} object, or a
 numeric value which will be interpreted as seconds. By default, the time
-range of the plot is divided into roughly 1200 bins.
+range of the plot is divided into roughly 300 bins.
 
 Decrease the \code{bin_width} to increase plot resolution, at the expense of
 legibility for sparsely collected data.}

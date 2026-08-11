@@ -253,7 +253,7 @@ plot_sampling_effort <- function(...,
 #' @param bin_width Width of the time bins within which samples are counted.
 #'   Provided as a [units][units::units] object, a [difftime] object, or a
 #'   numeric value which will be interpreted as seconds. By default, the time
-#'   range of the plot is divided into roughly 1200 bins.
+#'   range of the plot is divided into roughly 300 bins.
 #'
 #'   Decrease the `bin_width` to increase plot resolution, at the expense of
 #'   legibility for sparsely collected data.
@@ -781,11 +781,11 @@ format_bin <- function(bin_width) {
 # roughly 0.3 MB and 1.6 ms per 1000, so this cap allows a peak of about 1.5 GB
 # and 8 s.
 #
-# There is ample headroom for real work. At the default 1200 bins a plot builds
+# There is ample headroom for real work. At the default 300 bins a plot builds
 # roughly one cell per burst plus the bins each burst spans, so even a
 # deployment with several hundred thousand bursts stays well under the cap.
 max_cells <- 5e6
 
 # Default number of bins to divide the time axis into when no `bin_width` is
 # provided
-default_bins <- 1200
+default_bins <- 300

@@ -245,7 +245,7 @@ test_that("Binned samples share one bin grid across lanes", {
   expect_equal(unique(as.numeric(b$time)), 3000)
 })
 
-test_that("Default bin width divides the plot time span into 1200 bins", {
+test_that("Default bin width divides the plot time span into 300 bins", {
   .acc <- function(t) {
     acc(
       rep(list(cbind(X = 1:2)), length(t)),
@@ -261,7 +261,7 @@ test_that("Default bin width divides the plot time span into 1200 bins", {
   # extend the range by 1 s past the final start.
   expect_equal(
     attr(bin_samples(a), "bin_width"),
-    10001 / 1200
+    10001 / 300
   )
 
   # A lone instant has no span to divide, so the width is arbitrary: whatever
@@ -443,8 +443,8 @@ test_that("Provided from/to window sets the bin grid and the span", {
   expect_equal(as.numeric(max(b$time)), 7)
 
   # The default bin width is calculated from the overall plot window, not the
-  # data span. (Default is 1200 bins)
-  b <- bin_samples(a, from = as.POSIXct(0, "UTC"), to = as.POSIXct(1200, "UTC"))
+  # data span. (Default is 300 bins)
+  b <- bin_samples(a, from = as.POSIXct(0, "UTC"), to = as.POSIXct(300, "UTC"))
   expect_equal(attr(b, "bin_width"), 1)
 })
 
