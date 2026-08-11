@@ -61,6 +61,7 @@
 #' panel.border = element_rect(color = "gray88", fill = NA, linewidth = 0.4)
 #' strip.text.y.left = element_text(angle = 0, hjust = 1)
 #' strip.placement = "outside"
+#' plot.caption = element_text(color = "gray20")
 #' ```
 #'
 #' @inheritParams bin_samples
@@ -82,10 +83,18 @@
 #' plot_sampling_effort(acc, ids = tracks)
 #'
 #' # Adjust bin width to adjust "resolution" of the plot
-#' plot_sampling_effort(acc, bin_width = units::set_units(20, "s"), ids = tracks)
+#' plot_sampling_effort(
+#'   acc,
+#'   bin_width = units::set_units(20, "s"),
+#'   ids = tracks
+#' )
 #'
 #' # It is also possible to plot timestamp vectors.
-#' plot_sampling_effort(move2::mt_time(alb), ids = tracks, bin_width = units::set_units(30, "s"))
+#' plot_sampling_effort(
+#'   move2::mt_time(alb),
+#'   ids = tracks,
+#'   bin_width = units::set_units(30, "s")
+#' )
 #'
 #' # When plotting multiple sources of data, they must be the same length
 #' # and aligned with `ids`, if provided.
@@ -95,7 +104,12 @@
 #' gps <- replace(move2::mt_time(alb), sf::st_is_empty(alb), NA)
 #'
 #' # This ensures GPS coordinates will be correctly grouped by `ids`:
-#' plot_sampling_effort(acc, gps, ids = tracks, bin_width = units::set_units(30, "s"))
+#' plot_sampling_effort(
+#'   acc,
+#'   gps,
+#'   ids = tracks,
+#'   bin_width = units::set_units(30, "s")
+#' )
 #'
 #' # Restrict the plot time axis with `from`/`to`
 #' p <- plot_sampling_effort(
@@ -176,12 +190,13 @@ plot_sampling_effort <- function(...,
         linewidth = 0.3
       ),
       panel.border = ggplot2::element_rect(
-        color = "gray88",
+        color = "gray80",
         fill = NA,
         linewidth = 0.4
       ),
       strip.text.y.left = ggplot2::element_text(angle = 0, hjust = 1),
-      strip.placement = "outside" # Place facet labels outside lane labels
+      strip.placement = "outside", # Place facet labels outside lane labels
+      plot.caption = ggplot2::element_text(color = "gray20")
     ) +
     ggplot2::guides(fill = "none")
 

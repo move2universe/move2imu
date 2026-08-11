@@ -76,7 +76,19 @@ head(a)
 #> [5] (0.05 0.35 1.99) [standard_free_fall] 
 #> [6] (-0.03 0.25 2.05) [standard_free_fall]
 #> # frequency: 20 [Hz]
+
+# Visualize sampling patterns in your data
+alb <- albatrosses()
+
+plot_sampling_effort(
+  acc = as_acc(alb),
+  ids = mt_track_id(alb),
+  from = as.POSIXct("2008-07-27 00:00:00", tz = "UTC"),
+  to = as.POSIXct("2008-07-27 00:02:00", tz = "UTC")
+)
 ```
+
+<img src="man/figures/README-unnamed-chunk-3-1.png" alt="" width="100%" />
 
 ## Getting help + Contributing
 

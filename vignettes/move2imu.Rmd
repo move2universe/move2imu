@@ -237,9 +237,42 @@ hist(burst_intervals(a), main = "Burst intervals (s)")
 hist(unlist(bursts(a)), main = "Sample values")
 ```
 
-### Plotting bursts
+### Plotting samples
 
-You can also plot the acceleration data over time with `plot_time()`. This
+Many tags change their sampling settings over the course of a study. To
+visualize how the IMU data were sampled, use `plot_sampling_effort()`. This can
+reveal periods where different sensors or tracks collected data simultaneously,
+where tags stopped and started collecting data, and how densely certain
+time ranges were sampled.
+
+```{r}
+plot_sampling_effort(
+  a,
+  ids = mt_track_id(albatrosses()),
+  from = as.POSIXct("2008-07-27 00:00:00", tz = "UTC"),
+  to = as.POSIXct("2008-07-27 00:02:00", tz = "UTC")
+)
+```
+
+`plot_sampling_effort()` accepts both `imu` objects as well as timestamp
+vectors, so you can also plot other sensors based on their recorded timestamps
+(e.g. GPS coordinates):
+
+```{r, fig.height=6}
+# Mask out timestamps to get only those where a GPS location was recorded
+gps <- replace(mt_time(albatrosses()), sf::st_is_empty(albatrosses()), NA)
+
+plot_sampling_effort(
+  acc = a,
+  gps = gps,
+  ids = mt_track_id(albatrosses()),
+  from = as.POSIXct("2008-07-27 00:00:00", tz = "UTC"),
+  to = as.POSIXct("2008-07-27 00:02:00", tz = "UTC")
+)
+```
+### Plotting IMU data
+
+You can also plot IMU data over time with `plot_time()`. This
 produces an interactive
 [`dygraph`](https://rstudio.github.io/dygraphs/) that you can zoom
 into with the mouse:

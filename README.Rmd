@@ -9,7 +9,10 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.path = "man/figures/README-",
-  out.width = "100%"
+  out.width = "100%",
+  dpi = 300,
+  fig.width = 8,
+  fig.height = 5
 )
 ```
 
@@ -60,6 +63,16 @@ summary(a)
 a <- transform_imu(a, acc_calibration("ornitela", units = "standard_free_fall"))
 
 head(a)
+
+# Visualize sampling patterns in your data
+alb <- albatrosses()
+
+plot_sampling_effort(
+  acc = as_acc(alb),
+  ids = mt_track_id(alb),
+  from = as.POSIXct("2008-07-27 00:00:00", tz = "UTC"),
+  to = as.POSIXct("2008-07-27 00:02:00", tz = "UTC")
+)
 ```
 
 ## Getting help + Contributing
