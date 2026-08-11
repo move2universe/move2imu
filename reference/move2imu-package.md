@@ -23,4 +23,7 @@ Useful links:
 
 Authors:
 
+- Bart Kranstauber <b.kranstauber@uva.nl>
+  ([ORCID](https://orcid.org/0000-0001-8303-780X))
+
 - Finn Roberts <froberts@ab.mpg.de>
