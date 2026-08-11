@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_time.R
 \name{plot_time}
 \alias{plot_time}
-\title{Plot bursts over time}
+\title{Plot IMU values over time}
 \usage{
 plot_time(x, ylab = "Value")
 }

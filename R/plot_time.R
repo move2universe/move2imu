@@ -1,4 +1,4 @@
-#' Plot bursts over time
+#' Plot IMU values over time
 #'
 #' Plot the trace of IMU values from an IMU vector with time on the x-axis.
 #'
@@ -31,13 +31,13 @@ plot_time <- function(x, ylab = "Value") {
 
   # Only plot bursts that have data, start time, and freq
   keep <- present & !is.na(time) & !is.na(freq)
-  
+
   if (!any(keep)) {
     cli::cli_abort(
       "Can't plot bursts without start timestamps and sampling frequencies."
     )
   }
-  
+
   n_no_start <- sum(present & is.na(time))
   if (n_no_start > 0) {
     cli::cli_warn("Omitting {n_no_start} burst{?s} with no start timestamp.")
