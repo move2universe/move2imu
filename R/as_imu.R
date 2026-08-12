@@ -136,7 +136,7 @@ as_imu_move2_ <- function(x,
 as_imu_compact <- function(x, axes, freq, sensor, timestamp, force_int = FALSE) {
   colnms <- strsplit(as.character(axes), "")
   n_axis <- nchar(as.character(axes))
-  vals_split <- strsplit(as.character(x), " ")
+  vals_split <- strsplit(as.character(x), " ", fixed = TRUE)
 
   if (force_int) {
     flat <- as.numeric(unlist(vals_split))
