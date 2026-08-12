@@ -15,25 +15,25 @@ test_that("transform_imu() applies correct calibration per burst", {
   sp2 <- eobs_specs(4000)
 
   manual_1 <- transform_burst(
+    bursts(a)[[1]],
     acc_calibration(
       offset = sp1$offset,
       slope = sp1$slope,
       orientation_x = sp1$orientation_x,
       orientation_y = sp1$orientation_y,
       orientation_z = sp1$orientation_z
-    )[1],
-    bursts(a)[[1]]
+    )[1]
   )
 
   manual_2 <- transform_burst(
+    bursts(a)[[2]],
     acc_calibration(
       offset = sp2$offset,
       slope = sp2$slope,
       orientation_x = sp2$orientation_x,
       orientation_y = sp2$orientation_y,
       orientation_z = sp2$orientation_z
-    )[1],
-    bursts(a)[[2]]
+    )[1]
   )
 
   expect_identical(bursts(result)[[1]], manual_1)
@@ -88,7 +88,47 @@ test_that("transform_imu() warns on already-calibrated data", {
   a <- acc_example()
   tf <- acc_calibration(offset = 2048, slope = 0.001)
   calibrated <- transform_imu(a, tf)
-  expect_warning(transform_imu(calibrated[1], tf), "already contain units")
+  expect_warning(transform_imu(calibrated[1], tf), "pre-existing units")
+})
+
+test_that("transform_imu() warns on axes missing calibration params", {
+  b <- cbind(X = as.double(1:5), Y = as.double(1:5), Z = as.double(1:5))
+  a <- acc(bursts = rep(list(b), 5), frequency = units::set_units(rep(20, 5), "Hz"))
+
+  expect_warning(
+    result <- transform_imu(a, acc_calibration(offset_x = 2048, slope_x = 0.001)),
+    "produced NA values in 5 bursts"
+  )
+})
+
+test_that("transform_imu() handles bursts with differing axes under one calibration", {
+  bxyz <- cbind(X = as.double(1:5), Y = as.double(1:5), Z = as.double(1:5))
+  bxy <- cbind(X = as.double(1:5), Y = as.double(1:5))
+
+  a <- acc(bursts = list(bxyz, bxy, bxyz), frequency = units::set_units(rep(20, 3), "Hz"))
+  cal <- acc_calibration(offset = 2048, slope = 0.001)
+  result <- transform_imu(a, cal)
+
+  expect_identical(colnames(bursts(result)[[2]]), c("X", "Y"))
+  expect_identical(bursts(result)[[2]], transform_burst(bxy, cal[1]))
+  expect_identical(bursts(result)[[3]], transform_burst(bxyz, cal[1]))
+})
+
+test_that("transform_imu() maps grouped calibrations back to the right elements", {
+  b <- cbind(X = as.double(1:5), Y = as.double(1:5), Z = as.double(1:5))
+  a <- acc(bursts = rep(list(b), 3), frequency = units::set_units(rep(20, 3), "Hz"))
+
+  # Elements 1 and 3 share a calibration; element 2 differs
+  cal <- c(
+    acc_calibration(offset = 2048, slope = 0.001),
+    acc_calibration(offset = 100, slope = 0.5),
+    acc_calibration(offset = 2048, slope = 0.001)
+  )
+  result <- transform_imu(a, cal)
+
+  expect_identical(bursts(result)[[1]], transform_burst(b, cal[1]))
+  expect_identical(bursts(result)[[2]], transform_burst(b, cal[2]))
+  expect_identical(bursts(result)[[3]], transform_burst(b, cal[3]))
 })
 
 test_that("transform_imu() units argument passes through", {
