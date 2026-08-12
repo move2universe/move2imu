@@ -85,10 +85,12 @@ merge_imu <- function(x,
     cli::cli_abort("{.arg ids} must be the same length as {.arg x}.")
   }
 
-  # `gap_tol` is an absolute time; normalize to seconds for comparison.
-  gap_tol <- units::set_units(gap_tol, "s")
+  # `gap_tol` is an absolute time; normalize to seconds once here. Every time
+  # quantity below is then a plain count of seconds, so the comparisons need no
+  # further unit handling.
+  gap_tol <- as.numeric(units::set_units(gap_tol, "s"))
 
-  if (as.numeric(gap_tol) < 0) {
+  if (gap_tol < 0) {
     cli::cli_abort("{.arg gap_tol} must be greater than or equal to 0.")
   }
 
@@ -112,11 +114,20 @@ merge_imu <- function(x,
   sv <- burst_starts[valid]
   nv <- length(valid)
 
+  # Frequencies are stored in Hz, so `n_samples / fq` is a burst's duration and
+  # `1 / fq` its sample period, both already in seconds. Deriving the times
+  # below from these numerics avoids converting the same quantities through
+  # `units` (and through `difftime`, whose unit is chosen by magnitude) once per
+  # burst-sized vector.
+  fq <- as.numeric(freqs(xv))
+  period_s <- 1 / fq
+  ns <- n_samples(xv)
+  sv_s <- as.numeric(sv)
+
   # Collapsible bursts must end at the start time of the subsequent burst,
-  # within the absolute `gap_tol`. Normalize to seconds so `as_difftime()`
-  # accepts the result regardless of what time unit `burst_dur()` returns.
-  timediff <- sv + units::as_difftime(units::set_units(burst_dur(xv), "s"))
-  is_adjacent_burst <- abs(units::as_units(sv[-1] - timediff[-nv], "s")) <= gap_tol
+  # within the absolute `gap_tol`.
+  end_s <- sv_s + ns / fq
+  is_adjacent_burst <- abs(sv_s[-1] - end_s[-nv]) <= gap_tol
 
   # If no adjacent bursts, no need to proceed
   if (!any(is_adjacent_burst, na.rm = TRUE)) {
@@ -127,10 +138,7 @@ merge_imu <- function(x,
   }
 
   # Collapsible bursts must share a sampling frequency, within `(1 + freq_tol)`:
-  # the faster is at most that many times the slower. `freqs()` is stored in Hz,
-  # so `1 / fq` is the sample period in seconds.
-  fq <- as.numeric(freqs(xv))
-  period_s <- 1 / fq
+  # the faster is at most that many times the slower.
   prev_freq <- fq[-nv]
   next_freq <- fq[-1]
   ratio_dev <- pmax(prev_freq, next_freq) / pmin(prev_freq, next_freq) - 1
@@ -141,18 +149,19 @@ merge_imu <- function(x,
   period_dev <- abs(period_s[-1] - period_s[-nv])
   is_same_freq <- !((ratio_dev > freq_tol) & (period_dev > fp_time_floor))
 
+  bv <- bursts(xv)
+
   # Collapsible bursts must have axis structure
   # Check both axis names and length to disambiguate possible name duplication
   # after collapsing to single string
-  axes <- purrr::map_chr(
-    bursts(xv),
-    function(b) paste0(colnames(b), collapse = "_")
-  )
-  is_same_n_axis <- (axes[-1] == axes[-nv]) & (n_axis(xv)[-1] == n_axis(xv)[-nv])
+  axes <- purrr::map_chr(bv, function(b) paste0(colnames(b), collapse = "_"))
+
+  n_ax <- n_axis(xv)
+  is_same_n_axis <- (axes[-1] == axes[-nv]) & (n_ax[-1] == n_ax[-nv])
 
   # Collapsible bursts must have identical units (or both be unitless)
   burst_units <- purrr::map_chr(
-    bursts(xv),
+    bv,
     function(b) if (inherits(b, "units")) units::deparse_unit(b) else NA_character_
   )
   is_same_units <- (burst_units[-1] == burst_units[-nv]) |
@@ -174,7 +183,6 @@ merge_imu <- function(x,
   # rbind burst matrices
   grp_idx <- unname(split(seq_along(to_bind), cumsum(!to_bind)))
 
-  bv <- bursts(xv)
   bursts_comb <- lapply(grp_idx, function(i) do.call(rbind, bv[i]))
 
   # Get first entry in each group. This defines the burst start time.
@@ -183,13 +191,17 @@ merge_imu <- function(x,
   # Recompute each merged burst's frequency from its new span so the merged
   # frequency reflects variations within the tolerance, rather than inheriting
   # the first burst's frequency arbitrarily.
-  ns <- n_samples(xv)
+  #
+  # A burst's last sample falls one sample period before its end. Deriving this
+  # for the whole vector up front keeps the per-group work below to arithmetic
+  # on plain seconds.
+  last_samp_s <- end_s - period_s
 
   merged_freq <- purrr::map_dbl(
     grp_idx,
     function(g) {
       if (length(g) == 1L) {
-        return(as.numeric(fq[g]))
+        return(fq[g])
       }
 
       merged_samps <- sum(ns[g])
@@ -198,11 +210,7 @@ merge_imu <- function(x,
         return(NA_real_)
       }
 
-      last_burst <- g[length(g)]
-      last_samp_time <- timediff[last_burst] -
-        units::as_difftime(units::set_units(period_s[last_burst], "s"))
-
-      merged_span <- as.numeric(last_samp_time - sv[g[1]], units = "secs")
+      merged_span <- last_samp_s[g[length(g)]] - sv_s[g[1]]
 
       if (is.na(merged_span) || merged_span <= 0) {
         return(NA_real_)
