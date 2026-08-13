@@ -83,7 +83,7 @@ transform_imu <- function(x, calibration) {
   br <- bursts(x)
   out <- vector("list", length(br))
   n_w_units <- 0L
-  n_lost <- 0L
+  introduced_na <- FALSE
 
   # Build burst transformer once for each unique calibration. This avoids
   # cost of setting up duplicate transformation functions for each burst.
@@ -114,11 +114,10 @@ transform_imu <- function(x, calibration) {
       } else {
         burst_tfrm <- transform(burst)
 
-        # If calibration has introduced NAs (usually because of missing
-        # calibration params for a certain axis), keep a record and warn later
-        if (anyNA(burst_tfrm) && !anyNA(burst)) {
-          n_lost <- n_lost + 1L
-        }
+        # Record whether calibration introduced NAs (usually because of missing
+        # calibration params for a certain axis) and warn later.
+        introduced_na <- introduced_na ||
+          sum(is.na(burst_tfrm)) > sum(is.na(burst))
 
         out[[i]] <- burst_tfrm
       }
@@ -134,9 +133,9 @@ transform_imu <- function(x, calibration) {
     )
   }
 
-  if (n_lost > 0L) {
+  if (introduced_na) {
     cli::cli_warn(c(
-      "Calibration produced NA values in {n_lost} {cli::qty(n_lost)}burst{?s}.",
+      "Calibration introduced NA values in some axes.",
       "i" = "Did you specify calibration parameters for all recorded axes?"
     ))
   }

@@ -97,8 +97,35 @@ test_that("transform_imu() warns on axes missing calibration params", {
 
   expect_warning(
     result <- transform_imu(a, acc_calibration(offset_x = 2048, slope_x = 0.001)),
-    "produced NA values in 5 bursts"
+    "introduced NA values"
   )
+})
+
+test_that("transform_imu() warns on missing params even when input has NAs", {
+  # Pre-existing NAs in the raw values must not mask axes that the calibration
+  # has no parameters for.
+  b <- cbind(X = as.double(1:5), Y = as.double(1:5), Z = as.double(1:5))
+  b[1, "X"] <- NA_real_
+
+  a <- acc(bursts = list(b), frequency = units::set_units(20, "Hz"))
+
+  expect_warning(
+    result <- transform_imu(a, acc_calibration(offset_x = 2048, slope_x = 0.001)),
+    "introduced NA values"
+  )
+  expect_true(all(is.na(bursts(result)[[1]][, c("Y", "Z")])))
+})
+
+test_that("transform_imu() does not warn when NAs come only from the input", {
+  b <- cbind(X = as.double(1:5), Y = as.double(1:5), Z = as.double(1:5))
+  b[1, "Z"] <- NA_real_
+
+  a <- acc(bursts = list(b), frequency = units::set_units(20, "Hz"))
+
+  expect_no_warning(
+    result <- transform_imu(a, acc_calibration(offset = 2048, slope = 0.001))
+  )
+  expect_identical(sum(is.na(bursts(result)[[1]])), 1L)
 })
 
 test_that("transform_imu() handles bursts with differing axes under one calibration", {
