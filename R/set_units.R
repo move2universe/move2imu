@@ -132,6 +132,8 @@ set_imu_units_ <- function(x, value, reference, sensor) {
     ))
   }
 
+  value <- units(units::as_units(value))
+
   bursts_converted <- purrr::map(
     bursts(x),
     function(b) {

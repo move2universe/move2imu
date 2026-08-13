@@ -35,18 +35,32 @@ snap_freq <- function(x, digits = 6) {
   signif(x, digits = digits)
 }
 
+# Parsed form of the canonical frequency unit. Parsing a unit string is the
+# dominant cost of a units operation, so the target unit is parsed once here
+# and reused rather than re-parsed from "Hz" on every conversion.
+HZ_UNIT <- units(units::as_units("Hz"))
+
 # Coerce a frequency to Hz. Used so interior code can easily coerce values to Hz
 # for operations that are units-sensitive. Hz is the canonical storage format
 # for IMU vector objects.
 as_hz <- function(x, arg = rlang::caller_arg(x), call = rlang::caller_env()) {
-  if (inherits(x, "units") &&
-    !units::ud_are_convertible(units::deparse_unit(x), "Hz")) {
+  if (!inherits(x, "units")) {
+    return(units::set_units(x, HZ_UNIT, mode = "standard"))
+  }
+
+  # Return input if identical to avoid unnecessary units calls
+  if (identical(units(x), HZ_UNIT)) {
+    return(x)
+  }
+
+  if (!units::ud_are_convertible(units::deparse_unit(x), "Hz")) {
     cli::cli_abort(
       "{.arg {arg}} must be convertible to a frequency unit (Hz).",
       call = call
     )
   }
-  units::set_units(x, "Hz")
+
+  units::set_units(x, HZ_UNIT, mode = "standard")
 }
 
 # Absolute floating-point noise floor for POSIXct-derived time differences, in

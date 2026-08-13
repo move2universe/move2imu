@@ -73,35 +73,74 @@ transform_imu <- function(x, calibration) {
 
   if (any(uncalibrated)) {
     cli::cli_warn(
-      "Returning NA for {sum(uncalibrated)} {cli::qty(sum(uncalibrated))}burst{?s} with data but no calibration."
+      paste0(
+        "Returning NA for {sum(uncalibrated)} {cli::qty(sum(uncalibrated))}burst{?s} ",
+        "with data but no calibration."
+      )
     )
   }
 
-  bursts(x) <- new_burst_list(
-    purrr::map2(
-      bursts(x),
-      vctrs::vec_chop(calibration),
-      function(.br, .cal) {
-        # No calibration for this element: drop the burst (becomes NA).
-        if (vctrs::vec_detect_missing(.cal)) {
-          return(NULL)
-        }
-        # Nothing to calibrate (empty/NA burst): pass through unchanged.
-        if (rlang::is_empty(.br) || rlang::is_na(.br)) {
-          return(.br)
-        }
-        # Refuse to recalibrate values that already carry units.
-        if (inherits(.br, "units")) {
-          cli::cli_warn(
-            "Cannot calibrate values that already contain units. Returning input."
-          )
-          return(.br)
-        }
-        transform_burst(.cal, .br)
-      }
-    ),
-    sensor = sensor
+  br <- bursts(x)
+  out <- vector("list", length(br))
+  n_w_units <- 0L
+  introduced_na <- FALSE
+
+  # Build burst transformer once for each unique calibration. This avoids
+  # cost of setting up duplicate transformation functions for each burst.
+  # NB: highest cost is parsing the calibration's units string.
+  unique_cal <- vctrs::vec_group_loc(calibration)
+
+  # Bursts with no calibration are left NULL, and so become NA.
+  unique_cal <- vctrs::vec_slice(
+    unique_cal,
+    !vctrs::vec_detect_missing(unique_cal$key)
   )
+
+  # Iterate over each unique calibration function
+  for (cal in seq_len(nrow(unique_cal))) {
+    transform <- burst_transformer(unique_cal$key[cal])
+
+    # Iterate over bursts that belong to this calibration function
+    for (i in unique_cal$loc[[cal]]) {
+      burst <- br[[i]]
+
+      if (rlang::is_empty(burst) || rlang::is_na(burst)) {
+        # Nothing to calibrate (empty/NA burst): pass through unchanged.
+        out[i] <- list(burst)
+      } else if (inherits(burst, "units")) {
+        # Refuse to recalibrate values that already carry units.
+        n_w_units <- n_w_units + 1L
+        out[i] <- list(burst)
+      } else {
+        burst_tfrm <- transform(burst)
+
+        # Record whether calibration introduced NAs (usually because of missing
+        # calibration params for a certain axis) and warn later.
+        introduced_na <- introduced_na ||
+          sum(is.na(burst_tfrm)) > sum(is.na(burst))
+
+        out[[i]] <- burst_tfrm
+      }
+    }
+  }
+
+  if (n_w_units > 0L) {
+    cli::cli_warn(
+      paste0(
+        "Cannot calibrate {n_w_units} {cli::qty(n_w_units)}burst{?s} with ",
+        "pre-existing units. Returning input."
+      )
+    )
+  }
+
+  if (introduced_na) {
+    cli::cli_warn(c(
+      "Calibration introduced NA values in some axes.",
+      "i" = "Did you specify calibration parameters for all recorded axes?"
+    ))
+  }
+
+  bursts(x) <- new_burst_list(out, sensor = sensor)
 
   # Sync metadata so uncalibrated elements are fully missing (`is.na()` agrees)
   if (any(missing_cal)) {
@@ -111,57 +150,52 @@ transform_imu <- function(x, calibration) {
   x
 }
 
-# Apply a single calibration to a single burst.
+# Build a function that applies a single calibration to a burst.
 #
-# `transform_burst()` is the intermediary that handles heterogeneity in the
+# `burst_transformer()` is the intermediary that handles heterogeneity in the
 # way parameters stored in a calibration object are converted into a
 # function that maps raw values to physical units. Different sensors can
 # implement different methods to convert calibrations for those sensors into
 # functions that will be applied to an individual burst to convert values.
 #
-# transform_imu() facilitates the dispatch of these transformations across all
+# `transform_imu()` facilitates the dispatch of these transformations across all
 # bursts in an imu object.
 #
-# `calibration` is a length-1 calibration record and `burst` is a numeric matrix
-# of raw values with axis columns (e.g. "X", "Y", "Z").
-transform_burst <- function(calibration, burst, ...) {
-  UseMethod("transform_burst")
+# `calibration` is a length-1 calibration record. The returned function takes a
+# numeric matrix of raw values with axis columns (e.g. "X", "Y", "Z").
+burst_transformer <- function(calibration, ...) {
+  UseMethod("burst_transformer")
 }
 
-# Apply accelerometer calibration to a burst. Acc calibrations are linear
-# transformations of the form (raw - offset) * slope * orientation
-# `calibration` is a length-1 `acc_calibration`; `burst` is a raw numeric matrix
-# with axis columns. The output preserves the burst's columns: only values and
-# units change. Columns the calibration has no parameters for become NA.
+# Acc calibrations are linear transformations of the form
+# (raw - offset) * slope * orientation. The output preserves the burst's
+# columns: only values and units change. Columns the calibration has no
+# parameters for become NA.
 #' @export
-transform_burst.acc_calibration <- function(calibration, burst, ...) {
+burst_transformer.acc_calibration <- function(calibration, ...) {
   f <- vctrs::vec_data(calibration)
 
-  offset <- c(X = f$offset_x, Y = f$offset_y, Z = f$offset_z)
-  scale <- c(X = f$slope_x, Y = f$slope_y, Z = f$slope_z) *
+  offsets <- c(X = f$offset_x, Y = f$offset_y, Z = f$offset_z)
+  scales <- c(X = f$slope_x, Y = f$slope_y, Z = f$slope_z) *
     c(X = f$orientation_x, Y = f$orientation_y, Z = f$orientation_z)
 
-  # Preserve the burst's columns; align calibration params to them by axis name
-  active_axes <- colnames(burst)
-  offset <- offset[active_axes]
-  scale <- scale[active_axes]
+  unit <- units(units::as_units(f$units))
 
-  # Warn if any of the burst's axes have no calibration parameters
-  na_axes <- active_axes[is.na(offset) | is.na(scale)]
-  if (length(na_axes) > 0) {
-    cli::cli_warn(c(
-      "Missing calibration parameters for {cli::qty(na_axes)}{?axis/axes} {.val {na_axes}}.",
-      "!" = "{cli::qty(na_axes)}{?This axis/These axes} will produce NA values."
-    ))
+  function(burst) {
+    # Preserve burst columns and align calibration params to them by axis name
+    axes <- colnames(burst)
+    offset <- offsets[axes]
+    scale <- scales[axes]
+
+    # Apply calibration
+    n <- nrow(burst)
+    tfrm <- (burst - rep(offset, each = n)) * rep(scale, each = n)
+
+    if (f$units == "m/s^2") {
+      tfrm <- tfrm * GRAV_CONST
+    }
+
+    units(tfrm) <- unit
+    tfrm
   }
-
-  # Apply calibration
-  xt <- sweep(burst[, active_axes, drop = FALSE], 2, offset, `-`)
-  xt <- sweep(xt, 2, scale, `*`)
-  if (f$units == "m/s^2") {
-    xt <- xt * GRAV_CONST
-  }
-
-  colnames(xt) <- active_axes
-  units::set_units(xt, f$units, mode = "standard")
 }
