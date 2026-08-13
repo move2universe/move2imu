@@ -9,7 +9,10 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.path = "man/figures/README-",
-  out.width = "100%"
+  out.width = "100%",
+  dpi = 300,
+  fig.width = 8,
+  fig.height = 5
 )
 ```
 
@@ -43,6 +46,8 @@ remotes::install_github("move2universe/move2imu")
 
 ## Usage
 
+Extract and standardize IMU bursts from a data source:
+
 ```{r}
 library(move2imu)
 library(move2)
@@ -55,11 +60,29 @@ head(a)
 
 # Overview of acceleration bursts
 summary(a)
+```
 
+Calibrate tags:
+
+```{r}
 # Standardize raw ADC counts to physical units with a built-in tag calibration
 a <- transform_imu(a, acc_calibration("ornitela", units = "standard_free_fall"))
 
 head(a)
+```
+
+Visualize sampling regimes:
+
+```{r sampling-effort, fig.alt = "Sampling effort for nine albatross tracks over a two-minute window. Each track is drawn as its own row, with shaded bins marking the times at which acceleration samples were recorded."}
+# Visualize sampling patterns in your data
+alb <- albatrosses()
+
+plot_sampling_effort(
+  acc = as_acc(alb),
+  ids = mt_track_id(alb),
+  from = as.POSIXct("2008-07-27 00:00:00", tz = "UTC"),
+  to = as.POSIXct("2008-07-27 00:02:00", tz = "UTC")
+)
 ```
 
 ## Getting help + Contributing

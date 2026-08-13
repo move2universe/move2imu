@@ -1,42 +1,42 @@
-test_that("plot_time", {
+test_that("plot_imu_trace", {
   expect_silent(
-    graph <- plot_time(acc_example())
+    graph <- plot_imu_trace(acc_example())
   )
   expect_s3_class(graph, "dygraphs")
 })
 
-test_that("plot_time handles missing start times", {
+test_that("plot_imu_trace handles missing start times", {
   a <- acc_example()
   starts(a) <- as.POSIXct(c(1, NA), tz = "UTC")
 
   expect_warning(
-    g <- plot_time(a),
+    g <- plot_imu_trace(a),
     "Omitting 1 burst.* no start timestamp"
   )
   expect_s3_class(g, "dygraphs")
 
   # All starts NA: errors.
   starts(a) <- as.POSIXct(c(NA, NA), tz = "UTC")
-  expect_error(plot_time(a), "start timestamps and sampling frequencies")
+  expect_error(plot_imu_trace(a), "start timestamps and sampling frequencies")
 })
 
-test_that("plot_time omits bursts with a missing frequency", {
+test_that("plot_imu_trace omits bursts with a missing frequency", {
   a <- acc_example()
   # Second burst loses its frequency (as a single-sample burst would)
   freqs(a) <- units::set_units(c(20, NA), "Hz")
 
   expect_warning(
-    g <- plot_time(a),
+    g <- plot_imu_trace(a),
     "Omitting 1 burst.* no sampling frequency"
   )
   expect_s3_class(g, "dygraphs")
 
   # All frequencies missing: errors rather than producing NA timestamps
   freqs(a) <- units::set_units(c(NA, NA), "Hz")
-  expect_error(plot_time(a), "start timestamps and sampling frequencies")
+  expect_error(plot_imu_trace(a), "start timestamps and sampling frequencies")
 })
 
-test_that("plot_time uses seconds regardless of frequency unit", {
+test_that("plot_imu_trace uses seconds regardless of frequency unit", {
   # Equivalent frequencies: 20 Hz and 1200/min.
   burst <- matrix(seq_len(20), ncol = 1, dimnames = list(NULL, "X"))
   start <- as.POSIXct("2026-01-01", tz = "UTC")
@@ -44,8 +44,8 @@ test_that("plot_time uses seconds regardless of frequency unit", {
   a_hz <- acc(list(burst), units::set_units(20, "Hz"), start = start)
   a_min <- acc(list(burst), units::set_units(1200, "1/min"), start = start)
 
-  g_hz <- plot_time(a_hz)
-  g_min <- plot_time(a_min)
+  g_hz <- plot_imu_trace(a_hz)
+  g_min <- plot_imu_trace(a_min)
 
   # The dygraph time series should be identical — i.e. the dt offsets
   # were correctly normalized to seconds before adding to the start time.
