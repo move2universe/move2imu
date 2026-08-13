@@ -8,10 +8,12 @@ Build and explore IMU data vectors
   [`mag()`](https://move2universe.github.io/move2imu/reference/imu_constructors.md)
   [`gyro()`](https://move2universe.github.io/move2imu/reference/imu_constructors.md)
   : Create an IMU vector
+
 - [`is_acc()`](https://move2universe.github.io/move2imu/reference/imu-predicates.md)
   [`is_mag()`](https://move2universe.github.io/move2imu/reference/imu-predicates.md)
   [`is_gyro()`](https://move2universe.github.io/move2imu/reference/imu-predicates.md)
   : Check sensor type of an IMU vector
+
 - [`n_axis()`](https://move2universe.github.io/move2imu/reference/imu-properties.md)
   [`n_samples()`](https://move2universe.github.io/move2imu/reference/imu-properties.md)
   [`burst_dur()`](https://move2universe.github.io/move2imu/reference/imu-properties.md)
@@ -19,6 +21,7 @@ Build and explore IMU data vectors
   [`imu_units()`](https://move2universe.github.io/move2imu/reference/imu-properties.md)
   [`is_uniform()`](https://move2universe.github.io/move2imu/reference/imu-properties.md)
   : Burst properties of an IMU vector
+
 - [`bursts()`](https://move2universe.github.io/move2imu/reference/imu-fields.md)
   [`` `bursts<-`() ``](https://move2universe.github.io/move2imu/reference/imu-fields.md)
   [`freqs()`](https://move2universe.github.io/move2imu/reference/imu-fields.md)
@@ -26,10 +29,17 @@ Build and explore IMU data vectors
   [`starts()`](https://move2universe.github.io/move2imu/reference/imu-fields.md)
   [`` `starts<-`() ``](https://move2universe.github.io/move2imu/reference/imu-fields.md)
   : Access and modify fields of an IMU vector
+
 - [`summary(`*`<imu>`*`)`](https://move2universe.github.io/move2imu/reference/imu_summary.md)
   : Summarize an IMU vector
-- [`plot_time()`](https://move2universe.github.io/move2imu/reference/plot_time.md)
-  : Plot bursts over time
+
+- [`plot_imu_trace()`](https://move2universe.github.io/move2imu/reference/plot_imu_trace.md)
+  : Plot IMU traces over time
+
+- [`plot_sampling_effort()`](https://move2universe.github.io/move2imu/reference/plot_sampling_effort.md)
+  :
+
+  Visualize sample collection times from `imu` or timestamp vectors
 
 ## Extracting IMU data from move2 / Movebank
 

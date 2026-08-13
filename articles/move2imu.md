@@ -412,10 +412,70 @@ hist(unlist(bursts(a)), main = "Sample values")
 
 ![](move2imu_files/figure-html/summary_hist-2.png)
 
-### Plotting bursts
+### Plotting sampling effort
 
-You can also plot the acceleration data over time with
-[`plot_time()`](https://move2universe.github.io/move2imu/reference/plot_time.md).
+Many tags change their sampling settings over the course of a study. To
+visualize how the IMU data were sampled, use
+[`plot_sampling_effort()`](https://move2universe.github.io/move2imu/reference/plot_sampling_effort.md).
+This can reveal periods where different sensors or tracks collected data
+simultaneously, where tags stopped and started collecting data, and how
+densely certain time ranges were sampled.
+
+``` r
+
+track_ids <- mt_track_id(albatrosses())
+
+plot_sampling_effort(acc = a, ids = track_ids)
+```
+
+![](move2imu_files/figure-html/unnamed-chunk-11-1.png)
+
+Modify the width of the aggregation bins and the plot’s time range to
+explore time periods in more detail:
+
+``` r
+
+start <- as.POSIXct("2008-07-27 00:00:00", tz = "UTC")
+end <- as.POSIXct("2008-07-27 00:02:00", tz = "UTC")
+width <- units::set_units(0.3, "s")
+
+plot_sampling_effort(
+  acc = a,
+  ids = track_ids,
+  bin_width = width,
+  from = start,
+  to = end
+)
+```
+
+![](move2imu_files/figure-html/unnamed-chunk-12-1.png)
+
+[`plot_sampling_effort()`](https://move2universe.github.io/move2imu/reference/plot_sampling_effort.md)
+accepts both `imu` objects as well as timestamp vectors, so you can also
+plot other sensors based on their recorded timestamps (e.g. GPS
+coordinates):
+
+``` r
+
+# Mask out timestamps to get only those where a GPS location was recorded
+gps <- replace(mt_time(albatrosses()), sf::st_is_empty(albatrosses()), NA)
+
+plot_sampling_effort(
+  acc = a,
+  gps = gps,
+  ids = track_ids,
+  bin_width = width,
+  from = start,
+  to = end
+)
+```
+
+![](move2imu_files/figure-html/unnamed-chunk-13-1.png)
+
+### Plotting IMU traces
+
+You can also plot the values recorded by an IMU vector over time with
+[`plot_imu_trace()`](https://move2universe.github.io/move2imu/reference/plot_imu_trace.md).
 This produces an interactive
 [`dygraph`](https://rstudio.github.io/dygraphs/) that you can zoom into
 with the mouse:
@@ -424,7 +484,7 @@ with the mouse:
 
 a <- as_acc(gulls())
 
-plot_time(a)
+plot_imu_trace(a)
 ```
 
 You can also pass a single burst (or a subset) for a focused view —
@@ -432,7 +492,7 @@ here, the wing beats are clearly visible on the Z axis:
 
 ``` r
 
-plot_time(a[422])
+plot_imu_trace(a[422])
 ```
 
 ## Next steps

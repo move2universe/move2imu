@@ -15,6 +15,7 @@
 <url><loc>https://move2universe.github.io/move2imu/reference/as_acc.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/as_gyro.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/as_mag.html</loc></url>
+<url><loc>https://move2universe.github.io/move2imu/reference/bin_samples.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/duplicated_rows.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/eobs_default_specs.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/example_data.html</loc></url>
@@ -28,7 +29,8 @@
 <url><loc>https://move2universe.github.io/move2imu/reference/merge_imu.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/move2imu-package.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/movebank_colsets.html</loc></url>
-<url><loc>https://move2universe.github.io/move2imu/reference/plot_time.html</loc></url>
+<url><loc>https://move2universe.github.io/move2imu/reference/plot_imu_trace.html</loc></url>
+<url><loc>https://move2universe.github.io/move2imu/reference/plot_sampling_effort.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/sample_rows.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/set_imu_units.html</loc></url>
 <url><loc>https://move2universe.github.io/move2imu/reference/split_imu.html</loc></url>

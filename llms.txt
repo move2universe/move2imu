@@ -23,6 +23,8 @@ remotes::install_github("move2universe/move2imu")
 
 ## Usage
 
+Extract and standardize IMU bursts from a data source:
+
 ``` r
 
 library(move2imu)
@@ -51,6 +53,11 @@ summary(a)
 #> 
 #> Values:  [ -1383 / 142 / 355 / 1782.25 / 4073 ]  (min/Q1/med/Q3/max) 
 #> Units:   NULL
+```
+
+Calibrate tags:
+
+``` r
 
 # Standardize raw ADC counts to physical units with a built-in tag calibration
 a <- transform_imu(a, acc_calibration("ornitela", units = "standard_free_fall"))
@@ -65,6 +72,26 @@ head(a)
 #> [6] (-0.03 0.25 2.05) [standard_free_fall]
 #> # frequency: 20 [Hz]
 ```
+
+Visualize sampling regimes:
+
+``` r
+
+# Visualize sampling patterns in your data
+alb <- albatrosses()
+
+plot_sampling_effort(
+  acc = as_acc(alb),
+  ids = mt_track_id(alb),
+  from = as.POSIXct("2008-07-27 00:00:00", tz = "UTC"),
+  to = as.POSIXct("2008-07-27 00:02:00", tz = "UTC")
+)
+```
+
+![Sampling effort for nine albatross tracks over a two-minute window.
+Each track is drawn as its own row, with shaded bins marking the times
+at which acceleration samples were
+recorded.](reference/figures/README-sampling-effort-1.png)
 
 ## Getting help + Contributing
 
@@ -82,10 +109,12 @@ Build and explore IMU data vectors
   [`mag()`](https://move2universe.github.io/move2imu/reference/imu_constructors.md)
   [`gyro()`](https://move2universe.github.io/move2imu/reference/imu_constructors.md)
   : Create an IMU vector
+
 - [`is_acc()`](https://move2universe.github.io/move2imu/reference/imu-predicates.md)
   [`is_mag()`](https://move2universe.github.io/move2imu/reference/imu-predicates.md)
   [`is_gyro()`](https://move2universe.github.io/move2imu/reference/imu-predicates.md)
   : Check sensor type of an IMU vector
+
 - [`n_axis()`](https://move2universe.github.io/move2imu/reference/imu-properties.md)
   [`n_samples()`](https://move2universe.github.io/move2imu/reference/imu-properties.md)
   [`burst_dur()`](https://move2universe.github.io/move2imu/reference/imu-properties.md)
@@ -93,6 +122,7 @@ Build and explore IMU data vectors
   [`imu_units()`](https://move2universe.github.io/move2imu/reference/imu-properties.md)
   [`is_uniform()`](https://move2universe.github.io/move2imu/reference/imu-properties.md)
   : Burst properties of an IMU vector
+
 - [`bursts()`](https://move2universe.github.io/move2imu/reference/imu-fields.md)
   [`` `bursts<-`() ``](https://move2universe.github.io/move2imu/reference/imu-fields.md)
   [`freqs()`](https://move2universe.github.io/move2imu/reference/imu-fields.md)
@@ -100,10 +130,17 @@ Build and explore IMU data vectors
   [`starts()`](https://move2universe.github.io/move2imu/reference/imu-fields.md)
   [`` `starts<-`() ``](https://move2universe.github.io/move2imu/reference/imu-fields.md)
   : Access and modify fields of an IMU vector
+
 - [`summary(`*`<imu>`*`)`](https://move2universe.github.io/move2imu/reference/imu_summary.md)
   : Summarize an IMU vector
-- [`plot_time()`](https://move2universe.github.io/move2imu/reference/plot_time.md)
-  : Plot bursts over time
+
+- [`plot_imu_trace()`](https://move2universe.github.io/move2imu/reference/plot_imu_trace.md)
+  : Plot IMU traces over time
+
+- [`plot_sampling_effort()`](https://move2universe.github.io/move2imu/reference/plot_sampling_effort.md)
+  :
+
+  Visualize sample collection times from `imu` or timestamp vectors
 
 ## Extracting IMU data from move2 / Movebank
 
