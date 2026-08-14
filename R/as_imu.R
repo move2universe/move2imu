@@ -17,6 +17,12 @@ as_imu.move2 <- function(x,
                          merge_continuous = TRUE,
                          drop = FALSE,
                          ...) {
+  # Required by move2, but placed here to be comprehensive. `dplyr::coalesce()`
+  # is not always necessary (e.g. single-sensor inputs) but we don't worry about
+  # bypassing the dplyr dependency in those cases given that the package will
+  # be available regardless (unless move2 changes dependencies)
+  rlang::check_installed("dplyr")
+
   if (nrow(x) == 0) {
     return(new_imu(sensor))
   }

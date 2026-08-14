@@ -25,7 +25,7 @@
 #' # To avoid this issue, plot only a single deployment's values:
 #' plot_imu_trace(a[move2::mt_track_id(alb) == "4261-2228"])
 plot_imu_trace <- function(x, ylab = "Value") {
-  rlang::check_installed("dygraphs", "dplyr")
+  rlang::check_installed(c("dygraphs", "dplyr"))
 
   time <- starts(x)
   freq <- freqs(x)
