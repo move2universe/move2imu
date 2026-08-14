@@ -67,13 +67,20 @@ burst_list <- function(x, sensor) {
       if (is.null(b)) {
         return(TRUE)
       }
+      if (!is.numeric(b) || length(dim(b)) != 2L) {
+        return(FALSE)
+      }
       nms <- colnames(b)
-      !is.null(nms) && length(nms) > 0 && all(nms %in% valid_axes)
+      !is.null(nms) && length(nms) > 0 &&
+        !anyDuplicated(nms) && all(nms %in% valid_axes)
     }
   )
 
   if (any(!is_valid)) {
-    cli::cli_abort("Burst matrix columns must be named {.val X}, {.val Y}, or {.val Z}.")
+    cli::cli_abort(
+      "Bursts must be numeric matrices with unique columns named {.val X},
+       {.val Y}, or {.val Z}."
+    )
   }
 
   new_burst_list(x, sensor)
