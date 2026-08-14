@@ -31,7 +31,7 @@ Netherlands. Published by the Research Institute for Nature and Forest
 GPS tracking network for large birds for the project/study
 LBBG_ZEEBRUGGE. Acceleration data are provided in expanded format from
 trackers developed by the University of Amsterdam Bird Tracking System
-([UvA-BiTS](http://www.uva-bits.nl)).
+([UvA-BiTS](https://www.uva-bits.nl/)).
 
 Only individual 5508292 is included.
 
