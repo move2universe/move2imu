@@ -123,7 +123,7 @@ test_that("`freqs<-` coerces the replacement to Hz", {
   )
 })
 
-test_that("burst matrix columns must be named X, Y, or Z", {
+test_that("bursts must be numeric matrices with unique X, Y, or Z columns", {
   # Unnamed columns
   expect_error(
     acc(list(matrix(1:6, ncol = 2)), frequency = 10),
@@ -140,6 +140,31 @@ test_that("burst matrix columns must be named X, Y, or Z", {
   expect_error(
     acc(list(cbind(A = 1:3, B = 4:6)), frequency = 10),
     "named"
+  )
+
+  # Duplicated column names
+  expect_error(
+    acc(list(cbind(X = 1:3, X = 4:6)), frequency = 10),
+    "Bursts must be"
+  )
+
+  # Bursts must be 2-dimensional and numeric
+  arr <- array(1:12, c(2, 3, 2), dimnames = list(NULL, c("X", "Y", "Z"), NULL))
+
+  expect_error(
+    acc(list(arr), frequency = 10),
+    "Bursts must be"
+  )
+  expect_error(
+    acc(list(cbind(X = c("a", "b"))), frequency = 10),
+    "Bursts must be"
+  )
+
+  # `units` bursts are still numeric
+  units_burst <- units::set_units(cbind(X = 1:3), "m/s^2", mode = "standard")
+
+  expect_no_error(
+    acc(list(units_burst), frequency = 10)
   )
 
   # NULL bursts (NA entries) don't need column names
