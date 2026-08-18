@@ -7,9 +7,14 @@
 #' [active_acc_colsets()].
 #'
 #' @inheritParams merge_imu
-#' @param x A `move2` object containing acceleration data. Typically this will
-#'   be loaded from disk with [move2::mt_read()] or downloaded using
-#'   [move2::movebank_download_study()].
+#' @param x A `move2` or `data.frame` containing acceleration data. A `move2`
+#'   will typically be loaded from disk with [move2::mt_read()] or downloaded
+#'   using [move2::movebank_download_study()].
+#' @param timestamp When `x` is a `data.frame`, a vector of `POSIXct` or
+#'   numeric timestamps corresponding to the recording time of each row of `x`.
+#' @param track_id  When `x` is a `data.frame`, a vector of IDs identifying the
+#'   track for each row in `x`. If `NULL`, all rows in `x` are assumed to belong
+#'   to the same track.
 #' @param colset An `imu_colset` object or list of `imu_colset` objects
 #'   specifying the columns of `x` that contain acceleration data. By default,
 #'   constructs bursts for all column sets that are detected in `x` that also
@@ -18,13 +23,13 @@
 #'   Several common colsets are listed under [movebank_acc_colsets()]. To
 #'   specify a custom set of columns, use [imu_colset()].
 #' @param min_freq For expanded-format data, the minimum allowable burst
-#'   frequency in the output. 
+#'   frequency in the output.
 #'   Any burst whose derived frequency falls below this value is instead split
 #'   into individual (length-1) bursts. Increase this value to avoid producing
 #'   slow-frequency bursts. By default, all samples recorded at consistent
 #'   intervals will be combined into bursts, regardless of their sampling
 #'   frequency.
-#'   
+#'
 #'   Inputs with compatible [units][units::units] are converted to Hz
 #'   internally. If no units are specified, `min_freq` is assumed to
 #'   be in Hz.
@@ -60,11 +65,15 @@
 #'
 #' ## Input requirements
 #'
-#' `as_*()` functions require that the input `move2` object be sorted by track
-#' and strictly increasing in time. Duplicate timestamps within a single
-#' track must be resolved before calling `as_*()`. See
-#' [move2::mt_is_track_id_cleaved()], [move2::mt_is_time_ordered()], and
-#' [move2::mt_filter_unique()] for help diagnosing issues with data organization.
+#' `as_*()` functions require that the input be sorted by track and strictly
+#' increasing in time. Duplicate timestamps within a single track must be
+#' resolved before calling `as_*()`.
+#'
+#' For `move2` inputs, see [move2::mt_is_track_id_cleaved()],
+#' [move2::mt_is_time_ordered()], and [move2::mt_filter_unique()] for help
+#' diagnosing issues with data organization. For `data.frame` inputs, you must
+#' order the rows by `track_id` then `timestamp` and drop duplicates before
+#' calling `as_acc()`.
 #'
 #' ## Dealing with noise in recorded timestamps
 #'
@@ -124,7 +133,7 @@
 #'   as the gap between the bursts (which deviates from the expected sampling
 #'   frequency) will be incorporated into the samples of
 #'   a single burst.
-#'   
+#'
 #' In general, it is best to keep the tolerance parameters as low as possible
 #' while still accommodating the noise inherent in the timestamp recordings
 #' in your data.
@@ -135,10 +144,10 @@
 #' set the values slightly above your desired output tolerance.
 #'
 #' @return An object of class `acc` inheriting from class `imu`.
-#' 
+#'
 #' @seealso [movebank_acc_colsets()] for supported acceleration column sets
 #'   in Movebank.
-#' 
+#'
 #' @export
 #'
 #' @examplesIf rlang::is_installed("move2")
@@ -192,6 +201,33 @@ as_acc.move2 <- function(x,
     gap_tol = gap_tol,
     merge_continuous = merge_continuous,
     drop = drop,
+    ...
+  )
+}
+
+#' @rdname as_acc
+#' @export
+as_acc.data.frame <- function(x,
+                              timestamp = NULL,
+                              track_id = NULL,
+                              colset = NULL,
+                              min_freq = 0,
+                              freq_tol = 1e-2,
+                              gap_tol = 1e-6,
+                              merge_continuous = TRUE,
+                              drop = FALSE,
+                              ...) {
+  as_imu(
+    x,
+    sensor = "acc",
+    colset = colset,
+    min_freq = min_freq,
+    freq_tol = freq_tol,
+    gap_tol = gap_tol,
+    merge_continuous = merge_continuous,
+    drop = drop,
+    timestamp = timestamp,
+    track_id = track_id,
     ...
   )
 }

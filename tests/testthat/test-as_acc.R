@@ -256,7 +256,7 @@ test_that("Can drop missing acc values", {
 
   expect_identical(as_acc(gulls_data, colset = cols, drop = TRUE), acc[!is.na(acc)])
   expect_length(acc, nrow(gulls_data))
-  
+
   # Each burst is attached at its first row index; every other row is NA.
   first_i <- sapply(
     parse_bursts(
@@ -553,19 +553,19 @@ test_that("NA timestamps on IMU records are rejected", {
 
 test_that("Can resolve IMU timestamp ordering issues with move2 helpers", {
   skip_if_not_installed("move2")
-  
+
   m <- expanded_acc(c(0, 0, 0, 1, 2, 1.5, 3))
   move2::mt_track_id(m) <- c(1, 2, 1, 1, 1, 2, 2)
 
   expect_error(as_acc(m), "Not all tracks are grouped")
   expect_error(as_acc(m[order(move2::mt_track_id(m)), ]), "strictly increasing")
-  
+
   m <- m[order(move2::mt_track_id(m), move2::mt_time(m)), ]
-  
+
   expect_error(as_acc(m), "strictly increasing")
-  
+
   m <- move2::mt_filter_unique(m, "first")
-  
+
   expect_no_error(as_acc(m))
 })
 
@@ -581,7 +581,7 @@ test_that("Only IMU records are considered when checking data ordering", {
     ),
     x = 1, y = 1
   )
-  
+
   m <- move2::mt_as_move2(
     d,
     coords = c("x", "y"),
@@ -622,10 +622,10 @@ test_that("compact bursts must also be ordered and unique within a track", {
   expect_error(as_acc(compact_acc(c(2, 0))), "strictly increasing")
   expect_error(as_acc(compact_acc(c(0, 0))), "strictly increasing")
   expect_no_error(as_acc(compact_acc(c(0, 2))))
-  
+
   comp <- compact_acc(c(0, 0))
   move2::mt_track_id(comp) <- c(1, 2)
-  
+
   expect_no_error(as_acc(comp))
 })
 
@@ -722,7 +722,6 @@ test_that("as_acc() validates timestamp and track_id for data.frame input", {
   )
 
   expect_error(as_acc(df), "`timestamp` is required")
-  # Numeric time is valid (see the time-zone test above); character is not.
   expect_no_error(as_acc(df, timestamp = as.numeric(df$ts)))
   expect_error(
     as_acc(df, timestamp = as.character(df$ts)),
@@ -736,5 +735,80 @@ test_that("as_acc() validates timestamp and track_id for data.frame input", {
   expect_error(
     as_acc(df, timestamp = df$ts, track_id = c("a", NA, "b", "b")),
     "must not contain missing values"
+  )
+})
+
+test_that("data.frame and move2 entry points agree (compact)", {
+  alb <- albatrosses()
+  alb_df <- as.data.frame(alb)
+  alb_df <- alb_df[, setdiff(colnames(alb_df), "geometry")]
+
+  expect_identical(
+    as_acc(alb),
+    as_acc(
+      alb_df,
+      timestamp = alb_df[[move2::mt_time_column(alb)]],
+      track_id = alb_df[[move2::mt_track_id_column(alb)]]
+    )
+  )
+})
+
+test_that("data.frame and move2 entry points agree (expanded)", {
+  gul <- gulls()
+  gul_df <- as.data.frame(gul)
+  gul_df <- gul_df[, setdiff(colnames(gul_df), "geometry")]
+
+  expect_identical(
+    as_acc(gul),
+    as_acc(
+      gul_df,
+      timestamp = gul_df[[move2::mt_time_column(gul)]],
+      track_id = gul_df[[move2::mt_track_id_column(gul)]]
+    )
+  )
+})
+
+test_that("as_acc() dispatches on data.frame subclasses", {
+  skip_if_not_installed("tibble")
+  skip_if_not_installed("sf")
+
+  alb <- albatrosses()
+  alb_df <- tibble::as_tibble(alb)
+
+  expect_identical(
+    as_acc(alb),
+    as_acc(
+      alb_df,
+      timestamp = alb_df[[move2::mt_time_column(alb)]],
+      track_id = alb_df[[move2::mt_track_id_column(alb)]]
+    )
+  )
+
+  alb_sf <- sf::st_sf(
+    alb_df,
+    geometry = sf::st_sfc(rep(list(sf::st_point()), nrow(alb_df)))
+  )
+
+  expect_identical(
+    as_acc(alb),
+    as_acc(
+      alb_sf,
+      timestamp = alb_sf[[move2::mt_time_column(alb)]],
+      track_id = alb_sf[[move2::mt_track_id_column(alb)]]
+    )
+  )
+})
+
+test_that("as_acc() treats NULL track_id as a single track", {
+  gul <- gulls()
+  gul_df <- as.data.frame(gul)
+
+  expect_identical(
+    as_acc(gul_df, timestamp = gul_df[[move2::mt_time_column(gul)]]),
+    as_acc(
+      gul_df,
+      timestamp = gul_df[[move2::mt_time_column(gul)]],
+      track_id = gul_df[[move2::mt_track_id_column(gul)]]
+    )
   )
 })

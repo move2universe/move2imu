@@ -98,11 +98,15 @@ be represented in a single row in the output (corresponding to the start
 timestamp of the burst).
 \subsection{Input requirements}{
 
-\verb{as_*()} functions require that the input \code{move2} object be sorted by track
-and strictly increasing in time. Duplicate timestamps within a single
-track must be resolved before calling \verb{as_*()}. See
-\code{\link[move2:mt_is_track_id_cleaved]{move2::mt_is_track_id_cleaved()}}, \code{\link[move2:mt_is_time_ordered]{move2::mt_is_time_ordered()}}, and
-\code{\link[move2:mt_filter_unique]{move2::mt_filter_unique()}} for help diagnosing issues with data organization.
+\verb{as_*()} functions require that the input be sorted by track and strictly
+increasing in time. Duplicate timestamps within a single track must be
+resolved before calling \verb{as_*()}.
+
+For \code{move2} inputs, see \code{\link[move2:mt_is_track_id_cleaved]{move2::mt_is_track_id_cleaved()}},
+\code{\link[move2:mt_is_time_ordered]{move2::mt_is_time_ordered()}}, and \code{\link[move2:mt_filter_unique]{move2::mt_filter_unique()}} for help
+diagnosing issues with data organization. For \code{data.frame} inputs, you must
+order the rows by \code{track_id} then \code{timestamp} and drop duplicates before
+calling \code{as_acc()}.
 }
 
 \subsection{Dealing with noise in recorded timestamps}{
