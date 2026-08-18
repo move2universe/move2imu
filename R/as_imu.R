@@ -17,15 +17,71 @@ as_imu.move2 <- function(x,
                          merge_continuous = TRUE,
                          drop = FALSE,
                          ...) {
-  # Required by move2, but placed here to be comprehensive. `dplyr::coalesce()`
-  # is not always necessary (e.g. single-sensor inputs) but we don't worry about
-  # bypassing the dplyr dependency in those cases given that the package will
-  # be available regardless (unless move2 changes dependencies)
+  as_imu_table(
+    x,
+    sensor = sensor,
+    colset = colset,
+    min_freq = min_freq,
+    freq_tol = freq_tol,
+    gap_tol = gap_tol,
+    merge_continuous = merge_continuous,
+    drop = drop,
+    timestamp = move2::mt_time(x),
+    track_id = move2::mt_track_id(x),
+    ...
+  )
+}
+
+#' @export
+as_imu.data.frame <- function(x,
+                              sensor,
+                              colset = NULL,
+                              min_freq = 0,
+                              freq_tol = 1e-2,
+                              gap_tol = 1e-6,
+                              merge_continuous = TRUE,
+                              drop = FALSE,
+                              timestamp = NULL,
+                              track_id = NULL,
+                              ...) {
+  as_imu_table(
+    x,
+    sensor = sensor,
+    colset = colset,
+    min_freq = min_freq,
+    freq_tol = freq_tol,
+    gap_tol = gap_tol,
+    merge_continuous = merge_continuous,
+    drop = drop,
+    timestamp = timestamp,
+    track_id = track_id,
+    ...
+  )
+}
+
+# Implementation behind both `as_imu()` methods. Only difference is that .move2
+# methods populate `timestamp` and `track_id` from the move2 metadata
+as_imu_table <- function(x,
+                         sensor,
+                         colset = NULL,
+                         min_freq = 0,
+                         freq_tol = 1e-2,
+                         gap_tol = 1e-6,
+                         merge_continuous = TRUE,
+                         drop = FALSE,
+                         timestamp = NULL,
+                         track_id = NULL,
+                         ...) {
   rlang::check_installed("dplyr")
+
+  check_imu_time_args(x, timestamp, track_id)
 
   if (nrow(x) == 0) {
     return(new_imu(sensor))
   }
+
+  # If NULL, treat track_id as a single track
+  track_id <- as.character(track_id %||% rep(1L, nrow(x)))
 
   colsets <- parse_colsets(x, colset, sensor)
   dup <- duplicated_imu_rows(x, colsets = colsets)
@@ -33,20 +89,22 @@ as_imu.move2 <- function(x,
   if (any(dup)) {
     dup_fn <- paste0("duplicated_", sensor, "_rows")
     cli::cli_abort(c(
-      "{.arg x} contains {sum(dup)} timestamp{?s} with multiple sources of {sensor} data.",
+      "{.arg x} contains {sum(dup)} row{?s} with multiple sources of {sensor} data.",
       "i" = "Use {.help [{.fun {dup_fn}}](move2imu::{dup_fn})} to identify duplications."
     ))
   }
 
-  # Use lapply as we don't need purr's index errors here. User likely
+  # Use lapply as we don't need purrr's index errors here. User likely
   # will not realize we are iterating over colsets.
   out <- lapply(
     colsets,
     function(cols) {
-      as_imu_move2_(
+      as_imu_(
         x,
         sensor = sensor,
         colset = cols,
+        timestamp = timestamp,
+        track_id = track_id,
         min_freq = min_freq,
         freq_tol = freq_tol,
         gap_tol = gap_tol,
@@ -66,40 +124,45 @@ as_imu.move2 <- function(x,
   out
 }
 
-# Pipeline internals -----------------------------------------------------------
-
-as_imu_move2_ <- function(x,
-                          sensor,
-                          colset,
-                          min_freq = 0,
-                          freq_tol = 1e-2,
-                          gap_tol = 1e-6,
-                          merge_continuous = TRUE,
-                          drop = FALSE,
-                          force_int = NULL,
-                          ...) {
+as_imu_ <- function(x,
+                    sensor,
+                    colset,
+                    timestamp,
+                    track_id,
+                    min_freq = 0,
+                    freq_tol = 1e-2,
+                    gap_tol = 1e-6,
+                    merge_continuous = TRUE,
+                    drop = FALSE,
+                    force_int = NULL,
+                    ...) {
   check_colset(x, colset)
-  
+
   imu_rows <- imu_sample_rows(x, sensor = sensor, colset = colset)
-  
-  if (any(imu_rows) && any(is.na(move2::mt_time(x[imu_rows, ])))) {
+
+  if (any(imu_rows) && any(is.na(timestamp[imu_rows]))) {
     cli::cli_abort("All timestamps associated with IMU data must be non-NA.")
   }
-  
-  if (any(imu_rows) && !isTRUE(move2::mt_is_time_ordered(x[imu_rows, ], non_zero = TRUE))) {
-    cli::cli_abort(c(
-      "Timestamps must be strictly increasing within each track.",
-      "i" = "Order data by track and time and remove duplicate timestamps. See `move2::mt_filter_unique()`."
-    ))
+
+  if (any(imu_rows)) {
+    # Ensure timestamps in imu rows are ordered within tracks. We don't use
+    # move2's native implementation as it only dispatches on `move2`
+    check_time_order(
+      timestamp[imu_rows],
+      track_id[imu_rows],
+      hint_move2 = inherits(x, "move2")
+    )
   }
-  
+
   type <- colset_type(colset)
 
   if (type == "expanded") {
-    out <- as_imu_move2_expanded(
+    out <- as_imu_expanded(
       x,
       colset = colset,
       sensor = sensor,
+      timestamp = timestamp,
+      track_id = track_id,
       min_freq = min_freq,
       freq_tol = freq_tol,
       ...
@@ -114,7 +177,7 @@ as_imu_move2_ <- function(x,
       x[[colset[["axes"]]]],
       x[[colset[["frequency"]]]],
       sensor = sensor,
-      timestamp = move2::mt_time(x),
+      timestamp = timestamp,
       force_int = force_int %||% is_acc_eobs_cols,
       ...
     )
@@ -125,7 +188,7 @@ as_imu_move2_ <- function(x,
   if (merge_continuous) {
     out <- merge_imu(
       out,
-      ids = move2::mt_track_id(x),
+      ids = track_id,
       gap_tol = gap_tol,
       freq_tol = freq_tol,
       drop = drop
@@ -177,13 +240,14 @@ as_imu_compact <- function(x, axes, freq, sensor, timestamp, force_int = FALSE) 
   imu(sensor = sensor, bursts = mlist, frequency = freq, start = timestamp)
 }
 
-as_imu_move2_expanded <- function(x,
-                                  colset,
-                                  sensor,
-                                  min_freq = 0,
-                                  freq_tol = 1e-2,
-                                  timestamp = move2::mt_time(x),
-                                  ...) {
+as_imu_expanded <- function(x,
+                            colset,
+                            sensor,
+                            timestamp,
+                            track_id,
+                            min_freq = 0,
+                            freq_tol = 1e-2,
+                            ...) {
   col_names <- as.character(colset)
   m <- as.matrix(as.data.frame(x)[, col_names])
 
@@ -200,6 +264,8 @@ as_imu_move2_expanded <- function(x,
   parsed <- parse_bursts(
     x,
     colset = colset,
+    timestamp = timestamp,
+    track_id = track_id,
     min_freq = min_freq,
     freq_tol = freq_tol
   )
@@ -306,14 +372,21 @@ which_imu_vals <- function(x, colset) {
 #' to `freq_changes` for details on our approach.
 #'
 #' @inheritParams as_acc
-#' @param x move2 object with expanded-format IMU data
+#' @param x data.frame with expanded-format IMU data
+#' @param timestamp Timestamp of each row of `x`, as a `POSIXct` vector.
+#' @param track_id Track identifier of each row of `x`, as a `character` vector.
 #'
 #' @returns A list with elements `bursts` and `freq`. The former is a list
 #'   whose elements indicate the row indices of `x` belonging to that burst.
 #'   The latter is the derived sampling frequency of each burst. Elements of
 #'   each match by index.
 #' @noRd
-parse_bursts <- function(x, colset, min_freq = 0, freq_tol = 1e-2) {
+parse_bursts <- function(x,
+                         colset,
+                         timestamp,
+                         track_id,
+                         min_freq = 0,
+                         freq_tol = 1e-2) {
   # Coerce to Hz at the boundary so `1 / min_freq` below is in seconds,
   # matching the second-based sample intervals, regardless of the unit supplied.
   min_freq <- as_hz(min_freq)
@@ -329,18 +402,19 @@ parse_bursts <- function(x, colset, min_freq = 0, freq_tol = 1e-2) {
   min_interval <- (1 / as.numeric(min_freq)) + fp_time_floor
 
   vals_i <- which_imu_vals(x, colset = colset)
-  idx <- split(vals_i, as.character(move2::mt_track_id(x[vals_i, ])))
+
+  idx <- split(vals_i, track_id[vals_i])
 
   grps <- lapply(
     idx,
     function(i) {
       i <- unname(i)
-      
+
       if (length(i) < 2) {
         return(list(bursts = list(i), freq = NA_real_))
       }
 
-      samp_times <- as.numeric(move2::mt_time(x[i, ]))
+      samp_times <- as.numeric(timestamp[i])
 
       # Identify runs of consistent sampling frequency, within the tolerance
       is_freq_change <- freq_changes(diff(samp_times), freq_tol = freq_tol)
@@ -356,7 +430,7 @@ parse_bursts <- function(x, colset, min_freq = 0, freq_tol = 1e-2) {
           }
         )
       )
-      
+
       too_slow <- !is.na(run_intervals) & (run_intervals > min_interval)
       run_start <- is_freq_change | too_slow[run_id]
 
@@ -472,6 +546,109 @@ new_freq_regime <- function(n, n_next = 0, prev_run = FALSE) {
   }
 
   c(start, rep(FALSE, n - 1))
+}
+
+# Validate timestamp and track_id args for tabular input. `move2` objects
+# should already be valid, but data.frame inputs with user-specified timestamp
+# and track_id columns haven't necessarily had their inputs validated  yet.
+check_imu_time_args <- function(x,
+                                timestamp,
+                                track_id,
+                                call = rlang::caller_env()) {
+  if (rlang::is_null(timestamp)) {
+    cli::cli_abort("{.arg timestamp} is required.", call = call)
+  }
+
+  if (!inherits(timestamp, "POSIXct") && !is.numeric(timestamp)) {
+    cli::cli_abort(
+      "{.arg timestamp} must be a {.cls POSIXct} or numeric vector, not {.cls {class(timestamp)[1]}}.",
+      call = call
+    )
+  }
+
+  if (length(timestamp) != nrow(x)) {
+    cli::cli_abort(
+      "{.arg timestamp} must be the same length as {.arg x} ({nrow(x)}), not {length(timestamp)}.",
+      call = call
+    )
+  }
+
+  if (!rlang::is_null(track_id)) {
+    if (length(track_id) != nrow(x)) {
+      cli::cli_abort(
+        "{.arg track_id} must be the same length as {.arg x} ({nrow(x)}), not {length(track_id)}.",
+        call = call
+      )
+    }
+
+    if (anyNA(track_id)) {
+      cli::cli_abort(
+        "{.arg track_id} must not contain missing values.",
+        call = call
+      )
+    }
+  }
+
+  invisible(NULL)
+}
+
+# Implementation of `move2::mt_is_track_id_cleaved()` that dispatches on an
+# ID vector. Differences from move2:
+#   - Distinct IDs checked with `unique()`, not `nlevels()`. Avoids factor
+#     with unused levels failing
+#   - length-0 inputs are TRUE instead of FALSE
+ids_cleaved <- function(id) {
+  if (length(id) < 2L) {
+    return(TRUE)
+  }
+
+  i <- as.integer(factor(id))
+
+  sum(diff(i) != 0L) + 1L == length(unique(i))
+}
+
+# Implementation of `move2::mt_is_time_ordered(..., non_zero = TRUE)`
+# that dispatches on timestamp and track ID vectors, not `move2` object.
+times_ordered <- function(timestamp, id) {
+  if (length(timestamp) < 2L) {
+    return(TRUE)
+  }
+
+  new_track <- diff(as.integer(factor(id))) != 0L
+
+  isTRUE(all(as.numeric(diff(timestamp)) > 0 | new_track))
+}
+
+# Error if tracks are not cleaved by ID and in increasing time order.
+check_time_order <- function(timestamp,
+                             track_id,
+                             hint_move2 = FALSE,
+                             call = rlang::caller_env()) {
+  if (!ids_cleaved(track_id)) {
+    cli::cli_abort(
+      c(
+        "Not all tracks are grouped in {.arg x}.",
+        "i" = "Sort {.arg x} by track before building bursts."
+      ),
+      call = call
+    )
+  }
+
+  if (!times_ordered(timestamp, track_id)) {
+    cli::cli_abort(
+      c(
+        "Timestamps must be strictly increasing within each track.",
+        "i" = if (hint_move2) {
+          "Order data by track and time and remove duplicate timestamps. See `move2::mt_filter_unique()`."
+        } else {
+          "Order data by track and time and remove duplicate timestamps."
+        }
+      ),
+      call = call
+    )
+  }
+
+  invisible(NULL)
 }
 
 # Colset validation ------------------------------------------------------------
