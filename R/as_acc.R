@@ -67,13 +67,10 @@
 #'
 #' `as_*()` functions require that the input be sorted by track and strictly
 #' increasing in time. Duplicate timestamps within a single track must be
-#' resolved before calling `as_*()`.
-#'
-#' For `move2` inputs, see [move2::mt_is_track_id_cleaved()],
-#' [move2::mt_is_time_ordered()], and [move2::mt_filter_unique()] for help
-#' diagnosing issues with data organization. For `data.frame` inputs, you must
-#' order the rows by `track_id` then `timestamp` and drop duplicates before
-#' calling `as_acc()`.
+#' resolved before calling `as_*()`. For `move2` inputs, see
+#' [move2::mt_is_track_id_cleaved()], [move2::mt_is_time_ordered()], and
+#' [move2::mt_filter_unique()] for help diagnosing issues with data
+#' organization.
 #'
 #' ## Dealing with noise in recorded timestamps
 #'

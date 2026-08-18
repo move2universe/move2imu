@@ -5,7 +5,7 @@
 \alias{active_acc_colsets}
 \alias{active_mag_colsets}
 \alias{active_gyro_colsets}
-\title{Identify IMU columns present in a \code{move2} object}
+\title{Identify IMU columns present in a tabular data source}
 \usage{
 active_acc_colsets(x)
 
@@ -14,15 +14,16 @@ active_mag_colsets(x)
 active_gyro_colsets(x)
 }
 \arguments{
-\item{x}{A \code{move2} object.}
+\item{x}{A \code{move2} or \code{data.frame}.}
 }
 \value{
 A list of \code{imu_colset} objects.
 }
 \description{
 Determine the column sets that will be used by default when extracting IMU
-data from a \code{move2} object. Column sets are processed independently, but a
-single \code{move2} may contain multiple active column sets for one IMU sensor.
+data from a \code{move2} or \code{data.frame}. Column sets are processed
+independently, but a single source may contain multiple active column sets
+for one IMU sensor.
 \itemize{
 \item \code{active_acc_colsets()} — column sets used by \code{\link[=as_acc]{as_acc()}}.
 \item \code{active_mag_colsets()} — column sets used by \code{\link[=as_mag]{as_mag()}}.
@@ -33,7 +34,7 @@ If no active colsets are found, you can use \code{\link[=imu_colset]{imu_colset(
 a custom set of columns that contain IMU data.
 }
 \details{
-\code{move2} objects store IMU data in two ways:
+IMU data are stored in two ways:
 \itemize{
 \item \strong{Expanded-format} columns store each IMU sample (possibly for multiple axes)
 in its own row.

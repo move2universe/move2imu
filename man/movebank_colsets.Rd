@@ -31,7 +31,7 @@ Movebank's conventions, provide a custom set of IMU columns with
 \code{\link[=imu_colset]{imu_colset()}}.
 }
 \details{
-\code{move2} objects store IMU data in two ways:
+IMU data are stored in two ways:
 \itemize{
 \item \strong{Expanded-format} columns store each IMU sample (possibly for multiple axes)
 in its own row.
