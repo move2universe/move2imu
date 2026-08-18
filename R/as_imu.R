@@ -35,26 +35,26 @@ as_imu.move2 <- function(x,
 #' @export
 as_imu.data.frame <- function(x,
                               sensor,
+                              timestamp,
+                              track_id = NULL,
                               colset = NULL,
                               min_freq = 0,
                               freq_tol = 1e-2,
                               gap_tol = 1e-6,
                               merge_continuous = TRUE,
                               drop = FALSE,
-                              timestamp = NULL,
-                              track_id = NULL,
                               ...) {
   as_imu_table(
     x,
     sensor = sensor,
+    timestamp = timestamp,
+    track_id = track_id,
     colset = colset,
     min_freq = min_freq,
     freq_tol = freq_tol,
     gap_tol = gap_tol,
     merge_continuous = merge_continuous,
     drop = drop,
-    timestamp = timestamp,
-    track_id = track_id,
     ...
   )
 }
@@ -63,14 +63,14 @@ as_imu.data.frame <- function(x,
 # methods populate `timestamp` and `track_id` from the move2 metadata
 as_imu_table <- function(x,
                          sensor,
+                         timestamp,
+                         track_id = NULL,
                          colset = NULL,
                          min_freq = 0,
                          freq_tol = 1e-2,
                          gap_tol = 1e-6,
                          merge_continuous = TRUE,
                          drop = FALSE,
-                         timestamp = NULL,
-                         track_id = NULL,
                          ...) {
   rlang::check_installed("dplyr")
 
@@ -555,10 +555,6 @@ check_imu_time_args <- function(x,
                                 timestamp,
                                 track_id,
                                 call = rlang::caller_env()) {
-  if (rlang::is_null(timestamp)) {
-    cli::cli_abort("{.arg timestamp} is required.", call = call)
-  }
-
   if (!inherits(timestamp, "POSIXct") && !is.numeric(timestamp)) {
     cli::cli_abort(
       "{.arg timestamp} must be a {.cls POSIXct} or numeric vector, not {.cls {class(timestamp)[1]}}.",

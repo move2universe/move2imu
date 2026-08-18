@@ -24,7 +24,7 @@ as_acc(x, ...)
 
 \method{as_acc}{data.frame}(
   x,
-  timestamp = NULL,
+  timestamp,
   track_id = NULL,
   colset = NULL,
   min_freq = 0,

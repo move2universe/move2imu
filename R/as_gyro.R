@@ -61,7 +61,7 @@ as_gyro.move2 <- function(x,
 #' @rdname as_gyro
 #' @export
 as_gyro.data.frame <- function(x,
-                               timestamp = NULL,
+                               timestamp,
                                track_id = NULL,
                                colset = NULL,
                                min_freq = 0,

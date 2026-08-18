@@ -24,7 +24,7 @@ as_gyro(x, ...)
 
 \method{as_gyro}{data.frame}(
   x,
-  timestamp = NULL,
+  timestamp,
   track_id = NULL,
   colset = NULL,
   min_freq = 0,

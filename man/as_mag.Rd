@@ -24,7 +24,7 @@ as_mag(x, ...)
 
 \method{as_mag}{data.frame}(
   x,
-  timestamp = NULL,
+  timestamp,
   track_id = NULL,
   colset = NULL,
   min_freq = 0,

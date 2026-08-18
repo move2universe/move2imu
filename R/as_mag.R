@@ -61,7 +61,7 @@ as_mag.move2 <- function(x,
 #' @rdname as_mag
 #' @export
 as_mag.data.frame <- function(x,
-                              timestamp = NULL,
+                              timestamp,
                               track_id = NULL,
                               colset = NULL,
                               min_freq = 0,

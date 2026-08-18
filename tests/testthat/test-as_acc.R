@@ -721,7 +721,7 @@ test_that("as_acc() validates timestamp and track_id for data.frame input", {
     id = c("a", "a", "b", "b")
   )
 
-  expect_error(as_acc(df), "`timestamp` is required")
+  expect_error(as_acc(df), 'argument "timestamp" is missing')
   expect_no_error(as_acc(df, timestamp = as.numeric(df$ts)))
   expect_error(
     as_acc(df, timestamp = as.character(df$ts)),

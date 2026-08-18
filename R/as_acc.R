@@ -205,7 +205,7 @@ as_acc.move2 <- function(x,
 #' @rdname as_acc
 #' @export
 as_acc.data.frame <- function(x,
-                              timestamp = NULL,
+                              timestamp,
                               track_id = NULL,
                               colset = NULL,
                               min_freq = 0,
