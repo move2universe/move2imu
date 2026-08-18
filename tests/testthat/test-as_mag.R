@@ -104,3 +104,17 @@ test_that("as_mag() errors when the requested colset columns are missing", {
     "Missing columns"
   )
 })
+
+test_that("as_mag() dispatches on data.frame", {
+  m <- mag_example_expanded()
+  m_df <- as.data.frame(m)
+
+  expect_identical(
+    as_mag(
+      m_df,
+      timestamp = m_df[[move2::mt_time_column(m)]],
+      track_id = m_df[[move2::mt_track_id_column(m)]]
+    ),
+    as_mag(m)
+  )
+})

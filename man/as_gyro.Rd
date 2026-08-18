@@ -4,6 +4,7 @@
 \alias{as_gyro}
 \alias{as_gyro.default}
 \alias{as_gyro.move2}
+\alias{as_gyro.data.frame}
 \title{Convert an object to a \code{gyro} vector}
 \usage{
 as_gyro(x, ...)
@@ -20,11 +21,24 @@ as_gyro(x, ...)
   drop = FALSE,
   ...
 )
+
+\method{as_gyro}{data.frame}(
+  x,
+  timestamp = NULL,
+  track_id = NULL,
+  colset = NULL,
+  min_freq = 0,
+  freq_tol = 0.01,
+  gap_tol = 1e-06,
+  merge_continuous = TRUE,
+  drop = FALSE,
+  ...
+)
 }
 \arguments{
-\item{x}{A \code{move2} object containing gyroscope data. Typically this will
-be loaded from disk with \code{\link[move2:mt_read]{move2::mt_read()}} or downloaded using
-\code{\link[move2:movebank_download_study]{move2::movebank_download_study()}}.}
+\item{x}{A \code{move2} or \code{data.frame} containing gyroscope data. A \code{move2}
+will typically be loaded from disk with \code{\link[move2:mt_read]{move2::mt_read()}} or downloaded
+using \code{\link[move2:movebank_download_study]{move2::movebank_download_study()}}.}
 
 \item{...}{currently not used}
 
@@ -80,6 +94,13 @@ be dropped from the output. If \code{drop = FALSE}, then the length of the
 output will match the number of rows in the input data \code{x} and
 bursts will be stored at the index location corresponding to the start time
 of the burst.}
+
+\item{timestamp}{When \code{x} is a \code{data.frame}, a vector of \code{POSIXct} or
+numeric timestamps corresponding to the recording time of each row of \code{x}.}
+
+\item{track_id}{When \code{x} is a \code{data.frame}, a vector of IDs identifying the
+track for each row in \code{x}. If \code{NULL}, all rows in \code{x} are assumed to belong
+to the same track.}
 }
 \value{
 An object of class \code{gyro} inheriting from class \code{imu}.

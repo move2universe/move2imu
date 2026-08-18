@@ -7,9 +7,9 @@
 #' [active_gyro_colsets()].
 #'
 #' @inheritParams as_acc
-#' @param x A `move2` object containing gyroscope data. Typically this will
-#'   be loaded from disk with [move2::mt_read()] or downloaded using
-#'   [move2::movebank_download_study()].
+#' @param x A `move2` or `data.frame` containing gyroscope data. A `move2`
+#'   will typically be loaded from disk with [move2::mt_read()] or downloaded
+#'   using [move2::movebank_download_study()].
 #' @param colset An `imu_colset` object or list of `imu_colset` objects
 #'   specifying the columns of `x` that contain gyroscope data. By default,
 #'   constructs bursts for all column sets that are detected in `x` that also
@@ -55,6 +55,32 @@ as_gyro.move2 <- function(x,
     gap_tol = gap_tol,
     merge_continuous = merge_continuous,
     drop = drop,
+    ...
+  )
+}
+#' @rdname as_gyro
+#' @export
+as_gyro.data.frame <- function(x,
+                               timestamp = NULL,
+                               track_id = NULL,
+                               colset = NULL,
+                               min_freq = 0,
+                               freq_tol = 1e-2,
+                               gap_tol = 1e-6,
+                               merge_continuous = TRUE,
+                               drop = FALSE,
+                               ...) {
+  as_imu(
+    x,
+    sensor = "gyro",
+    colset = colset,
+    min_freq = min_freq,
+    freq_tol = freq_tol,
+    gap_tol = gap_tol,
+    merge_continuous = merge_continuous,
+    drop = drop,
+    timestamp = timestamp,
+    track_id = track_id,
     ...
   )
 }
