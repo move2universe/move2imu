@@ -64,7 +64,7 @@ test_that("duplicated_mag_rows() detects overlap across colsets", {
 
   expected <- logical(nrow(m))
   expected[burst_rows[1]] <- TRUE
-  
+
   expect_identical(duplicated_mag_rows(m), expected)
 })
 
@@ -116,5 +116,14 @@ test_that("as_mag() dispatches on data.frame", {
       track_id = m_df[[move2::mt_track_id_column(m)]]
     ),
     as_mag(m)
+  )
+})
+
+test_that("as_mag() rejects timestamp for move2 input", {
+  x <- mag_example_expanded()
+
+  expect_error(
+    as_mag(x, timestamp = move2::mt_time(x)),
+    "`timestamp` must not be supplied when"
   )
 })

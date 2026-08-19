@@ -189,6 +189,8 @@ as_acc.move2 <- function(x,
                          merge_continuous = TRUE,
                          drop = FALSE,
                          ...) {
+  check_move2_dots(...)
+
   as_imu(
     x,
     sensor = "acc",

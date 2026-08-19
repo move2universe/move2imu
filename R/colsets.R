@@ -603,15 +603,6 @@ to_alt_colset <- function(colset) {
   )
 }
 
-# Determine if a colset is the eobs acc colset in either its API or alternate 
-# spelling. We know that eobs cols from Movebank are integer ADC values, so we 
-# use this check to enforce integer values on eobs-colsets specifically.
-is_eobs_acc_colset <- function(colset) {
-  eobs <- acc_colset_eobs()
-  eobs_alt <- to_alt_colset(eobs)
-  colset_equal(eobs, colset) || colset_equal(eobs_alt, colset)
-}
-
 # Check that `x` is a non-empty, non-duplicated, name-value subset of `target`
 is_unique_named_subset <- function(x, y) {
   length(x) > 0 &&

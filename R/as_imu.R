@@ -17,6 +17,8 @@ as_imu.move2 <- function(x,
                          merge_continuous = TRUE,
                          drop = FALSE,
                          ...) {
+  check_move2_dots(...)
+
   as_imu_table(
     x,
     sensor = sensor,
@@ -70,8 +72,7 @@ as_imu_table <- function(x,
                          freq_tol = 1e-2,
                          gap_tol = 1e-6,
                          merge_continuous = TRUE,
-                         drop = FALSE,
-                         ...) {
+                         drop = FALSE) {
   rlang::check_installed("dplyr")
 
   check_imu_time_args(x, timestamp, track_id)
@@ -109,8 +110,7 @@ as_imu_table <- function(x,
         freq_tol = freq_tol,
         gap_tol = gap_tol,
         merge_continuous = merge_continuous,
-        drop = FALSE,
-        ...
+        drop = FALSE
       )
     }
   )
@@ -133,9 +133,7 @@ as_imu_ <- function(x,
                     freq_tol = 1e-2,
                     gap_tol = 1e-6,
                     merge_continuous = TRUE,
-                    drop = FALSE,
-                    force_int = NULL,
-                    ...) {
+                    drop = FALSE) {
   check_colset(x, colset)
 
   imu_rows <- imu_sample_rows(x, sensor = sensor, colset = colset)
@@ -164,22 +162,15 @@ as_imu_ <- function(x,
       timestamp = timestamp,
       track_id = track_id,
       min_freq = min_freq,
-      freq_tol = freq_tol,
-      ...
+      freq_tol = freq_tol
     )
   } else if (type == "compact") {
-    # eobs bursts are integer-encoded; other compact sources are numeric.
-    # This is the only IMU-class-specific default in the compact pipeline.
-    is_acc_eobs_cols <- sensor == "acc" && is_eobs_acc_colset(colset)
-
     out <- as_imu_compact(
       x[[colset[["bursts"]]]],
       x[[colset[["axes"]]]],
       x[[colset[["frequency"]]]],
       sensor = sensor,
-      timestamp = timestamp,
-      force_int = force_int %||% is_acc_eobs_cols,
-      ...
+      timestamp = timestamp
     )
   } else {
     abort_missing_colset(sensor)
@@ -202,26 +193,12 @@ as_imu_ <- function(x,
   out
 }
 
-as_imu_compact <- function(x, axes, freq, sensor, timestamp, force_int = FALSE) {
+as_imu_compact <- function(x, axes, freq, sensor, timestamp) {
   colnms <- strsplit(as.character(axes), "")
   n_axis <- nchar(as.character(axes))
   vals_split <- strsplit(as.character(x), " ", fixed = TRUE)
 
-  if (force_int) {
-    flat <- as.numeric(unlist(vals_split))
-    flat_int <- as.integer(flat)
-
-    if (any(flat_int != flat, na.rm = TRUE)) {
-      cli::cli_warn(
-        "Detected numeric values, but expected integers. Some precision will be lost."
-      )
-    }
-
-    # Re-chunk the flat integer values back into per-burst pieces
-    mlist <- vctrs::vec_chop(flat_int, sizes = lengths(vals_split))
-  } else {
-    mlist <- purrr::map(vals_split, function(x) as.numeric(x))
-  }
+  mlist <- purrr::map(vals_split, function(x) as.numeric(x))
 
   i <- !is.na(n_axis)
 
@@ -246,8 +223,7 @@ as_imu_expanded <- function(x,
                             timestamp,
                             track_id,
                             min_freq = 0,
-                            freq_tol = 1e-2,
-                            ...) {
+                            freq_tol = 1e-2) {
   col_names <- as.character(colset)
   m <- as.matrix(as.data.frame(x)[, col_names])
 
@@ -639,6 +615,26 @@ check_time_order <- function(timestamp,
         } else {
           "Order data by track and time and remove duplicate timestamps."
         }
+      ),
+      call = call
+    )
+  }
+
+  invisible(NULL)
+}
+
+# `move2` methods take `timestamp` and `track_id` from the object's metadata,
+# so a user-supplied value would collide with them in `as_imu_table()`. Catch
+# that here rather than letting R report a duplicate formal match.
+check_move2_dots <- function(..., call = rlang::caller_env()) {
+  supplied <- intersect(c("timestamp", "track_id"), ...names())
+
+  if (length(supplied) > 0) {
+    cli::cli_abort(
+      c(
+        "{.arg {supplied}} must not be supplied when {.arg x} is a {.cls move2}.",
+        "i" = "Timestamps and track IDs are taken from the {.cls move2} object's metadata.",
+        "i" = "Use {.fn move2::mt_set_time_column} or {.fn move2::mt_set_track_id_column} to change them."
       ),
       call = call
     )

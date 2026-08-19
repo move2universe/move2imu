@@ -341,54 +341,25 @@ test_that("Equivalent data in burst and expanded format produce same acc", {
   expect_identical(as_acc(m1, drop = TRUE), as_acc(m2, drop = TRUE))
 })
 
-test_that("Coerce to integer for eobs", {
+test_that("Expanded bursts inherit the storage mode of their input columns", {
   t <- data.frame(
-    id = 1,
-    eobs_acceleration_axes = "XYZ",
-    eobs_acceleration_sampling_frequency_per_axis = 10,
-    eobs_accelerations_raw = c(
-      paste0(rep(1.1:5.1, each = 3), collapse = " "),
-      paste0(rep(6.1:10.1, each = 3), collapse = " ")
-    ),
-    timestamp = as.POSIXct(c(1, 1.5), "UTC"),
-    x = 1,
-    y = 1
+    acceleration_x = 1:10,
+    acceleration_y = 1:10,
+    acceleration_z = 1:10,
+    ts = as.POSIXct(seq(1, 1.9, by = 0.1), tz = "UTC")
   )
 
-  m <- move2::mt_as_move2(
-    t,
-    coords = c("x", "y"),
-    time_column = "timestamp",
-    track_id_column = "id"
-  )
+  a_int <- as_acc(t, timestamp = t$ts, drop = TRUE)
 
-  expect_warning(a <- as_acc(m), "Detected numeric values")
-  expect_identical(unlist(bursts(a)), rep(1:10, 3))
-})
+  expect_identical(storage.mode(bursts(a_int)[[1]]), "integer")
+  expect_identical(unlist(bursts(a_int)), rep(1:10, 3))
 
-test_that("Don't coerce non-eobs burst cols", {
-  t <- data.frame(
-    id = 1,
-    acceleration_axes = "XYZ",
-    acceleration_sampling_frequency_per_axis = 10,
-    accelerations_raw = c(
-      paste0(rep(1.1:5.1, each = 3), collapse = " "),
-      paste0(rep(6.1:10.1, each = 3), collapse = " ")
-    ),
-    timestamp = as.POSIXct(c(1, 1.5), "UTC"),
-    x = 1,
-    y = 1
-  )
+  t[1:3] <- lapply(t[1:3], as.double)
 
-  m <- move2::mt_as_move2(
-    t,
-    coords = c("x", "y"),
-    time_column = "timestamp",
-    track_id_column = "id"
-  )
+  a_dbl <- as_acc(t, timestamp = t$ts, drop = TRUE)
 
-  expect_silent(a <- as_acc(m))
-  expect_identical(unlist(bursts(a)), rep(1.1:10.1, 3))
+  expect_identical(storage.mode(bursts(a_dbl)[[1]]), "double")
+  expect_identical(unlist(bursts(a_dbl)), rep(as.numeric(1:10), 3))
 })
 
 test_that("as_acc() checks expanded-format coltypes", {
@@ -442,11 +413,7 @@ test_that("Custom compact-format colset works end-to-end", {
     frequency = "my_freq"
   )
 
-  # adjust for fact that eobs uses force_int = TRUE, but custom cols don't
-  expect_identical(
-    as_acc(alb, colset = custom, force_int = TRUE),
-    a
-  )
+  expect_identical(as_acc(alb, colset = custom), a)
 })
 
 test_that("Custom expanded-format colset works end-to-end", {
@@ -458,14 +425,11 @@ test_that("Custom expanded-format colset works end-to-end", {
   colnames(gul)[colnames(gul) == "acceleration_raw_y"] <- "acc_y"
   colnames(gul)[colnames(gul) == "acceleration_raw_z"] <- "acc_z"
 
-  # Use the eobs columns via a custom colset (equivalent to acc_colset_eobs())
+  # Use the raw xyz columns via a custom colset (equivalent to
+  # acc_colset_raw_xyz())
   custom <- imu_colset(x = "acc_x", y = "acc_y", z = "acc_z")
 
-  # adjust for fact that eobs uses force_int = TRUE, but custom cols don't
-  expect_identical(
-    as_acc(gul, colset = custom),
-    a
-  )
+  expect_identical(as_acc(gul, colset = custom), a)
 })
 
 test_that("freq_tol and min_freq control burst parsing (gap_tol does not)", {
@@ -736,6 +700,29 @@ test_that("as_acc() validates timestamp and track_id for data.frame input", {
     as_acc(df, timestamp = df$ts, track_id = c("a", NA, "b", "b")),
     "must not contain missing values"
   )
+})
+
+test_that("as_acc() rejects timestamp and track_id for move2 input", {
+  alb <- albatrosses()
+
+  expect_error(
+    as_acc(alb, timestamp = move2::mt_time(alb)),
+    "`timestamp` must not be supplied when"
+  )
+  expect_error(as_acc(alb, track_id = 1), "`track_id` must not be supplied when")
+})
+
+test_that("as_acc() rejects unused arguments for either burst format", {
+  df <- data.frame(
+    acceleration_x = as.numeric(1:4),
+    acceleration_y = as.numeric(1:4),
+    acceleration_z = as.numeric(1:4),
+    ts = as.POSIXct(1:4, tz = "UTC")
+  )
+
+  expect_error(as_acc(albatrosses(), typo = 1), "unused argument")
+  expect_error(as_acc(gulls(), typo = 1), "unused argument")
+  expect_error(as_acc(df, timestamp = df$ts, typo = 1), "unused argument")
 })
 
 test_that("data.frame and move2 entry points agree (compact)", {
