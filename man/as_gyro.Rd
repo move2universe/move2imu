@@ -96,11 +96,12 @@ bursts will be stored at the index location corresponding to the start time
 of the burst.}
 
 \item{timestamp}{When \code{x} is a \code{data.frame}, a vector of \code{POSIXct} or
-numeric timestamps corresponding to the recording time of each row of \code{x}.}
+numeric timestamps corresponding to the recording time of each row of \code{x}.
+Numeric values are interpreted as seconds since \verb{1970-01-01 00:00:00 UTC}.}
 
 \item{track_id}{When \code{x} is a \code{data.frame}, a vector of IDs identifying the
-track for each row in \code{x}. If \code{NULL}, all rows in \code{x} are assumed to belong
-to the same track.}
+track (or other grouping variable) for each row in \code{x}. If \code{NULL}, all rows
+in \code{x} are assumed to belong to the same track.}
 }
 \value{
 An object of class \code{gyro} inheriting from class \code{imu}.

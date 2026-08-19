@@ -26,9 +26,9 @@ indicate rows where IMU data is present under at least one active colset.
 }
 \description{
 These functions return a logical vector flagging the rows of an input
-\code{move2} or \code{data.frame} that contain sample data for the specified sensor. These are
-the rows that will be used to build IMU bursts when calling \code{as_acc()},
-\code{as_mag()}, or \code{as_gyro()}.
+\code{move2} or \code{data.frame} that contain sample data for the specified sensor.
+These are the rows that will be used to build IMU bursts when calling
+\code{as_acc()}, \code{as_mag()}, or \code{as_gyro()}.
 }
 \details{
 If \code{x} has data in more than one active IMU column set, \verb{*_sample_rows()}

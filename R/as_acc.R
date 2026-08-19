@@ -12,9 +12,10 @@
 #'   using [move2::movebank_download_study()].
 #' @param timestamp When `x` is a `data.frame`, a vector of `POSIXct` or
 #'   numeric timestamps corresponding to the recording time of each row of `x`.
-#' @param track_id  When `x` is a `data.frame`, a vector of IDs identifying the
-#'   track for each row in `x`. If `NULL`, all rows in `x` are assumed to belong
-#'   to the same track.
+#'   Numeric values are interpreted as seconds since `1970-01-01 00:00:00 UTC`.
+#' @param track_id When `x` is a `data.frame`, a vector of IDs identifying the
+#'   track (or other grouping variable) for each row in `x`. If `NULL`, all rows
+#'   in `x` are assumed to belong to the same track.
 #' @param colset An `imu_colset` object or list of `imu_colset` objects
 #'   specifying the columns of `x` that contain acceleration data. By default,
 #'   constructs bursts for all column sets that are detected in `x` that also

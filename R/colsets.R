@@ -312,7 +312,7 @@ active_colsets_ <- function(x, sensor) {
 #' @description
 #' Return a logical vector flagging rows of a `move2` or `data.frame` where more
 #' than one column set for a given sensor contains data. Functions that extract
-#' ImU data will error if a single row contains multiple sources of IMU data
+#' IMU data will error if a single row contains multiple sources of IMU data
 #' for the same sensor.
 #'
 #' To resolve duplicated rows, pass a specific set of IMU columns to the

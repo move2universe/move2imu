@@ -2,9 +2,9 @@
 #'
 #' @description
 #' These functions return a logical vector flagging the rows of an input
-#' `move2` or `data.frame` that contain sample data for the specified sensor. These are
-#' the rows that will be used to build IMU bursts when calling `as_acc()`, 
-#' `as_mag()`, or `as_gyro()`.
+#' `move2` or `data.frame` that contain sample data for the specified sensor.
+#' These are the rows that will be used to build IMU bursts when calling
+#' `as_acc()`, `as_mag()`, or `as_gyro()`.
 #'
 #' @details
 #' If `x` has data in more than one active IMU column set, `*_sample_rows()`
