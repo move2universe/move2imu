@@ -531,6 +531,18 @@ check_imu_time_args <- function(x,
                                 timestamp,
                                 track_id,
                                 call = rlang::caller_env()) {
+  # `units` vectors are numeric, so without this they pass the check below and
+  # are read as seconds since the epoch, silently ignoring the unit they carry.
+  if (inherits(timestamp, "units")) {
+    cli::cli_abort(
+      c(
+        "{.arg timestamp} must not carry {.cls units}.",
+        "i" = "Numeric timestamps are read as seconds since 1970-01-01 UTC."
+      ),
+      call = call
+    )
+  }
+
   if (!inherits(timestamp, "POSIXct") && !is.numeric(timestamp)) {
     cli::cli_abort(
       "{.arg timestamp} must be a {.cls POSIXct} or numeric vector, not {.cls {class(timestamp)[1]}}.",

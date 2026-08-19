@@ -691,6 +691,12 @@ test_that("as_acc() validates timestamp and track_id for data.frame input", {
     as_acc(df, timestamp = as.character(df$ts)),
     "must be.+POSIXct.+numeric"
   )
+
+  # `units` vectors are numeric, but their unit would be silently ignored
+  expect_error(
+    as_acc(df, timestamp = units::set_units(as.numeric(df$ts), "s")),
+    "must not carry"
+  )
   expect_error(as_acc(df, timestamp = df$ts[1:2]), "must be the same length")
   expect_error(
     as_acc(df, timestamp = df$ts, track_id = df$id[1:2]),
