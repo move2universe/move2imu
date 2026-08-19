@@ -46,12 +46,14 @@ of \verb{as_*()} will not necessarily return bursts at each of these locations,
 as multiple of these rows will be combined into a single burst.
 }
 \examples{
+\dontshow{if (rlang::is_installed("move2")) withAutoprint(\{ # examplesIf}
 alb <- albatrosses()
 
 head(acc_sample_rows(alb))
 
 # Filter to rows with acc data without building bursts
 nrow(alb[acc_sample_rows(alb), ])
+\dontshow{\}) # examplesIf}
 }
 \seealso{
 \code{\link[=as_acc]{as_acc()}}, \code{\link[=as_mag]{as_mag()}}, \code{\link[=as_gyro]{as_gyro()}} to extract IMU data from a

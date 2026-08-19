@@ -1,10 +1,10 @@
 #' Convert an object to a `mag` vector
 #'
 #' @description
-#' Extract `mag` data from a `move2` or convert an object to a `mag` vector.
+#' Extract magnetometer data from a `move2` or `data.frame` and convert to a
+#' `mag` vector.
 #'
-#' For a `move2`, `mag` data are extracted from the object's
-#' [active_mag_colsets()].
+#' Data are extracted from the object's [active_mag_colsets()].
 #'
 #' @inheritParams as_acc
 #' @param x A `move2` or `data.frame` containing magnetometer data. A `move2`
@@ -21,7 +21,7 @@
 #' @inherit as_acc details
 #'
 #' @return An object of class `mag` inheriting from class `imu`.
-#' 
+#'
 #' @seealso [movebank_mag_colsets()] for supported magnetometer column sets
 #'   in Movebank.
 #'

@@ -61,6 +61,7 @@ a custom column set, provide the names explicitly with
 }
 }
 \examples{
+\dontshow{if (rlang::is_installed("move2")) withAutoprint(\{ # examplesIf}
 active_acc_colsets(albatrosses())
 
 # Multiple colsets may be available
@@ -82,11 +83,12 @@ alb$eobs_acceleration_axes <- NULL
 \dontrun{
 active_acc_colsets(alb)
 }
+\dontshow{\}) # examplesIf}
 }
 \seealso{
 \code{\link[=movebank_acc_colsets]{movebank_acc_colsets()}}, \code{\link[=movebank_mag_colsets]{movebank_mag_colsets()}},
 \code{\link[=movebank_gyro_colsets]{movebank_gyro_colsets()}} for the supported default colsets.
 
 \code{\link[=as_acc]{as_acc()}}, \code{\link[=as_mag]{as_mag()}}, \code{\link[=as_gyro]{as_gyro()}} to extract IMU data from a
-\code{move2} object.
+tabular data source.
 }

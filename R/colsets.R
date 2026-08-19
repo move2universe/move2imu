@@ -27,18 +27,18 @@
 #'
 #' @returns An `imu_colset` object of type `"expanded"` or `"compact"`.
 #'
-#' @seealso [as_acc()], [as_mag()], [as_gyro()] to extract IMU data from a move2
-#'   object.
+#' @seealso [as_acc()], [as_mag()], [as_gyro()] to extract IMU data from a
+#'   tabular data source.
 #'
 #'   [active_acc_colsets()], [active_mag_colsets()], [active_gyro_colsets()] to
-#'   identify IMU colsets present in a move2 object.
+#'   identify IMU colsets present in a tabular data source.
 #'
 #'   [movebank_acc_colsets()], [movebank_mag_colsets()], [movebank_gyro_colsets()]
 #'   to see column sets provided by Movebank.
 #'
 #' @export
 #'
-#' @examples
+#' @examplesIf rlang::is_installed("move2")
 #' # Expanded-format: one or more axes
 #' imu_colset(x = "my_x", y = "my_y", z = "my_z")
 #' imu_colset(x = "my_x", y = "my_y")
@@ -106,13 +106,13 @@ print.imu_colset <- function(x, ...) {
 #' @description
 #' Movebank has several standard ways to store data for each IMU sensor. These
 #' functions show the recognized columns for each sensor that can be extracted
-#' from a `move2` object by default.
+#' from a `move2` or `data.frame` by default.
 #'
 #' - `movebank_acc_colsets()` — standard column sets for [as_acc()].
 #' - `movebank_mag_colsets()` — standard column sets for [as_mag()].
 #' - `movebank_gyro_colsets()` — standard column sets for [as_gyro()].
 #'
-#' To extract IMU data from a `move2` with column names that don't correspond to
+#' To extract IMU data from columns whose names don't correspond to
 #' Movebank's conventions, provide a custom set of IMU columns with
 #' [imu_colset()].
 #'
@@ -129,15 +129,15 @@ print.imu_colset <- function(x, ...) {
 #'   of these columns must be present to form a valid compact-format column set.
 #'
 #' ## Alternate column name separators
-#' 
-#' Some column names may differ depending on how the data were downloaded. 
+#'
+#' Some column names may differ depending on how the data were downloaded.
 #' The Movebank API (e.g. `move2::movebank_download_study()`) provides columns
 #' with `_` separators, while manually downloaded data uses `:` and `-`
-#' separators and occasionally includes additional prefixes. For full 
-#' compatibility, the `active_*_colsets()` functions recognize these alternate 
+#' separators and occasionally includes additional prefixes. For full
+#' compatibility, the `active_*_colsets()` functions recognize these alternate
 #' spellings as additional column sets even though `movebank_*_colsets()` lists
 #' only the standard API names.
-#' 
+#'
 #' For future compatibility, consider converting data with
 #' the manually-downloaded column names to use `_` separators. To use
 #' a custom column set, provide the names explicitly with
@@ -146,7 +146,7 @@ print.imu_colset <- function(x, ...) {
 #' @returns A named list of `imu_colset` objects.
 #'
 #' @seealso [active_acc_colsets()], [active_mag_colsets()], [active_gyro_colsets()]
-#'   to identify column sets present in a given `move2` object.
+#'   to identify column sets present in a tabular data source.
 #'
 #' @name movebank_colsets
 #'
@@ -201,7 +201,7 @@ movebank_alt_colsets <- function(config) {
   alt <- purrr::map(config, to_alt_colset)
 
   differs <- purrr::map2_lgl(
-    config, 
+    config,
     alt,
     function(cols, alt_cols) !identical(unclass(cols), unclass(alt_cols))
   )
@@ -238,9 +238,9 @@ movebank_alt_colsets <- function(config) {
 #'   [movebank_gyro_colsets()] for the supported default colsets.
 #'
 #'   [as_acc()], [as_mag()], [as_gyro()] to extract IMU data from a
-#'   `move2` object.
+#'   tabular data source.
 #'
-#' @examples
+#' @examplesIf rlang::is_installed("move2")
 #' active_acc_colsets(albatrosses())
 #'
 #' # Multiple colsets may be available
@@ -284,7 +284,7 @@ active_gyro_colsets <- function(x) {
 
 active_colsets_ <- function(x, sensor) {
   force(x)
-  
+
   config <- switch(sensor,
     acc = movebank_acc_colsets(),
     mag = movebank_mag_colsets(),
@@ -335,11 +335,11 @@ active_colsets_ <- function(x, sensor) {
 #' @keywords internal
 #'
 #' @seealso [active_acc_colsets()], [active_mag_colsets()],
-#'   [active_gyro_colsets()] to identify available column sets in a `move2`
-#'   object.
+#'   [active_gyro_colsets()] to identify available column sets in a
+#'   tabular data source.
 #'
 #'   [as_acc()], [as_mag()], [as_gyro()] to extract IMU data from a
-#'   `move2` object.
+#'   tabular data source.
 NULL
 
 #' @export
@@ -543,7 +543,7 @@ colset_equal.imu_colset_expanded <- function(colset, cols) {
   is_unique_named_subset(cols, colset)
 }
 
-# Determine whether a colset is "active" in a move2 object `x`. Active colsets
+# Determine whether a colset is "active" in `x`. Active colsets
 # are present and contain data in all necessary columns. Compact colsets
 # require all columns in the set to be present and contain data. Expanded
 # colsets only require a subset of the columns to be present and have data.
@@ -584,7 +584,7 @@ colset_active.imu_colset_expanded <- function(colset, x) {
 
 # Convert Movebank API column names to their manual-download equivalent.
 # This includes updating underscores to `-` and `:` where appropriate and
-# reinstating the `mag:` prefix for magnetometer columns. This is the inverse 
+# reinstating the `mag:` prefix for magnetometer columns. This is the inverse
 # of `to_download_names()` from move2, restricted to the IMU columns we support.
 #
 # This allows us to detect and parse manually-downloaded IMU cols alongside

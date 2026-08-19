@@ -40,10 +40,10 @@ To resolve duplicated rows, pass a specific set of IMU columns to the
 }
 \seealso{
 \code{\link[=active_acc_colsets]{active_acc_colsets()}}, \code{\link[=active_mag_colsets]{active_mag_colsets()}},
-\code{\link[=active_gyro_colsets]{active_gyro_colsets()}} to identify available column sets in a \code{move2}
-object.
+\code{\link[=active_gyro_colsets]{active_gyro_colsets()}} to identify available column sets in a
+tabular data source.
 
 \code{\link[=as_acc]{as_acc()}}, \code{\link[=as_mag]{as_mag()}}, \code{\link[=as_gyro]{as_gyro()}} to extract IMU data from a
-\code{move2} object.
+tabular data source.
 }
 \keyword{internal}

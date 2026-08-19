@@ -37,7 +37,7 @@
 #'
 #' @name sample_rows
 #'
-#' @examples
+#' @examplesIf rlang::is_installed("move2")
 #' alb <- albatrosses()
 #'
 #' head(acc_sample_rows(alb))

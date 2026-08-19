@@ -126,7 +126,13 @@ tandem with [move2](https://bartk.gitlab.io/move2/) and
 stored in one of Movebank's standard storage formats 
 (see `movebank_acc_colsets()`).
 
-For example, we'll load a sample dataset of albatross tracks stored as a `move2`:
+Typically, data will be stored in a `move2`
+object, which contains the necessary timestamp and track ID metadata to
+correctly parse IMU bursts. (You can also provide data as a `data.frame`, but
+you will need to manually provide timestamp and track ID metadata.)
+
+For example, we'll load a sample dataset of albatross tracks stored as a
+`move2`:
 
 ```{r}
 # Load sample Movebank data into a `move2`

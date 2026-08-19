@@ -100,17 +100,19 @@ numeric timestamps corresponding to the recording time of each row of \code{x}.
 Numeric values are interpreted as seconds since \verb{1970-01-01 00:00:00 UTC}.}
 
 \item{track_id}{When \code{x} is a \code{data.frame}, a vector of IDs identifying the
-track (or other grouping variable) for each row in \code{x}. Provide \code{NULL}
-to indicate that all rows belong to the same track.}
+track (or other grouping variable) for each row in \code{x}.  Bursts are never
+built across tracks, and adjacent bursts are only merged within a track.
+
+Provide \code{NULL} to indicate that all rows belong to the same track.}
 }
 \value{
 An object of class \code{acc} inheriting from class \code{imu}.
 }
 \description{
-Extract \code{acc} data from a \code{move2} or convert an object to an \code{acc} vector.
+Extract acceleration data from a \code{move2} or \code{data.frame} and convert to an
+\code{acc} vector.
 
-For a \code{move2}, \code{acc} data are extracted from the object's
-\code{\link[=active_acc_colsets]{active_acc_colsets()}}.
+Data are extracted from the object's \code{\link[=active_acc_colsets]{active_acc_colsets()}}.
 }
 \details{
 By default (\code{drop = FALSE}), the output vector will be the same length
@@ -130,7 +132,7 @@ organization.
 
 \subsection{Dealing with noise in recorded timestamps}{
 
-Noise in the recorded timestamps of an input \code{move2} object can disrupt the
+Noise in the recorded timestamps of the input data can disrupt the
 correct identification of the IMU bursts identified by \verb{as_*()}.
 \itemize{
 \item For data stored in expanded format, \verb{as_*()} must derive the implied sampling
@@ -220,6 +222,16 @@ g$a <- as_acc(g)
 # To instead drop missing bursts, set `drop = TRUE`:
 as_acc(g, drop = TRUE)
 \dontshow{\}) # examplesIf}
+# If extracting IMU data from a data.frame, you must separately provide
+# each record's timestamp and track ID
+alb <- as.data.frame(albatrosses())
+
+as_acc(
+  alb,
+  timestamp = alb$timestamp,
+  track_id = alb$individual_local_identifier,
+  drop = TRUE
+)
 }
 \seealso{
 \code{\link[=movebank_acc_colsets]{movebank_acc_colsets()}} for supported acceleration column sets

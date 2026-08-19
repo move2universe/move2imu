@@ -6,7 +6,7 @@
 \alias{move2imu-package}
 \title{move2imu: Handling Bursted IMU Data}
 \description{
-Standardized vector representation of bursted inertial measurement unit (IMU) data collected by animal tracking devices, including accelerometer, magnetometer, and gyroscope sensors. Extract and manipulate IMU data from move2 objects and tracking data stored in Movebank.
+Standardized vector representation of bursted inertial measurement unit (IMU) data collected by animal tracking devices, including accelerometer, magnetometer, and gyroscope sensors. Examine and manipulate IMU data extracted from tracking data stored in Movebank and other tabular data sources.
 }
 \seealso{
 Useful links:

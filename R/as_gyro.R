@@ -1,10 +1,10 @@
 #' Convert an object to a `gyro` vector
 #'
 #' @description
-#' Extract `gyro` data from a `move2` or convert an object to a `gyro` vector.
+#' Extract gyroscope data from a `move2` or `data.frame` and convert to a
+#' `gyro` vector.
 #'
-#' For a `move2`, `gyro` data are extracted from the object's
-#' [active_gyro_colsets()].
+#' Data are extracted from the object's [active_gyro_colsets()].
 #'
 #' @inheritParams as_acc
 #' @param x A `move2` or `data.frame` containing gyroscope data. A `move2`
@@ -19,7 +19,7 @@
 #'   specify a custom set of columns, use [imu_colset()].
 #'
 #' @inherit as_acc details
-#' 
+#'
 #' @return An object of class `gyro` inheriting from class `imu`.
 #'
 #' @seealso [movebank_gyro_colsets()] for supported gyroscope column sets

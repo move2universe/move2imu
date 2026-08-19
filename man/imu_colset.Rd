@@ -44,6 +44,7 @@ of these columns must be present to form a valid compact-format column set.
 }
 }
 \examples{
+\dontshow{if (rlang::is_installed("move2")) withAutoprint(\{ # examplesIf}
 # Expanded-format: one or more axes
 imu_colset(x = "my_x", y = "my_y", z = "my_z")
 imu_colset(x = "my_x", y = "my_y")
@@ -53,13 +54,14 @@ imu_colset(bursts = "my_raw", axes = "my_axes", frequency = "my_freq")
 
 # Use a colset to extract IMU data from those columns in a move2 object
 as_acc(gulls(), colset = imu_colset(x = "acceleration_raw_x"))
+\dontshow{\}) # examplesIf}
 }
 \seealso{
-\code{\link[=as_acc]{as_acc()}}, \code{\link[=as_mag]{as_mag()}}, \code{\link[=as_gyro]{as_gyro()}} to extract IMU data from a move2
-object.
+\code{\link[=as_acc]{as_acc()}}, \code{\link[=as_mag]{as_mag()}}, \code{\link[=as_gyro]{as_gyro()}} to extract IMU data from a
+tabular data source.
 
 \code{\link[=active_acc_colsets]{active_acc_colsets()}}, \code{\link[=active_mag_colsets]{active_mag_colsets()}}, \code{\link[=active_gyro_colsets]{active_gyro_colsets()}} to
-identify IMU colsets present in a move2 object.
+identify IMU colsets present in a tabular data source.
 
 \code{\link[=movebank_acc_colsets]{movebank_acc_colsets()}}, \code{\link[=movebank_mag_colsets]{movebank_mag_colsets()}}, \code{\link[=movebank_gyro_colsets]{movebank_gyro_colsets()}}
 to see column sets provided by Movebank.

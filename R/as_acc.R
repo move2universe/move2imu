@@ -1,10 +1,10 @@
 #' Convert an object to an `acc` vector
 #'
 #' @description
-#' Extract `acc` data from a `move2` or convert an object to an `acc` vector.
+#' Extract acceleration data from a `move2` or `data.frame` and convert to an
+#' `acc` vector.
 #'
-#' For a `move2`, `acc` data are extracted from the object's
-#' [active_acc_colsets()].
+#' Data are extracted from the object's [active_acc_colsets()].
 #'
 #' @inheritParams merge_imu
 #' @param x A `move2` or `data.frame` containing acceleration data. A `move2`
@@ -14,8 +14,10 @@
 #'   numeric timestamps corresponding to the recording time of each row of `x`.
 #'   Numeric values are interpreted as seconds since `1970-01-01 00:00:00 UTC`.
 #' @param track_id When `x` is a `data.frame`, a vector of IDs identifying the
-#'   track (or other grouping variable) for each row in `x`. Provide `NULL`
-#'   to indicate that all rows belong to the same track.
+#'   track (or other grouping variable) for each row in `x`.  Bursts are never
+#'   built across tracks, and adjacent bursts are only merged within a track.
+#'
+#'   Provide `NULL` to indicate that all rows belong to the same track.
 #' @param colset An `imu_colset` object or list of `imu_colset` objects
 #'   specifying the columns of `x` that contain acceleration data. By default,
 #'   constructs bursts for all column sets that are detected in `x` that also
@@ -75,7 +77,7 @@
 #'
 #' ## Dealing with noise in recorded timestamps
 #'
-#' Noise in the recorded timestamps of an input `move2` object can disrupt the
+#' Noise in the recorded timestamps of the input data can disrupt the
 #' correct identification of the IMU bursts identified by `as_*()`.
 #'
 #' - For data stored in expanded format, `as_*()` must derive the implied sampling
@@ -170,6 +172,18 @@
 #'
 #' # To instead drop missing bursts, set `drop = TRUE`:
 #' as_acc(g, drop = TRUE)
+#'
+#' @examples
+#' # If extracting IMU data from a data.frame, you must separately provide
+#' # each record's timestamp and track ID
+#' alb <- as.data.frame(albatrosses())
+#'
+#' as_acc(
+#'   alb,
+#'   timestamp = alb$timestamp,
+#'   track_id = alb$individual_local_identifier,
+#'   drop = TRUE
+#' )
 as_acc <- function(x, ...) {
   UseMethod("as_acc")
 }
