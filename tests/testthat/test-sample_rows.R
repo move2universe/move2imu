@@ -101,6 +101,24 @@ test_that("acc_sample_rows returns the union when colsets cover disjoint rows", 
   expect_equal(sum(h), length(acc_rows))
 })
 
+test_that("acc_sample_rows() accepts a plain data.frame", {
+  # No `move2` involved: `*_sample_rows()` is documented for `data.frame` too
+  df <- data.frame(
+    acceleration_raw_x = c(1, NA, 1),
+    acceleration_raw_y = c(2, NA, 2),
+    acceleration_raw_z = c(3, NA, 3),
+    eobs_accelerations_raw = c(NA, "1 2 3", "1 2 3"),
+    eobs_acceleration_axes = c(NA, "XYZ", "XYZ"),
+    eobs_acceleration_sampling_frequency_per_axis = c(NA, 10, 10)
+  )
+
+  expect_identical(acc_sample_rows(df), c(TRUE, TRUE, TRUE))
+  expect_identical(
+    acc_sample_rows(df, colset = acc_colset_eobs()),
+    c(FALSE, TRUE, TRUE)
+  )
+})
+
 test_that("acc_sample_rows handles a zero-row input", {
   h <- acc_sample_rows(data.frame())
   expect_type(h, "logical")
