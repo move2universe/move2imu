@@ -221,7 +221,7 @@ g$a <- as_acc(g)
 
 # To instead drop missing bursts, set `drop = TRUE`:
 as_acc(g, drop = TRUE)
-\dontshow{\}) # examplesIf}
+
 # If extracting IMU data from a data.frame, you must separately provide
 # each record's timestamp and track ID
 alb <- as.data.frame(albatrosses())
@@ -232,6 +232,7 @@ as_acc(
   track_id = alb$individual_local_identifier,
   drop = TRUE
 )
+\dontshow{\}) # examplesIf}
 }
 \seealso{
 \code{\link[=movebank_acc_colsets]{movebank_acc_colsets()}} for supported acceleration column sets

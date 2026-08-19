@@ -173,7 +173,6 @@
 #' # To instead drop missing bursts, set `drop = TRUE`:
 #' as_acc(g, drop = TRUE)
 #'
-#' @examples
 #' # If extracting IMU data from a data.frame, you must separately provide
 #' # each record's timestamp and track ID
 #' alb <- as.data.frame(albatrosses())
