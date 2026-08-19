@@ -25,7 +25,7 @@ as_acc(x, ...)
 \method{as_acc}{data.frame}(
   x,
   timestamp,
-  track_id = NULL,
+  track_id,
   colset = NULL,
   min_freq = 0,
   freq_tol = 0.01,
@@ -100,8 +100,8 @@ numeric timestamps corresponding to the recording time of each row of \code{x}.
 Numeric values are interpreted as seconds since \verb{1970-01-01 00:00:00 UTC}.}
 
 \item{track_id}{When \code{x} is a \code{data.frame}, a vector of IDs identifying the
-track (or other grouping variable) for each row in \code{x}. If \code{NULL}, all rows
-in \code{x} are assumed to belong to the same track.}
+track (or other grouping variable) for each row in \code{x}. Provide \code{NULL}
+to indicate that all rows belong to the same track.}
 }
 \value{
 An object of class \code{acc} inheriting from class \code{imu}.

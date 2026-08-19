@@ -349,14 +349,14 @@ test_that("Expanded bursts inherit the storage mode of their input columns", {
     ts = as.POSIXct(seq(1, 1.9, by = 0.1), tz = "UTC")
   )
 
-  a_int <- as_acc(t, timestamp = t$ts, drop = TRUE)
+  a_int <- as_acc(t, timestamp = t$ts, track_id = NULL, drop = TRUE)
 
   expect_identical(storage.mode(bursts(a_int)[[1]]), "integer")
   expect_identical(unlist(bursts(a_int)), rep(1:10, 3))
 
   t[1:3] <- lapply(t[1:3], as.double)
 
-  a_dbl <- as_acc(t, timestamp = t$ts, drop = TRUE)
+  a_dbl <- as_acc(t, timestamp = t$ts, track_id = NULL, drop = TRUE)
 
   expect_identical(storage.mode(bursts(a_dbl)[[1]]), "double")
   expect_identical(unlist(bursts(a_dbl)), rep(as.numeric(1:10), 3))
@@ -686,18 +686,25 @@ test_that("as_acc() validates timestamp and track_id for data.frame input", {
   )
 
   expect_error(as_acc(df), 'argument "timestamp" is missing')
-  expect_no_error(as_acc(df, timestamp = as.numeric(df$ts)))
   expect_error(
-    as_acc(df, timestamp = as.character(df$ts)),
+    as_acc(df, timestamp = df$ts),
+    'argument "track_id" is missing'
+  )
+  expect_no_error(as_acc(df, timestamp = as.numeric(df$ts), track_id = NULL))
+  expect_error(
+    as_acc(df, timestamp = as.character(df$ts), track_id = NULL),
     "must be.+POSIXct.+numeric"
   )
 
   # `units` vectors are numeric, but their unit would be silently ignored
   expect_error(
-    as_acc(df, timestamp = units::set_units(as.numeric(df$ts), "s")),
+    as_acc(df, timestamp = units::set_units(as.numeric(df$ts), "s"), track_id = NULL),
     "must not carry"
   )
-  expect_error(as_acc(df, timestamp = df$ts[1:2]), "must be the same length")
+  expect_error(
+    as_acc(df, timestamp = df$ts[1:2], track_id = NULL),
+    "must be the same length"
+  )
   expect_error(
     as_acc(df, timestamp = df$ts, track_id = df$id[1:2]),
     "must be the same length"
@@ -728,7 +735,10 @@ test_that("as_acc() rejects unused arguments for either burst format", {
 
   expect_error(as_acc(albatrosses(), typo = 1), "unused argument")
   expect_error(as_acc(gulls(), typo = 1), "unused argument")
-  expect_error(as_acc(df, timestamp = df$ts, typo = 1), "unused argument")
+  expect_error(
+    as_acc(df, timestamp = df$ts, track_id = NULL, typo = 1),
+    "unused argument"
+  )
 })
 
 test_that("data.frame and move2 entry points agree (compact)", {
@@ -797,7 +807,7 @@ test_that("as_acc() treats NULL track_id as a single track", {
   gul_df <- as.data.frame(gul)
 
   expect_identical(
-    as_acc(gul_df, timestamp = gul_df[[move2::mt_time_column(gul)]]),
+    as_acc(gul_df, timestamp = gul_df[[move2::mt_time_column(gul)]], track_id = NULL),
     as_acc(
       gul_df,
       timestamp = gul_df[[move2::mt_time_column(gul)]],

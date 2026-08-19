@@ -14,8 +14,8 @@
 #'   numeric timestamps corresponding to the recording time of each row of `x`.
 #'   Numeric values are interpreted as seconds since `1970-01-01 00:00:00 UTC`.
 #' @param track_id When `x` is a `data.frame`, a vector of IDs identifying the
-#'   track (or other grouping variable) for each row in `x`. If `NULL`, all rows
-#'   in `x` are assumed to belong to the same track.
+#'   track (or other grouping variable) for each row in `x`. Provide `NULL`
+#'   to indicate that all rows belong to the same track.
 #' @param colset An `imu_colset` object or list of `imu_colset` objects
 #'   specifying the columns of `x` that contain acceleration data. By default,
 #'   constructs bursts for all column sets that are detected in `x` that also
@@ -209,7 +209,7 @@ as_acc.move2 <- function(x,
 #' @export
 as_acc.data.frame <- function(x,
                               timestamp,
-                              track_id = NULL,
+                              track_id,
                               colset = NULL,
                               min_freq = 0,
                               freq_tol = 1e-2,
