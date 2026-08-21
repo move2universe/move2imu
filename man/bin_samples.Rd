@@ -8,7 +8,8 @@ bin_samples(..., ids = NULL, bin_width = NULL, from = NULL, to = NULL)
 }
 \arguments{
 \item{...}{Any number of \code{imu} or timestamp vectors. All vectors must be the
-same length.}
+same length. \code{POSIXct} timestamps retain their specified time zone. Numeric
+and \code{Date} timestamps are considered to be in UTC.}
 
 \item{ids}{Vector of IDs used to group the observations in \code{...}. All
 observations for each group will be included in a single panel. Must be

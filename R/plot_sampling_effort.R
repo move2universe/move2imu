@@ -249,7 +249,8 @@ plot_sampling_effort <- function(...,
 #'    across all values of `ids`.
 #'
 #' @param ... Any number of `imu` or timestamp vectors. All vectors must be the
-#'   same length.
+#'   same length. `POSIXct` timestamps retain their specified time zone. Numeric
+#'   and `Date` timestamps are considered to be in UTC.
 #' @param ids Vector of IDs used to group the observations in `...`. All
 #'   observations for each group will be included in a single panel. Must be
 #'   the same length as each of the vectors in `...`.
