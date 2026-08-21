@@ -290,7 +290,9 @@ test_that("Preserve time zone", {
   expect_equal(attr(starts(as_acc(a)), "tzone"), "UTC")
 
   a$timestamp <- .as.POSIXct(a$timestamp, "CET")
-  g$timestamp <- as.POSIXct(g$timestamp, tz = "CET")
+  # Set the attribute directly: `as.POSIXct(<POSIXct>, tz = )` ignores `tz`
+  # before R 4.3, so this line was a silent no-op there.
+  attr(g$timestamp, "tzone") <- "CET"
   expect_equal(attr(starts(as_acc(a)), "tzone"), "CET")
   expect_equal(attr(starts(as_acc(g)), "tzone"), "CET")
 })

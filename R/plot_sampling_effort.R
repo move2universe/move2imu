@@ -669,7 +669,14 @@ burst_timing <- function(x) {
     keep <- has_data & !no_timing
     tz <- attr(starts(x), "tzone") %||% ""
   } else if (inherits(x, "POSIXt") || inherits(x, "Date")) {
-    x <- as.POSIXct(x)
+    # Convert dates by hand: `as.POSIXct(<Date>)` only began setting a "UTC"
+    # time zone in R 4.3, and silently ignores a `tz` argument before that, so
+    # relying on it would put the axis in local time on older R.
+    x <- if (inherits(x, "Date")) {
+      as.POSIXct(unclass(x) * 86400, origin = "1970-01-01", tz = "UTC")
+    } else {
+      as.POSIXct(x)
+    }
     start <- as.numeric(x)
     n_samp <- rep(1L, length(start))
     samp_period <- rep(1, length(start))
