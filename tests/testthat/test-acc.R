@@ -24,7 +24,7 @@ test_that("properties are correctly calculated", {
       acc_burst_example(x = sin(1:20 / 10 + 2), y = cos(1:20 / 10 + 3))
     ),
     frequency = units::as_units(c(20, 30), "Hz"),
-    start = as.POSIXct(c(1, 2), tz = "UTC")
+    start = .as.POSIXct(c(1, 2))
   )
 
   x <- c(xa, NA)
@@ -77,7 +77,7 @@ test_that("constructor replaces metadata with NA when bursts are missing", {
   a <- acc(
     list(NULL),
     frequency = units::set_units(10, "Hz"),
-    start = as.POSIXct(0, tz = "UTC")
+    start = .as.POSIXct(0)
   )
   expect_true(is.na(a))
   expect_true(vctrs::vec_detect_missing(a))
@@ -177,12 +177,12 @@ test_that("c() normalizes different frequency units to Hz", {
   a1 <- acc(
     acc_burst_example(1:10, 1:10),
     frequency = units::set_units(20, "kHz"),
-    start = as.POSIXct(0, tz = "UTC")
+    start = .as.POSIXct(0)
   )
   a2 <- acc(
     acc_burst_example(1:10, 1:10),
     frequency = units::set_units(20, "Hz"),
-    start = as.POSIXct(1, tz = "UTC")
+    start = .as.POSIXct(1)
   )
 
   a <- c(a1, a2)
@@ -211,7 +211,7 @@ test_that("c() normalizes different frequency units to Hz", {
   a3 <- acc(
     acc_burst_example(1:10, 1:10),
     frequency = units::set_units(0.001, "MHz"),
-    start = as.POSIXct(2, tz = "UTC")
+    start = .as.POSIXct(2)
   )
   a <- c(a1, a2, a3)
   expect_length(a, 3)
@@ -224,12 +224,12 @@ test_that("c() preserves non-UTC timezone", {
   a1 <- acc(
     acc_burst_example(1:10),
     frequency = units::set_units(10, "Hz"),
-    start = as.POSIXct(1730610000, tz = tz)
+    start = .as.POSIXct(1730610000, tz)
   )
   a2 <- acc(
     acc_burst_example(11:20),
     frequency = units::set_units(10, "Hz"),
-    start = as.POSIXct(1730610010, tz = tz)
+    start = .as.POSIXct(1730610010, tz)
   )
 
   a <- c(a1, a2)
@@ -244,7 +244,7 @@ test_that("duration is correctly calculated", {
       acc_burst_example(x = sin(1:20 / 10 + 2), y = cos(1:20 / 10 + 3))
     ),
     frequency = units::as_units(c(20, 30), "Hz"),
-    start = as.POSIXct(c(1, 2), tz = "UTC")
+    start = .as.POSIXct(c(1, 2))
   )
 
   b <- bursts(a)

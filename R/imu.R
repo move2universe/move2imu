@@ -26,7 +26,7 @@ imu <- function(sensor,
     tz <- "UTC"
   }
 
-  start <- as.POSIXct(as.double(start), tz = tz)
+  start <- as.POSIXct(as.double(start), origin = "1970-01-01", tz = tz)
 
   frequency <- vec_recycle(frequency, n)
   start <- vec_recycle(start, n)
@@ -51,7 +51,7 @@ imu <- function(sensor,
 new_imu <- function(sensor,
                     bursts = new_burst_list(list(), sensor),
                     frequency = units::set_units(double(), "Hz"),
-                    start = as.POSIXct(double(), tz = "UTC")) {
+                    start = as.POSIXct(double(), origin = "1970-01-01", tz = "UTC")) {
   new_rcrd(
     list(bursts = bursts, frequency = frequency, start = start),
     class = c(sensor, "imu")

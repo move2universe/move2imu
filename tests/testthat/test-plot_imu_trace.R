@@ -7,7 +7,7 @@ test_that("plot_imu_trace", {
 
 test_that("plot_imu_trace handles missing start times", {
   a <- acc_example()
-  starts(a) <- as.POSIXct(c(1, NA), tz = "UTC")
+  starts(a) <- .as.POSIXct(c(1, NA))
 
   expect_warning(
     g <- plot_imu_trace(a),
@@ -16,7 +16,7 @@ test_that("plot_imu_trace handles missing start times", {
   expect_s3_class(g, "dygraphs")
 
   # All starts NA: errors.
-  starts(a) <- as.POSIXct(c(NA, NA), tz = "UTC")
+  starts(a) <- .as.POSIXct(c(NA, NA))
   expect_error(plot_imu_trace(a), "start timestamps and sampling frequencies")
 })
 

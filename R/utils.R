@@ -13,7 +13,7 @@ acc_example <- function() {
       cbind(X = sin(1:20 / 10 + 2), Y = cos(1:20 / 10 + 3), Z = 1)
     ),
     frequency = units::set_units(c(20, 20), "Hz"),
-    start = as.POSIXct(c(0, 10), tz = "UTC")
+    start = as.POSIXct(c(0, 10), origin = "1970-01-01", tz = "UTC")
   )
 }
 

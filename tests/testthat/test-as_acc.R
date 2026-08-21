@@ -289,7 +289,7 @@ test_that("Preserve time zone", {
   a$timestamp <- 1:nrow(a)
   expect_equal(attr(starts(as_acc(a)), "tzone"), "UTC")
 
-  a$timestamp <- as.POSIXct(a$timestamp, tz = "CET")
+  a$timestamp <- .as.POSIXct(a$timestamp, "CET")
   g$timestamp <- as.POSIXct(g$timestamp, tz = "CET")
   expect_equal(attr(starts(as_acc(a)), "tzone"), "CET")
   expect_equal(attr(starts(as_acc(g)), "tzone"), "CET")
@@ -301,7 +301,7 @@ test_that("Equivalent data in burst and expanded format produce same acc", {
     acceleration_x = as.numeric(1:10),
     acceleration_y = as.numeric(1:10),
     acceleration_z = as.numeric(1:10),
-    timestamp = as.POSIXct(seq(1, 1.9, by = 0.1), "UTC"),
+    timestamp = .as.POSIXct(seq(1, 1.9, by = 0.1)),
     x = 1,
     y = 1
   )
@@ -314,7 +314,7 @@ test_that("Equivalent data in burst and expanded format produce same acc", {
       paste0(rep(1:5, each = 3), collapse = " "),
       paste0(rep(6:10, each = 3), collapse = " ")
     ),
-    timestamp = as.POSIXct(c(1, 1.5), "UTC"),
+    timestamp = .as.POSIXct(c(1, 1.5)),
     x = 1,
     y = 1
   )
@@ -345,7 +345,7 @@ test_that("Coerce to integer for eobs", {
       paste0(rep(1.1:5.1, each = 3), collapse = " "),
       paste0(rep(6.1:10.1, each = 3), collapse = " ")
     ),
-    timestamp = as.POSIXct(c(1, 1.5), "UTC"),
+    timestamp = .as.POSIXct(c(1, 1.5)),
     x = 1,
     y = 1
   )
@@ -370,7 +370,7 @@ test_that("Don't coerce non-eobs burst cols", {
       paste0(rep(1.1:5.1, each = 3), collapse = " "),
       paste0(rep(6.1:10.1, each = 3), collapse = " ")
     ),
-    timestamp = as.POSIXct(c(1, 1.5), "UTC"),
+    timestamp = .as.POSIXct(c(1, 1.5)),
     x = 1,
     y = 1
   )
@@ -606,7 +606,7 @@ test_that("compact bursts must also be ordered and unique within a track", {
       eobs_accelerations_raw = vapply(
         seq_along(starts), function(i) paste(1:30, collapse = " "), character(1)
       ),
-      timestamp = as.POSIXct(starts, tz = "UTC"),
+      timestamp = .as.POSIXct(starts),
       x = 1, y = 1
     )
     move2::mt_as_move2(
