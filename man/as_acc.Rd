@@ -100,7 +100,7 @@ numeric timestamps corresponding to the recording time of each row of \code{x}.
 Numeric values are interpreted as seconds since \verb{1970-01-01 00:00:00 UTC}.}
 
 \item{track_id}{When \code{x} is a \code{data.frame}, a vector of IDs identifying the
-track (or other grouping variable) for each row in \code{x}.  Bursts are never
+track (or other grouping variable) for each row in \code{x}. Bursts are never
 built across tracks, and adjacent bursts are only merged within a track.
 
 Provide \code{NULL} to indicate that all rows belong to the same track.}
@@ -224,12 +224,12 @@ as_acc(g, drop = TRUE)
 
 # If extracting IMU data from a data.frame, you must separately provide
 # each record's timestamp and track ID
-alb <- as.data.frame(albatrosses())
+alb_df <- as.data.frame(alb)
 
 as_acc(
-  alb,
-  timestamp = alb$timestamp,
-  track_id = alb$individual_local_identifier,
+  alb_df,
+  timestamp = alb_df$timestamp,
+  track_id = alb_df$individual_local_identifier,
   drop = TRUE
 )
 \dontshow{\}) # examplesIf}
