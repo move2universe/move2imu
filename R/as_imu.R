@@ -73,8 +73,6 @@ as_imu_table <- function(x,
                          gap_tol = 1e-6,
                          merge_continuous = TRUE,
                          drop = FALSE) {
-  rlang::check_installed("dplyr")
-
   timestamp <- check_imu_time_args(x, timestamp, track_id)
 
   if (nrow(x) == 0) {
@@ -115,7 +113,7 @@ as_imu_table <- function(x,
     }
   )
 
-  out <- purrr::reduce(out, function(.x, .y) dplyr::coalesce(.x, .y))
+  out <- purrr::reduce(out, coalesce_imu)
 
   if (drop) {
     out <- out[!is.na(out)]
@@ -660,6 +658,14 @@ check_move2_dots <- function(..., call = rlang::caller_env()) {
   }
 
   invisible(NULL)
+}
+
+# Combine two IMU vectors of the same sensor, filling missing bursts in `x`
+# with index-matched bursts in `y`. Reimplementation of `dplyr::coalesce()`
+# so we can avoid requiring dplyr for as_*.data.frame() calls.
+coalesce_imu <- function(x, y) {
+  i <- vec_detect_missing(x)
+  vec_assign(x, i, vec_slice(y, i))
 }
 
 # Colset validation ------------------------------------------------------------
