@@ -116,6 +116,38 @@ test_that("as_acc() validates timestamp and track_id for data.frame input", {
   )
 })
 
+test_that("as_acc() accepts other date-time representations", {
+  # These time formats are less useful, but they are supported in move2 time
+  # columns, so we should at least pass them through coherently.
+  df <- data.frame(
+    acceleration_x = as.numeric(1:4),
+    acceleration_y = as.numeric(1:4),
+    acceleration_z = as.numeric(1:4),
+    ts = as.POSIXct(seq(1, 1.3, by = 0.1), tz = "UTC")
+  )
+
+  a <- as_acc(df, timestamp = df$ts, track_id = NULL, drop = TRUE)
+
+  expect_identical(
+    as_acc(df, timestamp = as.POSIXlt(df$ts), track_id = NULL, drop = TRUE),
+    a
+  )
+
+  # Numeric timestamps are seconds since the epoch
+  expect_identical(
+    as_acc(df, timestamp = as.numeric(df$ts), track_id = NULL, drop = TRUE),
+    a
+  )
+
+  # Date timestamps are read as UTC midnight, so a daily series is 1/86400 Hz
+  df$ts <- as.Date("2024-01-01") + 0:3
+
+  a <- as_acc(df, timestamp = df$ts, track_id = NULL, drop = TRUE)
+
+  expect_equal(as.numeric(freqs(a)), signif(1 / 86400, 6))
+  expect_identical(starts(a), as.POSIXct("2024-01-01", tz = "UTC"))
+})
+
 test_that("as_acc() treats NULL track_id as a single track", {
   # Two tracks that are contiguous in time, so the only thing keeping their
   # samples in separate bursts is the track ID.

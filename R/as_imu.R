@@ -75,7 +75,7 @@ as_imu_table <- function(x,
                          drop = FALSE) {
   rlang::check_installed("dplyr")
 
-  check_imu_time_args(x, timestamp, track_id)
+  timestamp <- check_imu_time_args(x, timestamp, track_id)
 
   if (nrow(x) == 0) {
     return(new_imu(sensor))
@@ -526,7 +526,9 @@ new_freq_regime <- function(n, n_next = 0, prev_run = FALSE) {
 
 # Validate timestamp and track_id args for tabular input. `move2` objects
 # should already be valid, but data.frame inputs with user-specified timestamp
-# and track_id columns haven't necessarily had their inputs validated  yet.
+# and track_id columns haven't necessarily had their inputs validated yet.
+# Returns `timestamp` in `POSIXct` format, converted from other inputs that
+# may exist in move2 or in a data.frame (e.g. `Date`).
 check_imu_time_args <- function(x,
                                 timestamp,
                                 track_id,
@@ -543,9 +545,14 @@ check_imu_time_args <- function(x,
     )
   }
 
-  if (!inherits(timestamp, "POSIXct") && !is.numeric(timestamp)) {
+  if (inherits(timestamp, "POSIXlt") || inherits(timestamp, "Date")) {
+    timestamp <- as.POSIXct(timestamp)
+  } else if (is.numeric(timestamp)) {
+    timestamp <- as.POSIXct(timestamp, origin = "1970-01-01", tz = "UTC")
+  } else if (!inherits(timestamp, "POSIXct")) {
     cli::cli_abort(
-      "{.arg timestamp} must be a {.cls POSIXct} or numeric vector, not {.cls {class(timestamp)[1]}}.",
+      "{.arg timestamp} must be a {.cls POSIXct}, {.cls Date}, or numeric vector,
+       not {.cls {class(timestamp)[1]}}.",
       call = call
     )
   }
@@ -573,7 +580,7 @@ check_imu_time_args <- function(x,
     }
   }
 
-  invisible(NULL)
+  timestamp
 }
 
 # Implementation of `move2::mt_is_track_id_cleaved()` that dispatches on an
