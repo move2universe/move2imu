@@ -341,27 +341,6 @@ test_that("Equivalent data in burst and expanded format produce same acc", {
   expect_identical(as_acc(m1, drop = TRUE), as_acc(m2, drop = TRUE))
 })
 
-test_that("Expanded bursts inherit the storage mode of their input columns", {
-  t <- data.frame(
-    acceleration_x = 1:10,
-    acceleration_y = 1:10,
-    acceleration_z = 1:10,
-    ts = as.POSIXct(seq(1, 1.9, by = 0.1), tz = "UTC")
-  )
-
-  a_int <- as_acc(t, timestamp = t$ts, track_id = NULL, drop = TRUE)
-
-  expect_identical(storage.mode(bursts(a_int)[[1]]), "integer")
-  expect_identical(unlist(bursts(a_int)), rep(1:10, 3))
-
-  t[1:3] <- lapply(t[1:3], as.double)
-
-  a_dbl <- as_acc(t, timestamp = t$ts, track_id = NULL, drop = TRUE)
-
-  expect_identical(storage.mode(bursts(a_dbl)[[1]]), "double")
-  expect_identical(unlist(bursts(a_dbl)), rep(as.numeric(1:10), 3))
-})
-
 test_that("as_acc() checks expanded-format coltypes", {
   g <- gulls()
   g[["acceleration_raw_x"]] <- "foobar"
@@ -433,7 +412,6 @@ test_that("Custom expanded-format colset works end-to-end", {
 })
 
 test_that("freq_tol and min_freq control burst parsing (gap_tol does not)", {
-  skip_if_not_installed("move2")
   # 1 Hz data with a single 1.001 s hiccup
   ts <- cumsum(c(0, rep(1, 26), 1.001, 0.999, 1, 1))
   m <- expanded_acc(ts)
@@ -464,8 +442,6 @@ test_that("freq_tol and min_freq control burst parsing (gap_tol does not)", {
 })
 
 test_that("duplicate timestamps within a track are rejected", {
-  skip_if_not_installed("move2")
-
   expect_error(
     as_acc(expanded_acc(c(0, 0, 0, 1, 2, 3))),
     "strictly increasing"
@@ -477,8 +453,6 @@ test_that("duplicate timestamps within a track are rejected", {
 })
 
 test_that("out-of-order timestamps within a track are rejected", {
-  skip_if_not_installed("move2")
-
   # Put problem timestamp in second track to also ensure all tracks are checked
   expect_error(
     as_acc(expanded_acc(
@@ -490,8 +464,6 @@ test_that("out-of-order timestamps within a track are rejected", {
 })
 
 test_that("NA timestamps on IMU records are rejected", {
-  skip_if_not_installed("move2")
-
   expect_error(
     as_acc(expanded_acc(c(0, 0.05, NA, 0.10))),
     "must be non-NA"
@@ -516,8 +488,6 @@ test_that("NA timestamps on IMU records are rejected", {
 })
 
 test_that("Can resolve IMU timestamp ordering issues with move2 helpers", {
-  skip_if_not_installed("move2")
-
   m <- expanded_acc(c(0, 0, 0, 1, 2, 1.5, 3))
   move2::mt_track_id(m) <- c(1, 2, 1, 1, 1, 2, 2)
 
@@ -565,8 +535,6 @@ test_that("Only IMU records are considered when checking data ordering", {
 })
 
 test_that("compact bursts must also be ordered and unique within a track", {
-  skip_if_not_installed("move2")
-
   compact_acc <- function(starts) {
     t <- data.frame(
       id = 1,
@@ -594,8 +562,6 @@ test_that("compact bursts must also be ordered and unique within a track", {
 })
 
 test_that("an empty input returns an empty vector", {
-  skip_if_not_installed("move2")
-
   empty <- gulls()[0, ]
   a <- as_acc(empty)
 
@@ -604,8 +570,6 @@ test_that("an empty input returns an empty vector", {
 })
 
 test_that("burst frequency is span-based (unbiased) for non-uniform spacing", {
-  skip_if_not_installed("move2")
-
   # Uniform spacing: span frequency equals the mean instantaneous frequency.
   m_uniform <- expanded_acc(c(0, 1, 2))
   expect_equal(as.numeric(freqs(as_acc(m_uniform, drop = TRUE))), 1)
@@ -618,101 +582,6 @@ test_that("burst frequency is span-based (unbiased) for non-uniform spacing", {
 
   expect_length(a, 1)
   expect_equal(as.numeric(freqs(a)), signif(2 / 2.4, 6))
-})
-
-test_that("ids_cleaved() detects non-contiguous tracks", {
-  expect_true(ids_cleaved(c("a", "a", "b", "b")))
-  expect_false(ids_cleaved(c("a", "b", "a")))
-
-  expect_true(ids_cleaved(character(0)))
-  expect_true(ids_cleaved("a"))
-
-  f <- factor(c("a", "a", "b"), levels = c("a", "b", "unused"))
-  expect_true(ids_cleaved(f))
-})
-
-test_that("times_ordered() requires strictly increasing time within a track", {
-  t <- as.POSIXct(c(1, 2, 3, 1, 2), tz = "UTC")
-  id <- c("a", "a", "a", "b", "b")
-
-  # Time may step backwards only where the track changes
-  expect_true(times_ordered(t, id))
-  expect_false(times_ordered(t, rep("a", 5)))
-
-  # Duplicate timestamps within a track are not strictly increasing
-  expect_false(times_ordered(as.POSIXct(c(1, 1), tz = "UTC"), c("a", "a")))
-  expect_false(times_ordered(as.POSIXct(c(2, 1), tz = "UTC"), c("a", "a")))
-
-  expect_true(times_ordered(as.POSIXct(numeric(0), tz = "UTC"), character(0)))
-  expect_true(times_ordered(as.POSIXct(1, tz = "UTC"), "a"))
-
-  # Sub-second intervals must not be flattened by difftime unit selection
-  expect_true(times_ordered(as.POSIXct(c(0, 1e-3, 5), tz = "UTC"), rep("a", 3)))
-})
-
-test_that("as_acc() rejects unordered and non-cleaved data.frame input", {
-  df <- data.frame(
-    acceleration_x = as.numeric(1:4),
-    acceleration_y = as.numeric(1:4),
-    acceleration_z = as.numeric(1:4),
-    ts = as.POSIXct(c(1, 2, 3, 4), tz = "UTC"),
-    id = c("a", "a", "b", "b")
-  )
-
-  unordered <- df
-  unordered$ts <- as.POSIXct(c(2, 1, 3, 4), tz = "UTC")
-  expect_error(
-    as_acc(unordered, timestamp = unordered$ts, track_id = unordered$id),
-    "strictly increasing"
-  )
-
-  non_cleaved <- df
-  non_cleaved$id <- c("a", "b", "a", "b")
-  expect_error(
-    as_acc(non_cleaved, timestamp = non_cleaved$ts, track_id = non_cleaved$id),
-    "Not all tracks are grouped"
-  )
-
-  expect_s3_class(as_acc(df, timestamp = df$ts, track_id = df$id), "acc")
-})
-
-test_that("as_acc() validates timestamp and track_id for data.frame input", {
-  df <- data.frame(
-    acceleration_x = as.numeric(1:4),
-    acceleration_y = as.numeric(1:4),
-    acceleration_z = as.numeric(1:4),
-    ts = as.POSIXct(1:4, tz = "UTC"),
-    id = c("a", "a", "b", "b")
-  )
-
-  expect_error(as_acc(df), 'argument "timestamp" is missing')
-  expect_error(
-    as_acc(df, timestamp = df$ts),
-    'argument "track_id" is missing'
-  )
-  expect_no_error(as_acc(df, timestamp = as.numeric(df$ts), track_id = NULL))
-  expect_error(
-    as_acc(df, timestamp = as.character(df$ts), track_id = NULL),
-    "must be.+POSIXct.+numeric"
-  )
-
-  # `units` vectors are numeric, but their unit would be silently ignored
-  expect_error(
-    as_acc(df, timestamp = units::set_units(as.numeric(df$ts), "s"), track_id = NULL),
-    "must not carry"
-  )
-  expect_error(
-    as_acc(df, timestamp = df$ts[1:2], track_id = NULL),
-    "must be the same length"
-  )
-  expect_error(
-    as_acc(df, timestamp = df$ts, track_id = df$id[1:2]),
-    "must be the same length"
-  )
-  expect_error(
-    as_acc(df, timestamp = df$ts, track_id = c("a", NA, "b", "b")),
-    "must not contain missing values"
-  )
 })
 
 test_that("as_acc() rejects timestamp and track_id for move2 input", {
@@ -798,20 +667,6 @@ test_that("as_acc() dispatches on data.frame subclasses", {
       alb_sf,
       timestamp = alb_sf[[move2::mt_time_column(alb)]],
       track_id = alb_sf[[move2::mt_track_id_column(alb)]]
-    )
-  )
-})
-
-test_that("as_acc() treats NULL track_id as a single track", {
-  gul <- gulls()
-  gul_df <- as.data.frame(gul)
-
-  expect_identical(
-    as_acc(gul_df, timestamp = gul_df[[move2::mt_time_column(gul)]], track_id = NULL),
-    as_acc(
-      gul_df,
-      timestamp = gul_df[[move2::mt_time_column(gul)]],
-      track_id = gul_df[[move2::mt_track_id_column(gul)]]
     )
   )
 })

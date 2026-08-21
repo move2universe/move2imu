@@ -1,6 +1,6 @@
-skip_if_not_installed("move2")
-
 test_that("acc_sample_rows flags rows with raw acc data (compact format)", {
+  skip_if_not_installed("move2")
+
   # For compact-format data (one row per burst), every row that contributes
   # data also stores a non-NA burst in the as_acc() output
   alb <- albatrosses()
@@ -8,6 +8,8 @@ test_that("acc_sample_rows flags rows with raw acc data (compact format)", {
 })
 
 test_that("acc_sample_rows flags rows with raw acc data (expanded format)", {
+  skip_if_not_installed("move2")
+
   gul <- gulls()
 
   h <- acc_sample_rows(gul)
@@ -17,6 +19,8 @@ test_that("acc_sample_rows flags rows with raw acc data (expanded format)", {
 })
 
 test_that("acc_sample_rows returns a logical vector parallel to nrow(x)", {
+  skip_if_not_installed("move2")
+
   alb <- albatrosses()
 
   h <- acc_sample_rows(alb)
@@ -27,6 +31,8 @@ test_that("acc_sample_rows returns a logical vector parallel to nrow(x)", {
 })
 
 test_that("acc_sample_rows respects an explicit colset", {
+  skip_if_not_installed("move2")
+
   gul <- gulls()
 
   gul$acc_x <- gul$acceleration_raw_x
@@ -48,6 +54,8 @@ test_that("acc_sample_rows respects an explicit colset", {
 })
 
 test_that("*_sample_rows() returns all-FALSE when no active colset is detected", {
+  skip_if_not_installed("move2")
+
   alb <- albatrosses()
 
   h_mag <- mag_sample_rows(alb)
@@ -60,6 +68,8 @@ test_that("*_sample_rows() returns all-FALSE when no active colset is detected",
 })
 
 test_that("acc_sample_rows returns TRUE for rows where multiple colsets overlap", {
+  skip_if_not_installed("move2")
+
   gul <- gulls()
   gul$acceleration_x <- gul$acceleration_raw_x
   gul$acceleration_y <- gul$acceleration_raw_y
@@ -75,6 +85,8 @@ test_that("acc_sample_rows returns TRUE for rows where multiple colsets overlap"
 })
 
 test_that("acc_sample_rows returns the union when colsets cover disjoint rows", {
+  skip_if_not_installed("move2")
+
   # Partition the acc data in gulls() into two disjoint colsets.
   # acc_sample_rows() should identify TRUE when either colset contains acc data
   gul <- gulls()
