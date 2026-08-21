@@ -1,6 +1,6 @@
-skip_if_not_installed("move2")
-
 test_that("acc_sample_rows flags rows with raw acc data (compact format)", {
+  skip_if_not_installed("move2")
+
   # For compact-format data (one row per burst), every row that contributes
   # data also stores a non-NA burst in the as_acc() output
   alb <- albatrosses()
@@ -8,6 +8,8 @@ test_that("acc_sample_rows flags rows with raw acc data (compact format)", {
 })
 
 test_that("acc_sample_rows flags rows with raw acc data (expanded format)", {
+  skip_if_not_installed("move2")
+
   gul <- gulls()
 
   h <- acc_sample_rows(gul)
@@ -17,6 +19,8 @@ test_that("acc_sample_rows flags rows with raw acc data (expanded format)", {
 })
 
 test_that("acc_sample_rows returns a logical vector parallel to nrow(x)", {
+  skip_if_not_installed("move2")
+
   alb <- albatrosses()
 
   h <- acc_sample_rows(alb)
@@ -27,6 +31,8 @@ test_that("acc_sample_rows returns a logical vector parallel to nrow(x)", {
 })
 
 test_that("acc_sample_rows respects an explicit colset", {
+  skip_if_not_installed("move2")
+
   gul <- gulls()
 
   gul$acc_x <- gul$acceleration_raw_x
@@ -48,6 +54,8 @@ test_that("acc_sample_rows respects an explicit colset", {
 })
 
 test_that("*_sample_rows() returns all-FALSE when no active colset is detected", {
+  skip_if_not_installed("move2")
+
   alb <- albatrosses()
 
   h_mag <- mag_sample_rows(alb)
@@ -60,6 +68,8 @@ test_that("*_sample_rows() returns all-FALSE when no active colset is detected",
 })
 
 test_that("acc_sample_rows returns TRUE for rows where multiple colsets overlap", {
+  skip_if_not_installed("move2")
+
   gul <- gulls()
   gul$acceleration_x <- gul$acceleration_raw_x
   gul$acceleration_y <- gul$acceleration_raw_y
@@ -75,6 +85,8 @@ test_that("acc_sample_rows returns TRUE for rows where multiple colsets overlap"
 })
 
 test_that("acc_sample_rows returns the union when colsets cover disjoint rows", {
+  skip_if_not_installed("move2")
+
   # Partition the acc data in gulls() into two disjoint colsets.
   # acc_sample_rows() should identify TRUE when either colset contains acc data
   gul <- gulls()
@@ -99,6 +111,24 @@ test_that("acc_sample_rows returns the union when colsets cover disjoint rows", 
 
   expect_identical(h, expected)
   expect_equal(sum(h), length(acc_rows))
+})
+
+test_that("acc_sample_rows() accepts a plain data.frame", {
+  # No `move2` involved: `*_sample_rows()` is documented for `data.frame` too
+  df <- data.frame(
+    acceleration_raw_x = c(1, NA, 1),
+    acceleration_raw_y = c(2, NA, 2),
+    acceleration_raw_z = c(3, NA, 3),
+    eobs_accelerations_raw = c(NA, "1 2 3", "1 2 3"),
+    eobs_acceleration_axes = c(NA, "XYZ", "XYZ"),
+    eobs_acceleration_sampling_frequency_per_axis = c(NA, 10, 10)
+  )
+
+  expect_identical(acc_sample_rows(df), c(TRUE, TRUE, TRUE))
+  expect_identical(
+    acc_sample_rows(df, colset = acc_colset_eobs()),
+    c(FALSE, TRUE, TRUE)
+  )
 })
 
 test_that("acc_sample_rows handles a zero-row input", {

@@ -358,3 +358,18 @@ test_that("Explicit colsets bypass detection, in either spelling", {
   
   expect_identical(alt_acc, as_acc(gulls()))
 })
+
+test_that("Colset detection accepts a plain data.frame", {
+  # No `move2` involved: both helpers are documented for `data.frame` too
+  df <- data.frame(
+    acceleration_raw_x = c(1, NA, 1),
+    acceleration_raw_y = c(2, NA, 2),
+    acceleration_raw_z = c(3, NA, 3),
+    eobs_accelerations_raw = c(NA, "1 2 3", "1 2 3"),
+    eobs_acceleration_axes = c(NA, "XYZ", "XYZ"),
+    eobs_acceleration_sampling_frequency_per_axis = c(NA, 10, 10)
+  )
+
+  expect_named(active_acc_colsets(df), c("eobs", "raw_xyz"))
+  expect_identical(duplicated_acc_rows(df), c(FALSE, FALSE, TRUE))
+})

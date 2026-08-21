@@ -4,6 +4,7 @@
 \alias{as_acc}
 \alias{as_acc.default}
 \alias{as_acc.move2}
+\alias{as_acc.data.frame}
 \title{Convert an object to an \code{acc} vector}
 \usage{
 as_acc(x, ...)
@@ -20,11 +21,24 @@ as_acc(x, ...)
   drop = FALSE,
   ...
 )
+
+\method{as_acc}{data.frame}(
+  x,
+  timestamp,
+  track_id,
+  colset = NULL,
+  min_freq = 0,
+  freq_tol = 0.01,
+  gap_tol = 1e-06,
+  merge_continuous = TRUE,
+  drop = FALSE,
+  ...
+)
 }
 \arguments{
-\item{x}{A \code{move2} object containing acceleration data. Typically this will
-be loaded from disk with \code{\link[move2:mt_read]{move2::mt_read()}} or downloaded using
-\code{\link[move2:movebank_download_study]{move2::movebank_download_study()}}.}
+\item{x}{A \code{move2} or \code{data.frame} containing acceleration data. A \code{move2}
+will typically be loaded from disk with \code{\link[move2:mt_read]{move2::mt_read()}} or downloaded
+using \code{\link[move2:movebank_download_study]{move2::movebank_download_study()}}.}
 
 \item{...}{currently not used}
 
@@ -80,15 +94,25 @@ be dropped from the output. If \code{drop = FALSE}, then the length of the
 output will match the number of rows in the input data \code{x} and
 bursts will be stored at the index location corresponding to the start time
 of the burst.}
+
+\item{timestamp}{When \code{x} is a \code{data.frame}, a vector of \code{POSIXct} or
+numeric timestamps corresponding to the recording time of each row of \code{x}.
+Numeric values are interpreted as seconds since \verb{1970-01-01 00:00:00 UTC}.}
+
+\item{track_id}{When \code{x} is a \code{data.frame}, a vector of IDs identifying the
+track (or other grouping variable) for each row in \code{x}. Bursts are never
+built across tracks, and adjacent bursts are only merged within a track.
+
+Provide \code{NULL} to indicate that all rows belong to the same track.}
 }
 \value{
 An object of class \code{acc} inheriting from class \code{imu}.
 }
 \description{
-Extract \code{acc} data from a \code{move2} or convert an object to an \code{acc} vector.
+Extract acceleration data from a \code{move2} or \code{data.frame} and convert to an
+\code{acc} vector.
 
-For a \code{move2}, \code{acc} data are extracted from the object's
-\code{\link[=active_acc_colsets]{active_acc_colsets()}}.
+Data are extracted from the object's \code{\link[=active_acc_colsets]{active_acc_colsets()}}.
 }
 \details{
 By default (\code{drop = FALSE}), the output vector will be the same length
@@ -98,16 +122,17 @@ be represented in a single row in the output (corresponding to the start
 timestamp of the burst).
 \subsection{Input requirements}{
 
-\verb{as_*()} functions require that the input \code{move2} object be sorted by track
-and strictly increasing in time. Duplicate timestamps within a single
-track must be resolved before calling \verb{as_*()}. See
+\verb{as_*()} functions require that the input be sorted by track and strictly
+increasing in time. Duplicate timestamps within a single track must be
+resolved before calling \verb{as_*()}. For \code{move2} inputs, see
 \code{\link[move2:mt_is_track_id_cleaved]{move2::mt_is_track_id_cleaved()}}, \code{\link[move2:mt_is_time_ordered]{move2::mt_is_time_ordered()}}, and
-\code{\link[move2:mt_filter_unique]{move2::mt_filter_unique()}} for help diagnosing issues with data organization.
+\code{\link[move2:mt_filter_unique]{move2::mt_filter_unique()}} for help diagnosing issues with data
+organization.
 }
 
 \subsection{Dealing with noise in recorded timestamps}{
 
-Noise in the recorded timestamps of an input \code{move2} object can disrupt the
+Noise in the recorded timestamps of the input data can disrupt the
 correct identification of the IMU bursts identified by \verb{as_*()}.
 \itemize{
 \item For data stored in expanded format, \verb{as_*()} must derive the implied sampling
@@ -196,6 +221,17 @@ g$a <- as_acc(g)
 
 # To instead drop missing bursts, set `drop = TRUE`:
 as_acc(g, drop = TRUE)
+
+# If extracting IMU data from a data.frame, you must separately provide
+# each record's timestamp and track ID
+alb_df <- as.data.frame(alb)
+
+as_acc(
+  alb_df,
+  timestamp = alb_df$timestamp,
+  track_id = alb_df$individual_local_identifier,
+  drop = TRUE
+)
 \dontshow{\}) # examplesIf}
 }
 \seealso{

@@ -102,3 +102,26 @@ test_that("as_gyro() errors when the requested colset columns are missing", {
     "Missing columns"
   )
 })
+
+test_that("as_gyro() dispatches on data.frame", {
+  g <- gyro_example_expanded()
+  g_df <- as.data.frame(g)
+
+  expect_identical(
+    as_gyro(
+      g_df,
+      timestamp = g_df[[move2::mt_time_column(g)]],
+      track_id = g_df[[move2::mt_track_id_column(g)]]
+    ),
+    as_gyro(g)
+  )
+})
+
+test_that("as_gyro() rejects timestamp for move2 input", {
+  x <- gyro_example_expanded()
+
+  expect_error(
+    as_gyro(x, timestamp = move2::mt_time(x)),
+    "`timestamp` must not be supplied when"
+  )
+})

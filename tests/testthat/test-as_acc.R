@@ -256,10 +256,15 @@ test_that("Can drop missing acc values", {
 
   expect_identical(as_acc(gulls_data, colset = cols, drop = TRUE), acc[!is.na(acc)])
   expect_length(acc, nrow(gulls_data))
-  
+
   # Each burst is attached at its first row index; every other row is NA.
   first_i <- sapply(
-    parse_bursts(gulls_data, colset = cols)$bursts,
+    parse_bursts(
+      gulls_data,
+      colset = cols,
+      timestamp = move2::mt_time(gulls_data),
+      track_id = as.character(move2::mt_track_id(gulls_data))
+    )$bursts,
     function(x) x[1]
   )
   expect_equal(which(!is.na(acc)), sort(first_i))
@@ -336,56 +341,6 @@ test_that("Equivalent data in burst and expanded format produce same acc", {
   expect_identical(as_acc(m1, drop = TRUE), as_acc(m2, drop = TRUE))
 })
 
-test_that("Coerce to integer for eobs", {
-  t <- data.frame(
-    id = 1,
-    eobs_acceleration_axes = "XYZ",
-    eobs_acceleration_sampling_frequency_per_axis = 10,
-    eobs_accelerations_raw = c(
-      paste0(rep(1.1:5.1, each = 3), collapse = " "),
-      paste0(rep(6.1:10.1, each = 3), collapse = " ")
-    ),
-    timestamp = as.POSIXct(c(1, 1.5), "UTC"),
-    x = 1,
-    y = 1
-  )
-
-  m <- move2::mt_as_move2(
-    t,
-    coords = c("x", "y"),
-    time_column = "timestamp",
-    track_id_column = "id"
-  )
-
-  expect_warning(a <- as_acc(m), "Detected numeric values")
-  expect_identical(unlist(bursts(a)), rep(1:10, 3))
-})
-
-test_that("Don't coerce non-eobs burst cols", {
-  t <- data.frame(
-    id = 1,
-    acceleration_axes = "XYZ",
-    acceleration_sampling_frequency_per_axis = 10,
-    accelerations_raw = c(
-      paste0(rep(1.1:5.1, each = 3), collapse = " "),
-      paste0(rep(6.1:10.1, each = 3), collapse = " ")
-    ),
-    timestamp = as.POSIXct(c(1, 1.5), "UTC"),
-    x = 1,
-    y = 1
-  )
-
-  m <- move2::mt_as_move2(
-    t,
-    coords = c("x", "y"),
-    time_column = "timestamp",
-    track_id_column = "id"
-  )
-
-  expect_silent(a <- as_acc(m))
-  expect_identical(unlist(bursts(a)), rep(1.1:10.1, 3))
-})
-
 test_that("as_acc() checks expanded-format coltypes", {
   g <- gulls()
   g[["acceleration_raw_x"]] <- "foobar"
@@ -437,11 +392,7 @@ test_that("Custom compact-format colset works end-to-end", {
     frequency = "my_freq"
   )
 
-  # adjust for fact that eobs uses force_int = TRUE, but custom cols don't
-  expect_identical(
-    as_acc(alb, colset = custom, force_int = TRUE),
-    a
-  )
+  expect_identical(as_acc(alb, colset = custom), a)
 })
 
 test_that("Custom expanded-format colset works end-to-end", {
@@ -453,18 +404,14 @@ test_that("Custom expanded-format colset works end-to-end", {
   colnames(gul)[colnames(gul) == "acceleration_raw_y"] <- "acc_y"
   colnames(gul)[colnames(gul) == "acceleration_raw_z"] <- "acc_z"
 
-  # Use the eobs columns via a custom colset (equivalent to acc_colset_eobs())
+  # Use the raw xyz columns via a custom colset (equivalent to
+  # acc_colset_raw_xyz())
   custom <- imu_colset(x = "acc_x", y = "acc_y", z = "acc_z")
 
-  # adjust for fact that eobs uses force_int = TRUE, but custom cols don't
-  expect_identical(
-    as_acc(gul, colset = custom),
-    a
-  )
+  expect_identical(as_acc(gul, colset = custom), a)
 })
 
 test_that("freq_tol and min_freq control burst parsing (gap_tol does not)", {
-  skip_if_not_installed("move2")
   # 1 Hz data with a single 1.001 s hiccup
   ts <- cumsum(c(0, rep(1, 26), 1.001, 0.999, 1, 1))
   m <- expanded_acc(ts)
@@ -495,8 +442,6 @@ test_that("freq_tol and min_freq control burst parsing (gap_tol does not)", {
 })
 
 test_that("duplicate timestamps within a track are rejected", {
-  skip_if_not_installed("move2")
-
   expect_error(
     as_acc(expanded_acc(c(0, 0, 0, 1, 2, 3))),
     "strictly increasing"
@@ -508,8 +453,6 @@ test_that("duplicate timestamps within a track are rejected", {
 })
 
 test_that("out-of-order timestamps within a track are rejected", {
-  skip_if_not_installed("move2")
-
   # Put problem timestamp in second track to also ensure all tracks are checked
   expect_error(
     as_acc(expanded_acc(
@@ -521,8 +464,6 @@ test_that("out-of-order timestamps within a track are rejected", {
 })
 
 test_that("NA timestamps on IMU records are rejected", {
-  skip_if_not_installed("move2")
-
   expect_error(
     as_acc(expanded_acc(c(0, 0.05, NA, 0.10))),
     "must be non-NA"
@@ -547,20 +488,18 @@ test_that("NA timestamps on IMU records are rejected", {
 })
 
 test_that("Can resolve IMU timestamp ordering issues with move2 helpers", {
-  skip_if_not_installed("move2")
-  
   m <- expanded_acc(c(0, 0, 0, 1, 2, 1.5, 3))
   move2::mt_track_id(m) <- c(1, 2, 1, 1, 1, 2, 2)
-  
+
   expect_error(as_acc(m), "Not all tracks are grouped")
   expect_error(as_acc(m[order(move2::mt_track_id(m)), ]), "strictly increasing")
-  
+
   m <- m[order(move2::mt_track_id(m), move2::mt_time(m)), ]
-  
+
   expect_error(as_acc(m), "strictly increasing")
-  
+
   m <- move2::mt_filter_unique(m, "first")
-  
+
   expect_no_error(as_acc(m))
 })
 
@@ -576,7 +515,7 @@ test_that("Only IMU records are considered when checking data ordering", {
     ),
     x = 1, y = 1
   )
-  
+
   m <- move2::mt_as_move2(
     d,
     coords = c("x", "y"),
@@ -596,8 +535,6 @@ test_that("Only IMU records are considered when checking data ordering", {
 })
 
 test_that("compact bursts must also be ordered and unique within a track", {
-  skip_if_not_installed("move2")
-
   compact_acc <- function(starts) {
     t <- data.frame(
       id = 1,
@@ -617,16 +554,14 @@ test_that("compact bursts must also be ordered and unique within a track", {
   expect_error(as_acc(compact_acc(c(2, 0))), "strictly increasing")
   expect_error(as_acc(compact_acc(c(0, 0))), "strictly increasing")
   expect_no_error(as_acc(compact_acc(c(0, 2))))
-  
+
   comp <- compact_acc(c(0, 0))
   move2::mt_track_id(comp) <- c(1, 2)
-  
+
   expect_no_error(as_acc(comp))
 })
 
 test_that("an empty input returns an empty vector", {
-  skip_if_not_installed("move2")
-
   empty <- gulls()[0, ]
   a <- as_acc(empty)
 
@@ -635,8 +570,6 @@ test_that("an empty input returns an empty vector", {
 })
 
 test_that("burst frequency is span-based (unbiased) for non-uniform spacing", {
-  skip_if_not_installed("move2")
-
   # Uniform spacing: span frequency equals the mean instantaneous frequency.
   m_uniform <- expanded_acc(c(0, 1, 2))
   expect_equal(as.numeric(freqs(as_acc(m_uniform, drop = TRUE))), 1)
@@ -649,4 +582,91 @@ test_that("burst frequency is span-based (unbiased) for non-uniform spacing", {
 
   expect_length(a, 1)
   expect_equal(as.numeric(freqs(a)), signif(2 / 2.4, 6))
+})
+
+test_that("as_acc() rejects timestamp and track_id for move2 input", {
+  alb <- albatrosses()
+
+  expect_error(
+    as_acc(alb, timestamp = move2::mt_time(alb)),
+    "`timestamp` must not be supplied when"
+  )
+  expect_error(as_acc(alb, track_id = 1), "`track_id` must not be supplied when")
+})
+
+test_that("as_acc() rejects unused arguments for either burst format", {
+  df <- data.frame(
+    acceleration_x = as.numeric(1:4),
+    acceleration_y = as.numeric(1:4),
+    acceleration_z = as.numeric(1:4),
+    ts = as.POSIXct(1:4, tz = "UTC")
+  )
+
+  expect_error(as_acc(albatrosses(), typo = 1), "unused argument")
+  expect_error(as_acc(gulls(), typo = 1), "unused argument")
+  expect_error(
+    as_acc(df, timestamp = df$ts, track_id = NULL, typo = 1),
+    "unused argument"
+  )
+})
+
+test_that("data.frame and move2 entry points agree (compact)", {
+  alb <- albatrosses()
+  alb_df <- as.data.frame(alb)
+  alb_df <- alb_df[, setdiff(colnames(alb_df), "geometry")]
+
+  expect_identical(
+    as_acc(alb),
+    as_acc(
+      alb_df,
+      timestamp = alb_df[[move2::mt_time_column(alb)]],
+      track_id = alb_df[[move2::mt_track_id_column(alb)]]
+    )
+  )
+})
+
+test_that("data.frame and move2 entry points agree (expanded)", {
+  gul <- gulls()
+  gul_df <- as.data.frame(gul)
+  gul_df <- gul_df[, setdiff(colnames(gul_df), "geometry")]
+
+  expect_identical(
+    as_acc(gul),
+    as_acc(
+      gul_df,
+      timestamp = gul_df[[move2::mt_time_column(gul)]],
+      track_id = gul_df[[move2::mt_track_id_column(gul)]]
+    )
+  )
+})
+
+test_that("as_acc() dispatches on data.frame subclasses", {
+  skip_if_not_installed("tibble")
+  skip_if_not_installed("sf")
+
+  alb <- albatrosses()
+  alb_df <- tibble::as_tibble(alb)
+
+  expect_identical(
+    as_acc(alb),
+    as_acc(
+      alb_df,
+      timestamp = alb_df[[move2::mt_time_column(alb)]],
+      track_id = alb_df[[move2::mt_track_id_column(alb)]]
+    )
+  )
+
+  alb_sf <- sf::st_sf(
+    alb_df,
+    geometry = sf::st_sfc(rep(list(sf::st_point()), nrow(alb_df)))
+  )
+
+  expect_identical(
+    as_acc(alb),
+    as_acc(
+      alb_sf,
+      timestamp = alb_sf[[move2::mt_time_column(alb)]],
+      track_id = alb_sf[[move2::mt_track_id_column(alb)]]
+    )
+  )
 })
