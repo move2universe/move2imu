@@ -62,17 +62,23 @@ plot_imu_trace <- function(x, ylab = "Value") {
     },
     x = freqs(x)[keep],
     n = n_samples(x)[keep],
-    SIMPLIFY = F
+    SIMPLIFY = FALSE
   )
 
   df <- dplyr::bind_cols(
-    time = do.call("c", mapply("+", time[keep], dt, SIMPLIFY = F)),
+    time = do.call("c", mapply("+", time[keep], dt, SIMPLIFY = FALSE)),
     dplyr::bind_rows(
       lapply(bursts(x)[keep], function(x) rbind(data.frame(x), NA))
     )
   )
 
+  # Avoid dygraphs warning on "" time zone
+  use_data_tz <- nzchar(attr(df$time, "tzone") %||% "")
+
+  # without `useDataTimezone` the axis would be drawn in whatever zone the
+  # viewer's browser is set to rather than the zone of `starts(x)`.
   dygraphs::dygraph(df) |>
     dygraphs::dyRibbon() |>
+    dygraphs::dyOptions(useDataTimezone = use_data_tz) |>
     dygraphs::dyAxis("y", ylab)
 }

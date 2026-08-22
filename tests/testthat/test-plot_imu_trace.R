@@ -51,3 +51,25 @@ test_that("plot_imu_trace uses seconds regardless of frequency unit", {
   # were correctly normalized to seconds before adding to the start time.
   expect_equal(g_min$x$data[[1]], g_hz$x$data[[1]])
 })
+
+test_that("The trace axis uses the vector's time zone", {
+  skip_if_not_installed("dygraphs")
+
+  a <- acc(
+    list(cbind(X = 1:20)),
+    frequency = units::set_units(20, "Hz"),
+    start = .as.POSIXct(0, "America/New_York")
+  )
+
+  p <- plot_imu_trace(a)
+  expect_true(p$x$fixedtz)
+  expect_identical(p$x$tzone, "America/New_York")
+
+  # An empty tzone already means local time, which is dygraphs' own fallback.
+  # Asking for the data's zone there warns, so it is left alone.
+  local <- a
+  starts(local) <- .as.POSIXct(0, "")
+
+  expect_no_warning(p_local <- plot_imu_trace(local))
+  expect_false(p_local$x$fixedtz)
+})
