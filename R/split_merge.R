@@ -227,9 +227,21 @@ merge_imu <- function(x,
     start = sv[merged_i]
   )
 
-  # If retaining index matching, fill merged idx with NA entries
+  # If retaining index matching, fill merged idx with NA entries.
+  #
+  # The placeholder's time zone has to match the input's: `vec_assign()` casts
+  # the value to the type of the vector assigned into, so a placeholder built
+  # with the default (UTC) start would silently re-tag the merged start times.
   if (!drop) {
-    out <- vec_rep(imu(sensor = class(x)[1], bursts = list(NULL), frequency = units::set_units(NA, "Hz")), n)
+    out <- vec_rep(
+      imu(
+        sensor = class(x)[1],
+        bursts = list(NULL),
+        frequency = units::set_units(NA, "Hz"),
+        start = as.POSIXct(NA, tz = attr(burst_starts, "tzone") %||% "")
+      ),
+      n
+    )
     out[valid[merged_i]] <- merged
     merged <- out
   }

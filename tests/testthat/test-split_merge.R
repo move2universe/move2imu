@@ -717,3 +717,28 @@ test_that("A single-sample burst with a defined frequency merges normally", {
   expect_equal(as.numeric(starts(merged)), 0)
   expect_equal(as.numeric(freqs(merged)), 10)
 })
+
+test_that("merge_imu preserves the input time zone when bursts merge", {
+  for (tz in c("UTC", "CET", "America/New_York", "")) {
+    # 60 samples at 20 Hz span 3 s, so the two bursts are contiguous and merge
+    a <- acc(
+      list(cbind(X = 1:60), cbind(X = 61:120)),
+      frequency = units::set_units(20, "Hz"),
+      start = .as.POSIXct(c(0, 3), tz)
+    )
+
+    kept <- merge_imu(a, drop = FALSE)
+    dropped <- merge_imu(a, drop = TRUE)
+
+    # Must make sure the bursts actually merge and don't hit an early return
+    # branch in merge_imu()
+    expect_length(dropped, 1)
+    expect_identical(n_samples(dropped), 120L)
+
+    expect_identical(attr(starts(kept), "tzone"), tz)
+    expect_identical(attr(starts(dropped), "tzone"), tz)
+
+    # The merged start is the first burst's start, unchanged
+    expect_identical(starts(dropped), .as.POSIXct(0, tz))
+  }
+})
