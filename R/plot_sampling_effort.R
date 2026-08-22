@@ -746,6 +746,10 @@ timestamp_to_sec <- function(x,
     return(NULL)
   }
 
+  # `x` is normalized below, so the lazy default for `arg` has to be resolved
+  # while it still refers to what the caller passed
+  force(arg)
+
   if (!inherits(x, "POSIXt") && !inherits(x, "Date")) {
     cli::cli_abort(
       "{.arg {arg}} must be a datetime or {.cls Date}, not {.cls {class(x)[1]}}.",
@@ -757,12 +761,20 @@ timestamp_to_sec <- function(x,
     cli::cli_abort("{.arg {arg}} must be length 1.", call = call)
   }
 
+  # Normalize before the check below: `is.finite()` only gained a `POSIXlt`
+  # method in R 4.3, and errors on the underlying list before that, so a
+  # `strptime()` result would fail here rather than being validated.
+  #
+  # `as.POSIXct(<Date>)` only began setting a "UTC" time zone in R 4.3 too, but
+  # its value has always been UTC-based, which is all `as.numeric()` needs.
+  x <- as.POSIXct(x)
+
   # Catches `NA` and an infinite datetime in one
   if (!is.finite(x)) {
     cli::cli_abort("{.arg {arg}} must be a finite datetime.", call = call)
   }
 
-  as.numeric(as.POSIXct(x))
+  as.numeric(x)
 }
 
 # Format a bin width for the plot caption.

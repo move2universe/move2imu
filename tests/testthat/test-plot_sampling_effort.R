@@ -655,3 +655,20 @@ test_that("format_bin labels sub-second bin widths", {
   expect_equal(format_bin(1800), "30 min")
   expect_equal(format_bin(86400), "1 day")
 })
+
+test_that("`from`/`to` accept POSIXlt", {
+  # `is.finite()` has no POSIXlt method before R 4.3, so `timestamp_to_sec()`
+  # normalizes before checking. `strptime()` returns POSIXlt.
+  a <- acc(
+    list(cbind(X = 1:20)),
+    frequency = units::set_units(20, "Hz"),
+    start = .as.POSIXct(0)
+  )
+
+  expect_equal(timestamp_to_sec(as.POSIXlt(.as.POSIXct(60))), 60)
+  expect_error(timestamp_to_sec(as.POSIXlt(as.POSIXct(NA))), "finite")
+
+  lt <- strptime("1970-01-01 00:00:00", "%Y-%m-%d %H:%M:%S", tz = "UTC")
+  expect_no_error(b <- bin_samples(a, from = lt, bin_width = 1))
+  expect_equal(as.numeric(min(b$time)), 0)
+})
