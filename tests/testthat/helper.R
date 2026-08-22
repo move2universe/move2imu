@@ -172,3 +172,31 @@ albatrosses_messy <- function() {
 
   d
 }
+
+# Fabricated compact-format acc move2 built from an arbitrary timestamp vector.
+#
+# `timestamp` becomes the time column verbatim -- callers wanting POSIXct pass
+# POSIXct. That is deliberate rather than a convenience left undone: the
+# boundary-normalization tests have to hand `as_acc()` a raw `numeric` or `Date`
+# column, both of which move2 permits.
+#
+# Each row holds one 20-sample XYZ burst. The default `frequency` leaves a gap
+# between rows, while a frequency that makes each burst span the gap exercises
+# merging.
+compact_acc <- function(timestamp, frequency = 2000, id = "compact") {
+  t <- data.frame(
+    id = id,
+    eobs_acceleration_axes = "XYZ",
+    eobs_acceleration_sampling_frequency_per_axis = frequency,
+    eobs_accelerations_raw = paste0(rep(1:20, each = 3), collapse = " "),
+    timestamp = timestamp,
+    x = 1, y = 1
+  )
+
+  move2::mt_as_move2(
+    t,
+    coords = c("x", "y"),
+    time_column = "timestamp",
+    track_id_column = "id"
+  )
+}

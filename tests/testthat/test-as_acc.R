@@ -600,27 +600,11 @@ test_that("Only IMU records are considered when checking data ordering", {
 test_that("compact bursts must also be ordered and unique within a track", {
   skip_if_not_installed("move2")
 
-  compact_acc <- function(starts) {
-    t <- data.frame(
-      id = 1,
-      eobs_acceleration_axes = "XYZ",
-      eobs_acceleration_sampling_frequency_per_axis = 20,
-      eobs_accelerations_raw = vapply(
-        seq_along(starts), function(i) paste(1:30, collapse = " "), character(1)
-      ),
-      timestamp = .as.POSIXct(starts),
-      x = 1, y = 1
-    )
-    move2::mt_as_move2(
-      t, coords = c("x", "y"), time_column = "timestamp", track_id_column = "id"
-    )
-  }
+  expect_error(as_acc(compact_acc(.as.POSIXct(c(2, 0)))), "strictly increasing")
+  expect_error(as_acc(compact_acc(.as.POSIXct(c(0, 0)))), "strictly increasing")
+  expect_no_error(as_acc(compact_acc(.as.POSIXct(c(0, 2)))))
 
-  expect_error(as_acc(compact_acc(c(2, 0))), "strictly increasing")
-  expect_error(as_acc(compact_acc(c(0, 0))), "strictly increasing")
-  expect_no_error(as_acc(compact_acc(c(0, 2))))
-  
-  comp <- compact_acc(c(0, 0))
+  comp <- compact_acc(.as.POSIXct(c(0, 0)))
   move2::mt_track_id(comp) <- c(1, 2)
   
   expect_no_error(as_acc(comp))
