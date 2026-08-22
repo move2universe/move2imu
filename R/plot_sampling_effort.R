@@ -36,6 +36,8 @@
 #' with one another, but a track that sampled less intensively than its peers
 #' appears uniformly faint.
 #'
+#' The time axis is drawn in the time zone of the first vector passed to `...`.
+#'
 #' You can directly access the data produced by this calculation and passed to
 #' the plot by calling [bin_samples()].
 #'
@@ -249,8 +251,9 @@ plot_sampling_effort <- function(...,
 #'    across all values of `ids`.
 #'
 #' @param ... Any number of `imu` or timestamp vectors. All vectors must be the
-#'   same length. `POSIXct` timestamps retain their specified time zone. Numeric
-#'   and `Date` timestamps are considered to be in UTC.
+#'   same length. Timestamps can be in `POSIXct`, `POSIXlt`, `Date`, or a
+#'   number of seconds since `1970-01-01 00:00:00 UTC`. `Date` objects are
+#'   treated as being recorded at midnight, UTC.
 #' @param ids Vector of IDs used to group the observations in `...`. All
 #'   observations for each group will be included in a single panel. Must be
 #'   the same length as each of the vectors in `...`.
@@ -331,12 +334,12 @@ bin_samples_ <- function(...,
 
   bad_type <- !purrr::map_lgl(
     lanes,
-    function(l) inherits(l, c("imu", "POSIXt", "Date"))
+    function(l) inherits(l, "imu") || is_timestamp(l)
   )
 
   if (any(bad_type)) {
     cli::cli_abort(c(
-      "Every input to {.arg ...} must be an {.cls imu} or datetime vector.",
+      "Every input to {.arg ...} must be an {.cls imu} or timestamp vector.",
       x = "Problems with {.arg {names(lanes)[bad_type]}}."
     ))
   }
@@ -669,15 +672,8 @@ burst_timing <- function(x) {
 
     keep <- has_data & !no_timing
     tz <- attr(starts(x), "tzone") %||% ""
-  } else if (inherits(x, "POSIXt") || inherits(x, "Date")) {
-    # Convert dates by hand: `as.POSIXct(<Date>)` only began setting a "UTC"
-    # time zone in R 4.3, and silently ignores a `tz` argument before that, so
-    # relying on it would put the axis in local time on older R.
-    x <- if (inherits(x, "Date")) {
-      as.POSIXct(unclass(x) * 86400, origin = "1970-01-01", tz = "UTC")
-    } else {
-      as.POSIXct(x)
-    }
+  } else if (is_timestamp(x)) {
+    x <- timestamp_to_POSIXct(x)
     start <- as.numeric(x)
     n_samp <- rep(1L, length(start))
     samp_period <- rep(1, length(start))
@@ -750,24 +746,15 @@ timestamp_to_sec <- function(x,
   # while it still refers to what the caller passed
   force(arg)
 
-  if (!inherits(x, "POSIXt") && !inherits(x, "Date")) {
-    cli::cli_abort(
-      "{.arg {arg}} must be a datetime or {.cls Date}, not {.cls {class(x)[1]}}.",
-      call = call
-    )
-  }
+  # Convert first: it rejects non-timestamps, and the checks below need a plain
+  # double. `is.finite()` only gained a `POSIXlt` method in R 4.3 and errors on
+  # the underlying list before that, so a `strptime()` result would otherwise
+  # fail here rather than being validated.
+  x <- timestamp_to_POSIXct(x, arg = arg, call = call)
 
   if (length(x) != 1L) {
     cli::cli_abort("{.arg {arg}} must be length 1.", call = call)
   }
-
-  # Normalize before the check below: `is.finite()` only gained a `POSIXlt`
-  # method in R 4.3, and errors on the underlying list before that, so a
-  # `strptime()` result would fail here rather than being validated.
-  #
-  # `as.POSIXct(<Date>)` only began setting a "UTC" time zone in R 4.3 too, but
-  # its value has always been UTC-based, which is all `as.numeric()` needs.
-  x <- as.POSIXct(x)
 
   # Catches `NA` and an infinite datetime in one
   if (!is.finite(x)) {

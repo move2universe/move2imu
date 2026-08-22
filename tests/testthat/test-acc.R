@@ -443,3 +443,66 @@ test_that("imu_units are safely extracted", {
   )
   expect_identical(imu_units(a_mixed), c("m/s^2", "standard_free_fall"))
 })
+
+test_that("`start` accepts anything that denotes an instant", {
+  b <- list(cbind(X = 1:10))
+  f <- units::set_units(10, "Hz")
+
+  # POSIXct keeps its own zone
+  expect_identical(starts(acc(b, f, start = .as.POSIXct(0, "CET"))), .as.POSIXct(0, "CET"))
+
+  # POSIXlt records the same instant and zone, and is stored as POSIXct
+  lt <- as.POSIXlt(.as.POSIXct(0, "CET"))
+  expect_identical(starts(acc(b, f, start = lt)), as.POSIXct(lt))
+
+  # Date is midnight UTC, not a count of seconds
+  expect_identical(
+    starts(acc(b, f, start = as.Date("2020-01-01"))),
+    as.POSIXct("2020-01-01", tz = "UTC")
+  )
+
+  # numeric is seconds since the epoch, UTC -- the same rule move2 uses
+  expect_identical(starts(acc(b, f, start = 0)), .as.POSIXct(0))
+  expect_identical(starts(acc(b, f, start = 10L)), .as.POSIXct(10))
+
+  # `NULL` (unknown) and a bare `NA` both mean "no start time"
+  expect_identical(starts(acc(b, f)), .as.POSIXct(NA_real_))
+  expect_identical(starts(acc(b, f, start = NA)), .as.POSIXct(NA_real_))
+
+  # The same rule holds for the other sensors
+  expect_identical(starts(mag(b, f, start = 0)), .as.POSIXct(0))
+  expect_identical(starts(gyro(b, f, start = as.Date("2020-01-01"))),
+                   as.POSIXct("2020-01-01", tz = "UTC"))
+})
+
+test_that("`start` rejects anything that would have to be guessed at", {
+  b <- list(cbind(X = 1:10))
+  f <- units::set_units(10, "Hz")
+
+  # Parsing a string needs a format and a zone, and `as.POSIXct()` would read
+  # it in local time
+  expect_error(acc(b, f, start = "2020-01-01"), "must be a timestamp")
+
+  # Durations are not instants, and their bare numeric drops the unit
+  expect_error(acc(b, f, start = as.difftime(1, units = "hours")), "must be a timestamp")
+  expect_error(acc(b, f, start = units::set_units(1, "h")), "must be a timestamp")
+
+  # The error names the user's argument
+  expect_error(acc(b, f, start = "2020-01-01"), "`start`")
+})
+
+test_that("`starts<-` accepts the same set as the constructors", {
+  a <- acc_example()
+
+  starts(a) <- c(0, 10)
+  expect_identical(starts(a), .as.POSIXct(c(0, 10)))
+
+  starts(a) <- as.Date(c("2020-01-01", "2020-01-02"))
+  expect_identical(starts(a), as.POSIXct(c("2020-01-01", "2020-01-02"), tz = "UTC"))
+
+  starts(a) <- .as.POSIXct(c(5, 15), "CET")
+  expect_identical(starts(a), .as.POSIXct(c(5, 15), "CET"))
+
+  expect_error(starts(a) <- c("a", "b"), "must be a timestamp")
+  expect_error(starts(a) <- c("a", "b"), "`value`")
+})

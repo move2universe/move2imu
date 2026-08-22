@@ -637,6 +637,26 @@ test_that("burst frequency is span-based (unbiased) for non-uniform spacing", {
   expect_equal(as.numeric(freqs(a)), signif(2 / 2.4, 6))
 })
 
+test_that("Time columns that are not POSIXct are normalized", {
+  skip_if_not_installed("move2")
+
+  # move2 permits a `numeric`, `Date`, or `POSIXt` time column
+  d <- as_acc(compact_acc(as.Date(c("2020-01-01", "2020-01-02"))))
+  expect_identical(starts(d), as.POSIXct(c("2020-01-01", "2020-01-02"), tz = "UTC"))
+
+  n <- as_acc(compact_acc(c(0, 10)))
+  expect_identical(starts(n), .as.POSIXct(c(0, 10)))
+
+  # Burst frequencies are derived from the timestamps for expanded data, so a
+  # `Date` column must be seconds there too
+  e <- expanded_acc(seq(0, 0.9, by = 0.1))
+  e$timestamp <- as.Date("2020-01-01") + seq_len(nrow(e)) - 1
+  expect_identical(
+    starts(as_acc(e, drop = TRUE)),
+    as.POSIXct("2020-01-01", tz = "UTC")
+  )
+})
+
 test_that("Time zone survives burst merging", {
   skip_if_not_installed("move2")
 

@@ -355,9 +355,12 @@ test_that("bin_samples validates lanes, types and lengths", {
   ts <- .as.POSIXct(c(0, 10, 20))
 
   expect_error(bin_samples(ids = 1), "No data provided")
-  expect_error(bin_samples(1:10), "must be an <imu> or datetime vector")
-  expect_error(bin_samples(a, bad = 1:2), "Problems with `bad`")
-  expect_error(bin_samples(x = 1:2, y = 1:2), "Problems with `x` and `y`")
+  expect_error(bin_samples(letters[1:3]), "must be an <imu> or timestamp vector")
+  expect_error(bin_samples(a, bad = letters[1:2]), "Problems with `bad`")
+  expect_error(
+    bin_samples(x = letters[1:2], y = letters[1:2]),
+    "Problems with `x` and `y`"
+  )
 
   # Length match within `...`
   expect_error(bin_samples(a, ts), "Got lengths 2 and 3")
@@ -642,7 +645,9 @@ test_that("timestamp_to_sec normalizes a window edge to seconds", {
   expect_equal(timestamp_to_sec(.as.POSIXct(60)), 60)
   expect_equal(timestamp_to_sec(as.Date("1970-01-02")), 86400)
 
-  expect_error(timestamp_to_sec(60), "must be a datetime")
+  expect_equal(timestamp_to_sec(60), 60)
+  expect_error(timestamp_to_sec("1970-01-01"), "must be a timestamp")
+  expect_error(timestamp_to_sec(as.difftime(1, units = "hours")), "must be a timestamp")
   expect_error(timestamp_to_sec(.as.POSIXct(c(0, 60))), "length 1")
   expect_error(timestamp_to_sec(as.POSIXct(NA)), "finite")
   expect_error(timestamp_to_sec(as.Date(NA)), "finite")
@@ -671,4 +676,26 @@ test_that("`from`/`to` accept POSIXlt", {
   lt <- strptime("1970-01-01 00:00:00", "%Y-%m-%d %H:%M:%S", tz = "UTC")
   expect_no_error(b <- bin_samples(a, from = lt, bin_width = 1))
   expect_equal(as.numeric(min(b$time)), 0)
+})
+
+test_that("Lanes and window edges accept every timestamp form", {
+  # Numeric lanes and bounds are seconds since the epoch, UTC, matching what a
+  # move2 numeric time column means
+  b <- bin_samples(gps = c(0, 5), bin_width = 5)
+  expect_identical(attr(b$time, "tzone"), "UTC")
+  expect_equal(as.numeric(min(b$time)), 0)
+
+  a <- acc(
+    list(cbind(X = 1:20)),
+    frequency = units::set_units(20, "Hz"),
+    start = .as.POSIXct(0)
+  )
+
+  # `from`/`to` bound an instant, so every spelling of the same instant agrees
+  by_num <- bin_samples(a, from = 0, to = 1, bin_width = 1)
+  by_ct <- bin_samples(a, from = .as.POSIXct(0), to = .as.POSIXct(1), bin_width = 1)
+  expect_equal(by_num$n, by_ct$n)
+
+  expect_equal(timestamp_to_sec(as.Date("1970-01-02")), 86400)
+  expect_equal(timestamp_to_sec(86400), 86400)
 })

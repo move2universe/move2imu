@@ -8,8 +8,9 @@ plot_sampling_effort(..., ids = NULL, bin_width = NULL, from = NULL, to = NULL)
 }
 \arguments{
 \item{...}{Any number of \code{imu} or timestamp vectors. All vectors must be the
-same length. \code{POSIXct} timestamps retain their specified time zone. Numeric
-and \code{Date} timestamps are considered to be in UTC.}
+same length. Timestamps can be in \code{POSIXct}, \code{POSIXlt}, \code{Date}, or a
+number of seconds since \verb{1970-01-01 00:00:00 UTC}. \code{Date} objects are
+treated as being recorded at midnight, UTC.}
 
 \item{ids}{Vector of IDs used to group the observations in \code{...}. All
 observations for each group will be included in a single panel. Must be
@@ -67,6 +68,8 @@ rate of a vector, and shades cannot be compared across inputs.
 Because normalization spans all groups in \code{ids}, panels can be compared
 with one another, but a track that sampled less intensively than its peers
 appears uniformly faint.
+
+The time axis is drawn in the time zone of the first vector passed to \code{...}.
 
 You can directly access the data produced by this calculation and passed to
 the plot by calling \code{\link[=bin_samples]{bin_samples()}}.

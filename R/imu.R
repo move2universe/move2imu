@@ -18,15 +18,9 @@ imu <- function(sensor,
   # unit
   frequency <- as_hz(frequency)
 
-  start <- start %||% NA_real_
-
-  if (inherits(start, "POSIXt")) {
-    tz <- attr(start, "tzone")
-  } else {
-    tz <- "UTC"
-  }
-
-  start <- as.POSIXct(as.double(start), origin = "1970-01-01", tz = tz)
+  # `NULL` means the start times are unknown; every other input is a timestamp
+  start <- timestamp_to_POSIXct(start %||% NA, arg = "start")
+  tz <- attr(start, "tzone") %||% ""
 
   frequency <- vec_recycle(frequency, n)
   start <- vec_recycle(start, n)
