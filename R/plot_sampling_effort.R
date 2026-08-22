@@ -265,8 +265,8 @@ plot_sampling_effort <- function(...,
 #'   Decrease the `bin_width` to increase plot resolution, at the expense of
 #'   legibility for sparsely collected data.
 #' @param from,to Start and end timestamps defining the range within which
-#'   samples will be counted. By default, the full temporal extent of the data
-#'   is used.
+#'   samples will be counted. Accepts the same formats as timestamps in `...`.
+#'   By default, the full temporal extent of the data is used.
 #'
 #' @return A data frame with one row per non-empty lane, id, and bin, containing
 #'   the following columns:

@@ -42,8 +42,9 @@ same length as \code{bursts}, or \code{NULL} if start times are unknown.
 
 Accepts \code{POSIXct}, \code{POSIXlt}, \code{Date}, or numeric values. \code{Date} objects
 are treated as being recorded at midnight, UTC. Numeric values are
-interpreted the number of second since \verb{1970-01-01 00:00:00 UTC}. Inputs
-are all converted to \code{POSIXct}.}
+interpreted as the number of seconds since \verb{1970-01-01 00:00:00 UTC}.
+Inputs are all converted to \code{POSIXct}. For inputs with a specified time
+zone, it is retained.}
 }
 \value{
 An IMU vector of the corresponding sensor type (\code{acc},

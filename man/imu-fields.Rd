@@ -43,7 +43,7 @@ assumed to be in Hz already.
 Start times assigned with \verb{starts<-} accept \code{POSIXct}, \code{POSIXlt}, \code{Date},
 or a number of seconds since \verb{1970-01-01 00:00:00 UTC}. Start times are
 converted and stored as \code{POSIXct}. \code{Date} objects are treated as being
-recorded at midnight, UTC..
+recorded at midnight, UTC.
 }
 \examples{
 x <- acc(

@@ -25,8 +25,8 @@ Decrease the \code{bin_width} to increase plot resolution, at the expense of
 legibility for sparsely collected data.}
 
 \item{from, to}{Start and end timestamps defining the range within which
-samples will be counted. By default, the full temporal extent of the data
-is used.}
+samples will be counted. Accepts the same formats as timestamps in \code{...}.
+By default, the full temporal extent of the data is used.}
 }
 \value{
 A data frame with one row per non-empty lane, id, and bin, containing

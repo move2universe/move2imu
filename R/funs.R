@@ -124,7 +124,7 @@ NULL
 #' Start times assigned with `starts<-` accept `POSIXct`, `POSIXlt`, `Date`,
 #' or a number of seconds since `1970-01-01 00:00:00 UTC`. Start times are
 #' converted and stored as `POSIXct`. `Date` objects are treated as being
-#' recorded at midnight, UTC..
+#' recorded at midnight, UTC.
 #'
 #' @param x An IMU vector (`acc`, `mag`, or `gyro`)
 #' @param value Replacement value.
