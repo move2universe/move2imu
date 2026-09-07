@@ -126,6 +126,7 @@ as_mag.data.frame <- function(x,
                               drop = FALSE,
                               ...) {
   rlang::check_dots_empty()
+
   as_imu(
     x,
     sensor = "mag",

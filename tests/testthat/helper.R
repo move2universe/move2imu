@@ -68,11 +68,11 @@ df_to_move2 <- function(d) {
 }
 
 albatrosses_df <- function() {
-  move2_to_df(read_example("albatrosses"))
+  move2_to_df(move2imu_example("albatrosses"))
 }
 
 gulls_df <- function() {
-  move2_to_df(read_example("gulls"))
+  move2_to_df(move2imu_example("gulls"))
 }
 
 # Fabricated mag/gyro fixtures. Each sensor has an expanded- and a

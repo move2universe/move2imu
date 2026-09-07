@@ -48,18 +48,18 @@ NULL
 #' @export
 albatrosses <- function() {
   rlang::check_installed("move2")
-  read_example("albatrosses")
+  move2imu_example("albatrosses")
 }
 
 #' @rdname example_data
 #' @export
 gulls <- function() {
   rlang::check_installed("move2")
-  read_example("gulls")
+  move2imu_example("gulls")
 }
 
 # Load example dataset. readRDS() can load without move2 present. We use
 # the data to build analogous data.frame sources for unit tests.
-read_example <- function(name) {
+move2imu_example <- function(name) {
   readRDS(system.file("extdata", paste0(name, ".rds"), package = "move2imu"))
 }

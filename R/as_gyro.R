@@ -130,6 +130,7 @@ as_gyro.data.frame <- function(x,
                                drop = FALSE,
                                ...) {
   rlang::check_dots_empty()
+
   as_imu(
     x,
     sensor = "gyro",
