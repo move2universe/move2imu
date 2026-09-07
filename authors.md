@@ -12,11 +12,12 @@
 Source:
 [`DESCRIPTION`](https://github.com/move2universe/move2imu/blob/main/DESCRIPTION)
 
-Kranstauber B, Roberts F (2026). *move2imu: Handling Bursted IMU Data*.
-R package version 0.1.0, <https://github.com/move2universe/move2imu>.
+Kranstauber B, Roberts F (2026). *move2imu: Handling IMU Data from
+Animal-Borne Tags*. R package version 0.1.0,
+<https://github.com/move2universe/move2imu>.
 
     @Manual{,
-      title = {move2imu: Handling Bursted IMU Data},
+      title = {move2imu: Handling IMU Data from Animal-Borne Tags},
       author = {Bart Kranstauber and Finn Roberts},
       year = {2026},
       note = {R package version 0.1.0},

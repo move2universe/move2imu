@@ -1,14 +1,14 @@
-# Specify IMU data columns present in a `move2` object
+# Specify IMU data columns present in a tabular data source
 
-Define which columns in a `move2` object contain IMU data. Pass the
-result as the `colset` argument of
+Define which columns in a `move2` or `data.frame` contain IMU data. Pass
+the result as the `colset` argument of
 [`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md),
 [`as_mag()`](https://move2universe.github.io/move2imu/reference/as_mag.md),
 or
 [`as_gyro()`](https://move2universe.github.io/move2imu/reference/as_gyro.md)
 to convert those columns into an IMU vector.
 
-`move2` objects store IMU data in two ways:
+IMU data are stored in two ways:
 
 - **Expanded-format** columns store each IMU sample (possibly for
   multiple axes) in its own row.
@@ -62,12 +62,12 @@ An `imu_colset` object of type `"expanded"` or `"compact"`.
 [`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md),
 [`as_mag()`](https://move2universe.github.io/move2imu/reference/as_mag.md),
 [`as_gyro()`](https://move2universe.github.io/move2imu/reference/as_gyro.md)
-to extract IMU data from a move2 object.
+to extract IMU data from a tabular data source.
 
 [`active_acc_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md),
 [`active_mag_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md),
 [`active_gyro_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md)
-to identify IMU colsets present in a move2 object.
+to identify IMU colsets present in a tabular data source.
 
 [`movebank_acc_colsets()`](https://move2universe.github.io/move2imu/reference/movebank_colsets.md),
 [`movebank_mag_colsets()`](https://move2universe.github.io/move2imu/reference/movebank_colsets.md),

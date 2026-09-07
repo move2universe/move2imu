@@ -144,7 +144,7 @@ resolved before parsing IMU data.</p>
 <p>If we try to build bursts from unordered data, we get an error:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/as_acc.html">as_acc</a></span><span class="op">(</span><span class="va">gul</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;"> in `as_imu_move2_()`:</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;"> in `as_imu_()`:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Timestamps must be strictly increasing within each track.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Order data by track and time and remove duplicate timestamps. See</span></span>
 <span><span class="co">#&gt;   `move2::mt_filter_unique()`.</span></span></code></pre></div>

@@ -1,8 +1,9 @@
-# Identify rows in a `move2` that contain IMU data
+# Identify rows containing IMU data
 
 These functions return a logical vector flagging the rows of an input
-`move2` object that contain sample data for the specified sensor. These
-are the rows that will be used to build IMU bursts when calling
+`move2` or `data.frame` that contain sample data for the specified
+sensor. These are the rows that will be used to build IMU bursts when
+calling
 [`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md),
 [`as_mag()`](https://move2universe.github.io/move2imu/reference/as_mag.md),
 or
@@ -22,7 +23,7 @@ gyro_sample_rows(x, colset = NULL)
 
 - x:
 
-  A `move2` object.
+  A `move2` or `data.frame`.
 
 - colset:
 
@@ -47,7 +48,7 @@ etc. as they contain duplicated IMU data. To ensure that
 `*_sample_rows()` only considers certain column sets, use the `colset`
 argument.
 
-If no active colset is detected (e.g. a `move2` with only GPS data),
+If no active colset is detected (e.g. data with only GPS records),
 `*_sample_rows()` returns `FALSE` for all rows.
 
 For expanded-format data (where multiple rows compose a single burst)
@@ -61,7 +62,7 @@ burst.
 [`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md),
 [`as_mag()`](https://move2universe.github.io/move2imu/reference/as_mag.md),
 [`as_gyro()`](https://move2universe.github.io/move2imu/reference/as_gyro.md)
-to extract IMU data from a `move2` object.
+to extract IMU data from a `move2` or `data.frame`.
 
 [`active_acc_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md),
 [`active_mag_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md),

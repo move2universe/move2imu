@@ -1,9 +1,9 @@
 # Convert an object to an `acc` vector
 
-Extract `acc` data from a `move2` or convert an object to an `acc`
-vector.
+Extract acceleration data from a `move2` or `data.frame` and convert to
+an `acc` vector.
 
-For a `move2`, `acc` data are extracted from the object's
+Data are extracted from the object's
 [`active_acc_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md).
 
 ## Usage
@@ -25,21 +25,35 @@ as_acc(
   drop = FALSE,
   ...
 )
+
+# S3 method for class 'data.frame'
+as_acc(
+  x,
+  timestamp,
+  track_id,
+  colset = NULL,
+  min_freq = 0,
+  freq_tol = 0.01,
+  gap_tol = 1e-06,
+  merge_continuous = TRUE,
+  drop = FALSE,
+  ...
+)
 ```
 
 ## Arguments
 
 - x:
 
-  A `move2` object containing acceleration data. Typically this will be
-  loaded from disk with
+  A `move2` or `data.frame` containing acceleration data. A `move2` will
+  typically be loaded from disk with
   [`move2::mt_read()`](https://bartk.gitlab.io/move2/reference/mt_read.html)
   or downloaded using
   [`move2::movebank_download_study()`](https://bartk.gitlab.io/move2/reference/movebank_download_study.html).
 
 - ...:
 
-  currently not used
+  These dots are for future extensions and must be empty.
 
 - colset:
 
@@ -70,13 +84,13 @@ as_acc(
 
 - freq_tol:
 
-  Relative tolerance to use when detecting differences in sampling
-  frequency when building or merging bursts. This determines how much
-  two sampling frequencies may differ before they're treated as
-  belonging to separate sampling regimes. Two frequencies belong to the
-  same burst when the faster is at most `(1 + freq_tol)` times the
-  slower. For example, `freq_tol = 0.01` keeps frequencies that are
-  within 1% of each other in the same burst.
+  Bare numeric value specifying the relative tolerance to use when
+  detecting differences in sampling frequency when building or merging
+  bursts. This determines how much two sampling frequencies may differ
+  before they're treated as belonging to separate sampling regimes. Two
+  frequencies belong to the same burst when the faster is at most
+  `(1 + freq_tol)` times the slower. For example, `freq_tol = 0.01`
+  keeps frequencies that are within 1% of each other in the same burst.
 
   Increase this value to prevent small deviations in sample timing from
   initiating the creation of new bursts. See details.
@@ -109,6 +123,24 @@ as_acc(
   the number of rows in the input data `x` and bursts will be stored at
   the index location corresponding to the start time of the burst.
 
+- timestamp:
+
+  When `x` is a `data.frame`, a vector of timestamps corresponding to
+  the recording time of each row of `x`.
+
+  Accepts `POSIXct`, `POSIXlt`, `Date`, or numeric values. `Date`
+  objects are treated as being recorded at midnight, UTC. Numeric values
+  are interpreted as the number of seconds since
+  `1970-01-01 00:00:00 UTC`. Inputs are all converted to `POSIXct`.
+
+- track_id:
+
+  When `x` is a `data.frame`, a vector of IDs identifying the track (or
+  other grouping variable) for each row in `x`. Bursts are never built
+  across tracks, and adjacent bursts are only merged within a track.
+
+  Provide `NULL` to indicate that all rows belong to the same track.
+
 ## Value
 
 An object of class `acc` inheriting from class `imu`.
@@ -123,9 +155,9 @@ input data will be represented in a single row in the output
 
 ### Input requirements
 
-`as_*()` functions require that the input `move2` object be sorted by
-track and strictly increasing in time. Duplicate timestamps within a
-single track must be resolved before calling `as_*()`. See
+`as_*()` functions require that the input be sorted by track and
+strictly increasing in time. Duplicate timestamps within a single track
+must be resolved before calling `as_*()`. For `move2` inputs, see
 [`move2::mt_is_track_id_cleaved()`](https://bartk.gitlab.io/move2/reference/assertions.html),
 [`move2::mt_is_time_ordered()`](https://bartk.gitlab.io/move2/reference/assertions.html),
 and
@@ -134,8 +166,8 @@ for help diagnosing issues with data organization.
 
 ### Dealing with noise in recorded timestamps
 
-Noise in the recorded timestamps of an input `move2` object can disrupt
-the correct identification of the IMU bursts identified by `as_*()`.
+Noise in the recorded timestamps of the input data can disrupt the
+correct identification of the IMU bursts identified by `as_*()`.
 
 - For data stored in expanded format, `as_*()` must derive the implied
   sampling frequency from the individual timestamps recorded in the
@@ -210,9 +242,32 @@ for supported acceleration column sets in Movebank.
 ## Examples
 
 ``` r
-# Example compact-format data: acc bursts stored in strings in individual rows
+# Acceleration samples stored one per row. For a `data.frame`, the timestamp
+# and track ID of each row are supplied separately.
+d <- data.frame(
+  acceleration_x = c(1, 2, 3, 4),
+  acceleration_y = c(5, 6, 7, 8),
+  acceleration_z = c(9, 10, 11, 12),
+  timestamp = as.POSIXct("2024-01-01", tz = "UTC") + seq(0, 0.3, by = 0.1),
+  id = "tag_1"
+)
+
+# The samples become one 10 Hz burst, placed at the row where it starts
+as_acc(d, timestamp = d$timestamp, track_id = d$id)
+#> <acceleration[4]>
+#> [1] (2.5 6.5 10.5) <NA>           <NA>           <NA>          
+#> # frequency: 10 [Hz]
+
+# Pass `track_id = NULL` when every row belongs to the same track
+as_acc(d, timestamp = d$timestamp, track_id = NULL)
+#> <acceleration[4]>
+#> [1] (2.5 6.5 10.5) <NA>           <NA>           <NA>          
+#> # frequency: 10 [Hz]
+
+# Example move2 compact-format data: acc bursts stored in strings in individual rows
 alb <- albatrosses()
 
+# move2 objects provide timestamp and track ID metadata automatically.
 as_acc(alb)
 #> <acceleration[54]>
 #>  [1] <NA>              (1824.17 1913.83) (1904.3 1926.5)   (1823.27 1913.42)
@@ -276,4 +331,29 @@ as_acc(g, drop = TRUE)
 #> [55] (81.7 310.9 1975.45)     (69.6 258.85 1897.65)    (147.1 407.4 2043.85)   
 #> [58] (67 294.4 1886.05)       (19.1 378.15 1886.05)   
 #> # frequency: 20 [Hz]
+
+# If extracting IMU data from a data.frame, you must separately provide
+# each record's timestamp and track ID
+alb_df <- as.data.frame(alb)
+
+as_acc(
+  alb_df,
+  timestamp = alb_df$timestamp,
+  track_id = alb_df$individual_local_identifier,
+  drop = TRUE
+)
+#> <acceleration[45]>
+#>  [1] (1824.17 1913.83) (1904.3 1926.5)   (1823.27 1913.42) (1826.7 1915.7)  
+#>  [5] (1719.07 1908.8)  (1943.47 2028.05) (1927.98 2013.72) (1926.7 2008.82) 
+#>  [9] (1940.97 2023.93) (1940.02 2021.87) (1969.07 2044.2)  (1962.88 2033.35)
+#> [13] (2062.08 2023.48) (2090.73 2025.83) (2083.92 2051.48) (1887.58 1927.13)
+#> [17] (1846.38 1948.13) (1881.15 1938.03) (1841.58 2093.23) (1778.92 2129.55)
+#> [21] (1812.17 1952.13) (1790.4 1927.4)   (1811.85 1923.43) (1804.47 1935.05)
+#> [25] (1811.45 1937.57) (2012.53 2227.17) (1970.52 2238.62) (2130.75 2082.43)
+#> [29] (1997.18 2074.33) (2049.4 2060.38)  (1975.93 1868.22) (1920.02 2128.58)
+#> [33] (1879.35 1920.62) (1927.5 1941.72)  (1949.27 1962.57) (1936.87 1918.93)
+#> [37] (1672.52 1865.77) (1942.15 1922.33) (2072.85 1952.1)  (1617.97 1944.63)
+#> [41] (1845.87 1921.13) (1838.77 1929.6)  (1843.57 1929.52) (1852.25 1929.65)
+#> [45] (1829.97 1932.28)
+#> # frequency: 5 [Hz]
 ```

@@ -78,7 +78,7 @@ If we try to build bursts from unordered data, we get an error:
 ``` r
 
 as_acc(gul)
-#> Error in `as_imu_move2_()`:
+#> Error in `as_imu_()`:
 #> ! Timestamps must be strictly increasing within each track.
 #> ℹ Order data by track and time and remove duplicate timestamps. See
 #>   `move2::mt_filter_unique()`.

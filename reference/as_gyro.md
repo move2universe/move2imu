@@ -1,9 +1,9 @@
 # Convert an object to a `gyro` vector
 
-Extract `gyro` data from a `move2` or convert an object to a `gyro`
-vector.
+Extract gyroscope data from a `move2` or `data.frame` and convert to a
+`gyro` vector.
 
-For a `move2`, `gyro` data are extracted from the object's
+Data are extracted from the object's
 [`active_gyro_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md).
 
 ## Usage
@@ -25,21 +25,35 @@ as_gyro(
   drop = FALSE,
   ...
 )
+
+# S3 method for class 'data.frame'
+as_gyro(
+  x,
+  timestamp,
+  track_id,
+  colset = NULL,
+  min_freq = 0,
+  freq_tol = 0.01,
+  gap_tol = 1e-06,
+  merge_continuous = TRUE,
+  drop = FALSE,
+  ...
+)
 ```
 
 ## Arguments
 
 - x:
 
-  A `move2` object containing gyroscope data. Typically this will be
-  loaded from disk with
+  A `move2` or `data.frame` containing gyroscope data. A `move2` will
+  typically be loaded from disk with
   [`move2::mt_read()`](https://bartk.gitlab.io/move2/reference/mt_read.html)
   or downloaded using
   [`move2::movebank_download_study()`](https://bartk.gitlab.io/move2/reference/movebank_download_study.html).
 
 - ...:
 
-  currently not used
+  These dots are for future extensions and must be empty.
 
 - colset:
 
@@ -70,13 +84,13 @@ as_gyro(
 
 - freq_tol:
 
-  Relative tolerance to use when detecting differences in sampling
-  frequency when building or merging bursts. This determines how much
-  two sampling frequencies may differ before they're treated as
-  belonging to separate sampling regimes. Two frequencies belong to the
-  same burst when the faster is at most `(1 + freq_tol)` times the
-  slower. For example, `freq_tol = 0.01` keeps frequencies that are
-  within 1% of each other in the same burst.
+  Bare numeric value specifying the relative tolerance to use when
+  detecting differences in sampling frequency when building or merging
+  bursts. This determines how much two sampling frequencies may differ
+  before they're treated as belonging to separate sampling regimes. Two
+  frequencies belong to the same burst when the faster is at most
+  `(1 + freq_tol)` times the slower. For example, `freq_tol = 0.01`
+  keeps frequencies that are within 1% of each other in the same burst.
 
   Increase this value to prevent small deviations in sample timing from
   initiating the creation of new bursts. See details.
@@ -109,6 +123,24 @@ as_gyro(
   the number of rows in the input data `x` and bursts will be stored at
   the index location corresponding to the start time of the burst.
 
+- timestamp:
+
+  When `x` is a `data.frame`, a vector of timestamps corresponding to
+  the recording time of each row of `x`.
+
+  Accepts `POSIXct`, `POSIXlt`, `Date`, or numeric values. `Date`
+  objects are treated as being recorded at midnight, UTC. Numeric values
+  are interpreted as the number of seconds since
+  `1970-01-01 00:00:00 UTC`. Inputs are all converted to `POSIXct`.
+
+- track_id:
+
+  When `x` is a `data.frame`, a vector of IDs identifying the track (or
+  other grouping variable) for each row in `x`. Bursts are never built
+  across tracks, and adjacent bursts are only merged within a track.
+
+  Provide `NULL` to indicate that all rows belong to the same track.
+
 ## Value
 
 An object of class `gyro` inheriting from class `imu`.
@@ -123,9 +155,9 @@ input data will be represented in a single row in the output
 
 ### Input requirements
 
-`as_*()` functions require that the input `move2` object be sorted by
-track and strictly increasing in time. Duplicate timestamps within a
-single track must be resolved before calling `as_*()`. See
+`as_*()` functions require that the input be sorted by track and
+strictly increasing in time. Duplicate timestamps within a single track
+must be resolved before calling `as_*()`. For `move2` inputs, see
 [`move2::mt_is_track_id_cleaved()`](https://bartk.gitlab.io/move2/reference/assertions.html),
 [`move2::mt_is_time_ordered()`](https://bartk.gitlab.io/move2/reference/assertions.html),
 and
@@ -134,8 +166,8 @@ for help diagnosing issues with data organization.
 
 ### Dealing with noise in recorded timestamps
 
-Noise in the recorded timestamps of an input `move2` object can disrupt
-the correct identification of the IMU bursts identified by `as_*()`.
+Noise in the recorded timestamps of the input data can disrupt the
+correct identification of the IMU bursts identified by `as_*()`.
 
 - For data stored in expanded format, `as_*()` must derive the implied
   sampling frequency from the individual timestamps recorded in the
@@ -206,3 +238,72 @@ want to set the values slightly above your desired output tolerance.
 
 [`movebank_gyro_colsets()`](https://move2universe.github.io/move2imu/reference/movebank_colsets.md)
 for supported gyroscope column sets in Movebank.
+
+## Examples
+
+``` r
+# Example gyroscope data, with one sample per row
+g <- data.frame(
+  angular_velocity_x = c(1, 2, 3, 4),
+  angular_velocity_y = c(5, 6, 7, 8),
+  angular_velocity_z = c(9, 10, 11, 12),
+  timestamp = as.POSIXct("2024-01-01", tz = "UTC") + seq(0, 0.3, by = 0.1),
+  id = "tag_1"
+)
+
+# Samples are combined into a 10 Hz burst, placed at the row where it starts
+gyro <- as_gyro(g, timestamp = g$timestamp, track_id = g$id)
+
+# Each burst holds a column of samples per recorded axis
+bursts(gyro)[[1]]
+#>      X Y  Z
+#> [1,] 1 5  9
+#> [2,] 2 6 10
+#> [3,] 3 7 11
+#> [4,] 4 8 12
+
+# Output is index-matched to the input so the result can be easily attached:
+g$gyro <- gyro
+
+# Samples can also be stored as space-delimited strings with associated
+# axis and frequency metadata:
+g_compact <- data.frame(
+  gyro_axes = "XYZ",
+  gyro_freq = 10,
+  gyro_raw = c(
+    "1 5 9 2 6 10 3 7 11 4 8 12",
+    "2 6 10 3 7 11 4 8 12 5 9 13"
+  ),
+  timestamp = as.POSIXct("2024-01-01", tz = "UTC") + c(0, 60),
+  id = "tag_1"
+)
+
+# If column names are not automatically recognized, provide your own
+# column set:
+as_gyro(
+  g_compact,
+  colset = imu_colset(
+    bursts = "gyro_raw",
+    axes = "gyro_axes",
+    frequency = "gyro_freq"
+  ),
+  timestamp = g_compact$timestamp,
+  track_id = g_compact$id
+)
+#> <gyroscope[2]>
+#> [1] (2.5 6.5 10.5) (3.5 7.5 11.5)
+#> # frequency: 10 [Hz]
+
+# For a `move2`, timestamps and track IDs come from the object's metadata.
+# Build a sample move2 with empty geometries:
+g2 <- move2::mt_as_move2(
+  sf::st_sf(g, geometry = sf::st_sfc(rep(list(sf::st_point()), nrow(g)))),
+  time_column = "timestamp",
+  track_id_column = "id"
+)
+
+as_gyro(g2)
+#> <gyroscope[4]>
+#> [1] (2.5 6.5 10.5) <NA>           <NA>           <NA>          
+#> # frequency: 10 [Hz]
+```

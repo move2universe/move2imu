@@ -1,10 +1,11 @@
-# move2imu: Handling Bursted IMU Data
+# move2imu: Handling IMU Data from Animal-Borne Tags
 
-Standardized vector representation of bursted inertial measurement unit
-(IMU) data collected by animal tracking devices, including
-accelerometer, magnetometer, and gyroscope sensors. Extract and
-manipulate IMU data from move2 objects and tracking data stored in
-Movebank.
+Unified vector representation of inertial measurement unit (IMU) data
+collected by animal-borne tracking devices, including accelerometer,
+magnetometer, and gyroscope sensors. Extract, calibrate, visualize, and
+manipulate bursts of IMU data. Integrate IMU workflows directly with
+'move2' trajectories and data stored in 'Movebank'
+<https://www.movebank.org/cms/movebank-main>.
 
 ## See also
 

@@ -1,9 +1,9 @@
-# Identify IMU columns present in a `move2` object
+# Identify IMU columns present in a tabular data source
 
 Determine the column sets that will be used by default when extracting
-IMU data from a `move2` object. Column sets are processed independently,
-but a single `move2` may contain multiple active column sets for one IMU
-sensor.
+IMU data from a `move2` or `data.frame`. Column sets are processed
+independently, but a single source may contain multiple active column
+sets for one IMU sensor.
 
 - `active_acc_colsets()` — column sets used by
   [`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md).
@@ -32,7 +32,7 @@ active_gyro_colsets(x)
 
 - x:
 
-  A `move2` object.
+  A `move2` or `data.frame`.
 
 ## Value
 
@@ -40,7 +40,7 @@ A list of `imu_colset` objects.
 
 ## Details
 
-`move2` objects store IMU data in two ways:
+IMU data are stored in two ways:
 
 - **Expanded-format** columns store each IMU sample (possibly for
   multiple axes) in its own row.
@@ -78,7 +78,7 @@ for the supported default colsets.
 [`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md),
 [`as_mag()`](https://move2universe.github.io/move2imu/reference/as_mag.md),
 [`as_gyro()`](https://move2universe.github.io/move2imu/reference/as_gyro.md)
-to extract IMU data from a `move2` object.
+to extract IMU data from a tabular data source.
 
 ## Examples
 

@@ -41,12 +41,12 @@ merge_imu(x, ids = NULL, gap_tol = 1e-06, freq_tol = 0.01, drop = FALSE)
 
 - freq_tol:
 
-  Relative tolerance to use when determining whether two bursts share a
-  sampling frequency. Bursts can only be merged if their frequencies are
-  consistent, within `freq_tol`. Bursts can be merged when the faster
-  frequency is at most `(1 + freq_tol)` times the slower. For example,
-  `freq_tol = 0.01` merges bursts whose frequencies are within 1% of
-  each other.
+  Bare numeric value representing the relative tolerance to use when
+  determining whether two bursts share a sampling frequency. Bursts can
+  only be merged if their frequencies are consistent, within `freq_tol`.
+  Bursts can be merged when the faster frequency is at most
+  `(1 + freq_tol)` times the slower. For example, `freq_tol = 0.01`
+  merges bursts whose frequencies are within 1% of each other.
 
 - drop:
 

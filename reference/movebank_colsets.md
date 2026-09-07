@@ -2,7 +2,7 @@
 
 Movebank has several standard ways to store data for each IMU sensor.
 These functions show the recognized columns for each sensor that can be
-extracted from a `move2` object by default.
+extracted from a `move2` or `data.frame` by default.
 
 - `movebank_acc_colsets()` — standard column sets for
   [`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md).
@@ -13,9 +13,8 @@ extracted from a `move2` object by default.
 - `movebank_gyro_colsets()` — standard column sets for
   [`as_gyro()`](https://move2universe.github.io/move2imu/reference/as_gyro.md).
 
-To extract IMU data from a `move2` with column names that don't
-correspond to Movebank's conventions, provide a custom set of IMU
-columns with
+To extract IMU data from columns whose names don't correspond to
+Movebank's conventions, provide a custom set of IMU columns with
 [`imu_colset()`](https://move2universe.github.io/move2imu/reference/imu_colset.md).
 
 ## Usage
@@ -34,7 +33,7 @@ A named list of `imu_colset` objects.
 
 ## Details
 
-`move2` objects store IMU data in two ways:
+IMU data are stored in two ways:
 
 - **Expanded-format** columns store each IMU sample (possibly for
   multiple axes) in its own row.
@@ -67,7 +66,7 @@ column set, provide the names explicitly with
 [`active_acc_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md),
 [`active_mag_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md),
 [`active_gyro_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md)
-to identify column sets present in a given `move2` object.
+to identify column sets present in a tabular data source.
 
 ## Examples
 

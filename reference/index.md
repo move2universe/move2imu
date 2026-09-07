@@ -41,9 +41,10 @@ Build and explore IMU data vectors
 
   Visualize sample collection times from `imu` or timestamp vectors
 
-## Extracting IMU data from move2 / Movebank
+## Extracting IMU data
 
-Identify IMU data in a `move2` object and extract into an IMU vector.
+Identify IMU data in a `move2` or `data.frame` and extract into an IMU
+vector.
 
 - [`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md)
   :
@@ -61,16 +62,12 @@ Identify IMU data in a `move2` object and extract into an IMU vector.
   Convert an object to a `mag` vector
 
 - [`imu_colset()`](https://move2universe.github.io/move2imu/reference/imu_colset.md)
-  :
-
-  Specify IMU data columns present in a `move2` object
+  : Specify IMU data columns present in a tabular data source
 
 - [`active_acc_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md)
   [`active_mag_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md)
   [`active_gyro_colsets()`](https://move2universe.github.io/move2imu/reference/active_colsets.md)
-  :
-
-  Identify IMU columns present in a `move2` object
+  : Identify IMU columns present in a tabular data source
 
 - [`movebank_acc_colsets()`](https://move2universe.github.io/move2imu/reference/movebank_colsets.md)
   [`movebank_mag_colsets()`](https://move2universe.github.io/move2imu/reference/movebank_colsets.md)
@@ -80,9 +77,7 @@ Identify IMU data in a `move2` object and extract into an IMU vector.
 - [`acc_sample_rows()`](https://move2universe.github.io/move2imu/reference/sample_rows.md)
   [`mag_sample_rows()`](https://move2universe.github.io/move2imu/reference/sample_rows.md)
   [`gyro_sample_rows()`](https://move2universe.github.io/move2imu/reference/sample_rows.md)
-  :
-
-  Identify rows in a `move2` that contain IMU data
+  : Identify rows containing IMU data
 
 ## Combining and splitting
 

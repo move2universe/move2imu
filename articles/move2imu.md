@@ -106,6 +106,11 @@ to work in tandem with [move2](https://bartk.gitlab.io/move2/) and
 data stored in one of Movebank’s standard storage formats (see
 [`movebank_acc_colsets()`](https://move2universe.github.io/move2imu/reference/movebank_colsets.md)).
 
+Typically, data will be stored in a `move2` object, which contains the
+necessary timestamp and track ID metadata to correctly parse IMU bursts.
+(You can also provide data as a `data.frame`, but you will need to
+manually provide timestamp and track ID metadata.)
+
 For example, we’ll load a sample dataset of albatross tracks stored as a
 `move2`:
 
@@ -287,7 +292,29 @@ For more details about the ways Movebank stores acceleration data, see
 
 ### Fine-tuning data import
 
-If you have your own data stored using column names that don’t adhere to
+move2imu also supports IMU data extraction from `data.frame` objects.
+The workflow is identical to that for `move2` objects, except that you
+will need to specify a vector of timestamps and track IDs separately
+(`move2` objects store this metadata and provide it to `as_*()`
+directly).
+
+``` r
+
+x <- data.frame(
+  acceleration_x = c(1, 2, 3, 4),
+  acceleration_y = c(5, 6, 7, 8),
+  acceleration_z = c(9, 10, 11, 12),
+  timestamp = as.POSIXct("2024-01-01", tz = "UTC") + seq(0, 0.3, by = 0.1),
+  id = "tag_1"
+)
+
+as_acc(x, timestamp = x$timestamp, track_id = x$id)
+#> <acceleration[4]>
+#> [1] (2.5 6.5 10.5) <NA>           <NA>           <NA>          
+#> # frequency: 10 [Hz]
+```
+
+Further, if your data are stored using column names that don’t adhere to
 the Movebank data model, you can still use
 [`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md)
 to load them, provided that the data themselves are stored in a
@@ -300,8 +327,18 @@ data in your input data source:
 
 ``` r
 
-# Extract acc data from the "acc_x" and "acc_y" columns
-a <- as_acc(x, colset = imu_colset(x = "acc_x", y = "acc_y"))
+# The same samples, under custom column names
+names(x)[1:3] <- c("acc_x", "acc_y", "acc_z")
+
+as_acc(
+  x,
+  colset = imu_colset(x = "acc_x", y = "acc_y", z = "acc_z"),
+  timestamp = x$timestamp,
+  track_id = x$id
+)
+#> <acceleration[4]>
+#> [1] (2.5 6.5 10.5) <NA>           <NA>           <NA>          
+#> # frequency: 10 [Hz]
 ```
 
 ## Exploring bursts
@@ -428,7 +465,7 @@ track_ids <- mt_track_id(albatrosses())
 plot_sampling_effort(acc = a, ids = track_ids)
 ```
 
-![](move2imu_files/figure-html/unnamed-chunk-11-1.png)
+![](move2imu_files/figure-html/unnamed-chunk-12-1.png)
 
 Modify the width of the aggregation bins and the plot’s time range to
 explore time periods in more detail:
@@ -448,7 +485,7 @@ plot_sampling_effort(
 )
 ```
 
-![](move2imu_files/figure-html/unnamed-chunk-12-1.png)
+![](move2imu_files/figure-html/unnamed-chunk-13-1.png)
 
 [`plot_sampling_effort()`](https://move2universe.github.io/move2imu/reference/plot_sampling_effort.md)
 accepts both `imu` objects as well as timestamp vectors, so you can also
@@ -470,7 +507,7 @@ plot_sampling_effort(
 )
 ```
 
-![](move2imu_files/figure-html/unnamed-chunk-13-1.png)
+![](move2imu_files/figure-html/unnamed-chunk-14-1.png)
 
 ### Plotting IMU traces
 

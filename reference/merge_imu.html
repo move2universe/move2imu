@@ -92,12 +92,12 @@ details.</p></dd>
 
 
 <dt id="arg-freq-tol">freq_tol<a class="anchor" aria-label="anchor" href="#arg-freq-tol"></a></dt>
-<dd><p>Relative tolerance to use when determining whether two bursts
-share a sampling frequency. Bursts can only be merged if their
-frequencies are consistent, within <code>freq_tol</code>. Bursts can be merged when
-the faster frequency is at most <code>(1 + freq_tol)</code> times the slower.
-For example, <code>freq_tol = 0.01</code> merges bursts whose frequencies
-are within 1% of each other.</p></dd>
+<dd><p>Bare numeric value representing the relative tolerance to use
+when determining whether two bursts share a sampling frequency. Bursts can
+only be merged if their frequencies are consistent, within <code>freq_tol</code>.
+Bursts can be merged when the faster frequency is at most <code>(1 + freq_tol)</code>
+times the slower. For example, <code>freq_tol = 0.01</code> merges bursts whose
+frequencies are within 1% of each other.</p></dd>
 
 
 <dt id="arg-drop">drop<a class="anchor" aria-label="anchor" href="#arg-drop"></a></dt>
