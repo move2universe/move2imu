@@ -85,8 +85,43 @@ test_that("setter rejects a non-string or non-existent column", {
 test_that("getter errors when no attribute is set", {
   m <- move2_with_imu()
 
-  expect_error(mt_acc_column(m), "No acc_column detected.+mt_set_acc_column")
-  expect_error(mt_gyro_column(m), "No gyro_column detected.+mt_set_gyro_column")
+  expect_error(mt_acc_column(m), "No `acc_column` detected.+mt_set_acc_column")
+  expect_error(mt_gyro_column(m), "No `gyro_column` detected.+mt_set_gyro_column")
+})
+
+test_that("getter rejects a malformed column attribute", {
+  m <- mt_set_acc_column(move2_with_imu(), "a")
+
+  attr(m, "acc_column") <- 1L
+  expect_error(mt_acc_column(m), "`acc_column` attribute must be.+character")
+  expect_error(mt_acc(m), "`acc_column` attribute must be.+character")
+
+  attr(m, "acc_column") <- c("a", "a")
+  expect_error(mt_acc_column(m), "of length 1")
+
+  attr(m, "acc_column") <- character(0)
+  expect_error(mt_acc_column(m), "of length 1")
+
+  attr(m, "acc_column") <- list("a")
+  expect_error(mt_acc_column(m), "of length 1")
+})
+
+test_that("malformed attribute is rejected for every sensor", {
+  m <- move2_with_imu()
+
+  attr(m, "mag_column") <- 1L
+  attr(m, "gyro_column") <- c("g", "g")
+
+  expect_error(mt_mag_column(m), "`mag_column` attribute must be.+character")
+  expect_error(mt_gyro_column(m), "`gyro_column` attribute must be.+character")
+})
+
+test_that("getter allows an NA column attribute (consistency with move2)", {
+  m <- mt_set_acc_column(move2_with_imu(), "a")
+  attr(m, "acc_column") <- NA_character_
+
+  expect_identical(mt_acc_column(m), NA_character_)
+  expect_error(mt_acc(m), "does not exist")
 })
 
 test_that("Error when designated column has inconsistencies", {

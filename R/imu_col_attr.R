@@ -154,9 +154,18 @@ mt_imu_column <- function(x, sensor, call = rlang::caller_env()) {
     setter <- paste0("mt_set_", sensor, "_column")
     cli::cli_abort(
       c(
-        "No {.field {nm}} detected.",
+        "No `{nm}` detected.",
         i = "Set one with {.help [{.fn {setter}}](move2imu::{setter})}."
       ),
+      call = call
+    )
+  }
+
+  # Ensure value is length-1 character. Setters enforce this as well, but users
+  # could manipulate attributes manually.
+  if (!rlang::is_scalar_character(col)) {
+    cli::cli_abort(
+      "The `{nm}` attribute must be a {.cls character} of length 1.",
       call = call
     )
   }
@@ -207,7 +216,7 @@ mt_imu <- function(x, sensor, call = rlang::caller_env()) {
 
   if (!rlang::has_name(x, col)) {
     cli::cli_abort(
-      "{.field {nm}} {.val {col}} does not exist in {.arg x}.",
+      "`{nm}` {.val {col}} does not exist in {.arg x}.",
       call = call
     )
   }
@@ -235,10 +244,7 @@ imu_column_attr <- function(sensor) {
 # for consistency with similar columns (time, track ID)
 assert_move2 <- function(x, call = rlang::caller_env()) {
   if (!inherits(x, "move2")) {
-    cli::cli_abort(
-      "{.arg x} must be a {.cls move2} object.",
-      call = call
-    )
+    cli::cli_abort("{.arg x} must be a {.cls move2} object.", call = call)
   }
   invisible(x)
 }
