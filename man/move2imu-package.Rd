@@ -18,12 +18,12 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Bart Kranstauber \email{b.kranstauber@uva.nl} (\href{https://orcid.org/0000-0001-8303-780X}{ORCID})
+\strong{Maintainer}: Finn Roberts \email{froberts@ab.mpg.de} (\href{https://orcid.org/0009-0002-6157-3542}{ORCID})
 
 Authors:
 \itemize{
+  \item Finn Roberts \email{froberts@ab.mpg.de} (\href{https://orcid.org/0009-0002-6157-3542}{ORCID})
   \item Bart Kranstauber \email{b.kranstauber@uva.nl} (\href{https://orcid.org/0000-0001-8303-780X}{ORCID})
-  \item Finn Roberts \email{froberts@ab.mpg.de}
 }
 
 }
