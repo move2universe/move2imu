@@ -19,12 +19,13 @@ Useful links:
 
 ## Author
 
-**Maintainer**: Bart Kranstauber <b.kranstauber@uva.nl>
-([ORCID](https://orcid.org/0000-0001-8303-780X))
+**Maintainer**: Finn Roberts <froberts@ab.mpg.de>
+([ORCID](https://orcid.org/0009-0002-6157-3542))
 
 Authors:
 
+- Finn Roberts <froberts@ab.mpg.de>
+  ([ORCID](https://orcid.org/0009-0002-6157-3542))
+
 - Bart Kranstauber <b.kranstauber@uva.nl>
   ([ORCID](https://orcid.org/0000-0001-8303-780X))
-
-- Finn Roberts <froberts@ab.mpg.de>
