@@ -97,6 +97,8 @@ export(starts)
 export(transform_imu)
 import(vctrs)
 importFrom(pillar,pillar_shaft)
-importFrom(rlang,"%||%")
-importFrom(rlang,.data)
+importFrom(rlang,
+  "%||%",
+  .data
+)
 importFrom(stats,na.omit)
