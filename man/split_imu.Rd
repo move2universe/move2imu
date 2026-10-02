@@ -49,8 +49,8 @@ m
 
 identical(m, a)
 
-\dontrun{
-# In a dataframe, split and unnest to retain index matching
+\dontshow{if (rlang::is_installed(c("dplyr", "tidyr", "tibble"))) withAutoprint(\{ # examplesIf}
+# In a data frame, split and unnest to give each piece its own row
 library(dplyr)
 library(tidyr)
 
@@ -66,5 +66,5 @@ tbl
 # Use merge_imu() to recover original bursts
 tbl |>
   mutate(burst = merge_imu(burst, ids = id, drop = FALSE))
-}
+\dontshow{\}) # examplesIf}
 }
