@@ -44,6 +44,11 @@ reference:
   - eobs_default_specs
   - set_imu_units
 
+- title: Activity metrics
+  desc: Summarize acceleration bursts into measures of movement.
+  contents:
+  - dba
+
 - title: Example data
   desc: Bundled datasets used throughout examples and vignettes.
   contents:
