@@ -1,6 +1,7 @@
 url: https://move2universe.github.io/move2imu/
 template:
   bootstrap: 5
+  math-rendering: katex
 
 reference:
 - title: IMU vectors

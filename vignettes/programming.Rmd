@@ -25,7 +25,8 @@ knitr::opts_chunk$set(
 }
 ```
 
-After extracting IMU data into a vector of bursts, we typically will want
+After extracting IMU data into a vector of bursts (see
+[Loading IMU data](move2imu.html#loading-imu-data)), we will typically want
 to summarize the individual burst samples into a more interpretable
 measure of activity. This vignette shows how to extract simple activity
 metrics from `acc` bursts and reattach these metrics to corresponding location
@@ -47,23 +48,24 @@ alb <- albatrosses()
 alb$acceleration <- as_acc(alb)
 ```
 
-These data contain 12 second bursts recorded at 5 Hz across two axes.
+These data contain 12-second bursts recorded at 5 Hz across two axes.
 
 ```{r}
 alb$acceleration
 ```
 
-## Computing Dynamic Body Acceleration
+## Computing dynamic body acceleration
 
 Dynamic body acceleration is a commonly used measure of
 animal activity and is composed of two acceleration components:
 
-- A *static* component, which stems from gravitation or other sources of 
+- A *static* component, which stems from gravity or other sources of
 constant acceleration (and therefore reflects the animal's posture).
 - A *dynamic* component, which stems from the animal's own movements.
 
-To estimate an animal's movement—a proxy for energy expenditure—we must
-therefore isolate and remove the static acceleration to the best of our ability.
+The dynamic component is a proxy for activity and, in many species, for energy
+expenditure (Wilson et al., 2020). To estimate it, we must isolate and remove
+the static acceleration to the best of our ability.
 We'll demonstrate how to compute vectorial dynamic body acceleration (VeDBA)
 on our albatross data.
 
@@ -85,53 +87,74 @@ running mean over all the samples within a given window of time. This helps
 to separate cyclical patterns (e.g. wingbeats) from stable acceleration signals.
 
 In general, the window length should span several cycles of the primary
-movement of interest, but remain short enough to to avoid misclassifying
+movement of interest, but remain short enough to avoid misclassifying
 changes in posture as movements. Shepard et al. (2008) suggest at least a
-3 second window for species with stroke movements faster than this value. Our
-albatross wingbeats are likely to be must shorter than this, so we will
-adopt this guidance here.
+3-second window for species whose stroke cycles are shorter than this.
+Albatrosses mostly soar rather than flap, but the repeating movements that do
+appear in these data (likely including occasional wingbeats) last about a
+second or less, so we will adopt this guidance here.
 
-To compute VeDBA, we simply use the `vedba()` function with the determined
+To compute VeDBA, we simply use the `vedba()` function with the chosen
 window.
 
 ```{r}
-alb$vedba <- vedba(alb$acceleration, window = units::set_units(3, "s"))
+alb$vedba <- vedba(alb$acceleration, window = set_units(3, "s"))
 
 alb$vedba
 ```
 
 It's also possible to identify an appropriate window by computing VeDBA at
-multiple window lengths and identifying the point at which the computed VeDBA
-curve flattens.
+multiple window lengths and finding the point at which the curve flattens:
 
 ```{r sensitivity}
-acc <- alb$acceleration[!is.na(alb$acceleration)]
+alb_acc <- alb$acceleration[!is.na(alb$acceleration)]
 
-# Windows of 3, 5, 7, ... samples at 5 Hz
+# Windows of 3 to 31 samples at 5 Hz
 windows <- c(3, 5, 7, 11, 15, 21, 31) / 5
 
+# Median VeDBA at each window size
 v <- purrr::map_dbl(
   windows,
-  function(w) median(as.numeric(vedba(acc, window = w)))
+  function(w) median(as.numeric(vedba(alb_acc, window = w)))
 )
 
 d <- data.frame(window = windows, vedba = v)
 
-ggplot(d, aes(window, vedba)) +
+ggplot(d, aes(x = window, y = vedba)) +
   geom_line() +
   geom_point() +
   labs(x = "Window (s)", y = "Median VeDBA (g)")
 ```
 
 VeDBA rises steeply for windows up to about 1.5 seconds and changes little
-beyond about 3 seconds, so this corroborates the selection of a 3 second window.
+beyond about 3 seconds, which supports choosing a 3-second window.
+
+### Caveats
+
+Some data are collected in shorter bursts that may not fit a meaningful window.
+In these cases, you can pass `window = "burst"`, which estimates the static
+component as the mean of each whole burst. However, these DBA results should
+be interpreted with caution.
+
+Furthermore, VeDBA is sensitive not only to the window length but also to
+other features of the data, like sampling rate and number of axes.
+
+These data were sampled at 5 Hz, which is quite slow relative to
+most flapping frequencies. This limits the resolution with which we can
+identify flapping flight, leading to underestimated VeDBA. Additionally, these
+data were recorded on only 2 axes, while DBA metrics are often calculated on
+data with 3. These VeDBA values thus shouldn't be compared to
+measurements computed on 3-axis data.
+
+The code here is intended to serve as a demonstration of a workflow for
+computing these metrics rather than as a comprehensive analysis.
 
 ## Linking to locations
 
 Often, the recording times of acceleration and GPS data don't match exactly.
 In the albatross data, for instance, some GPS fixes are recorded up to a second
 after the start of an acceleration burst. However, we may be interested in
-associated acceleration metrics to nearby GPS locations.
+associating acceleration metrics with nearby GPS locations.
 
 To do so, we'll separate the VeDBA values
 calculated above from the GPS fixes by removing rows with missing VeDBA values:
@@ -142,17 +165,17 @@ alb_v <- alb |>
   sf::st_drop_geometry() |>
   as_tibble() |>
   select(individual_local_identifier, timestamp, vedba) |>
-  rename(v_time = timestamp)
+  rename(vedba_time = timestamp)
 
 head(alb_v)
 ```
 
 Then, we'll isolate the GPS location rows by removing rows with empty geometries
-and the acceleration-based columns:
+and dropping the acceleration-based columns:
 
 ```{r}
-alb_gps <- alb |> 
-  filter(!sf::st_is_empty(alb)) |> 
+alb_gps <- alb |>
+  filter(!sf::st_is_empty(alb)) |>
   select(-acceleration, -vedba)
 ```
 
@@ -164,13 +187,13 @@ require timestamps to match exactly, only 2 of the 9 fixes would have a match:
 left_join(
   alb_gps,
   alb_v,
-  by = join_by(individual_local_identifier, timestamp == v_time)
+  by = join_by(individual_local_identifier, timestamp == vedba_time)
 ) |>
   pull(vedba)
 ```
 
 Instead, we can use a *rolling join* to match all records by a provided
-inequality. Here, `closest(timestamp >= v_time)` links records by matching
+inequality. Here, `closest(timestamp >= vedba_time)` links records by matching
 each GPS fix timestamp to the most recent VeDBA record that started at or
 before it, within the same individual:
 
@@ -178,111 +201,47 @@ before it, within the same individual:
 alb_joined <- left_join(
   alb_gps,
   alb_v,
-  by = join_by(individual_local_identifier, closest(timestamp >= v_time))
+  by = join_by(individual_local_identifier, closest(timestamp >= vedba_time))
 )
 ```
 
 A rolling join always takes the closest match, no matter how far away in time
-it is. Before using the result, check the time between each fix and its
-burst, and discard matches that are too far apart for your purposes:
+it is. Before using the result, you may want to discard matches where the records
+are far from each other in time. For instance, here we compute the time difference
+for each match and keep only cases where the difference is at most 2 seconds:
 
 ```{r}
 alb_joined <- alb_joined |>
   mutate(
-    gap = as.numeric(timestamp - v_time, units = "secs"),
+    gap = as.numeric(timestamp - vedba_time, units = "secs"),
     vedba = if_else(gap <= 2, vedba, NA)
   )
 
-alb_joined |> 
-  as_tibble() |> 
-  select(individual_local_identifier, timestamp, v_time, gap, vedba)
+alb_joined |>
+  as_tibble() |>
+  select(individual_local_identifier, timestamp, vedba_time, gap, vedba)
 ```
 
 Here every fix is within a second of its burst, so all matches are kept.
-The check matters more when records are sparse. 
+The check matters more when records are sparse.
+
+### Interpolating locations
 
 These albatross data contain only one GPS fix per individual but five
 acceleration bursts, so by joining to our GPS locations we end up discarding
 some of the collected acceleration data. If we instead want to associate a
-location to each *burst*, an alternative is to interpolate locations to the
+location with each *burst*, an alternative is to interpolate locations to the
 burst times with `move2::mt_interpolate()`.
 
 ### Continuous data
 
 Some tags record acceleration continuously rather than in bursts. In these cases,
 `vedba()` would return a single value for hours of data. Instead, you can split
-the bursts into intervals with `split_imu()` and calculate VeDBA for each
+the recording into intervals with `split_imu()` and calculate VeDBA for each
 interval (see the examples in `?vedba`). Intervals should be much longer than
 the window, since each loses about one window's worth of samples at its edges.
 Each interval's start time, from `starts()`, can then be used to link it to GPS
 fixes with a rolling join, as above.
-
-## Summarizing over time
-
-A single burst describes a few seconds of behavior. For questions about
-longer periods (such as detecting when a tag has stopped moving or an
-animal may have died), it helps to summarize the per-burst values over time.
-
-The albatross data cover only one hour, so for this step we switch to the
-gulls example data, which span almost a day. We calculate VeDBA as before.
-These bursts are only 1 second long, which is too short for a running mean,
-so we use the mean of each burst (`window = "burst"`) to estimate the static
-component. (Note that values from such short bursts should be treated with
-caution; we use them here for demonstration purposes.)
-
-```{r gulls}
-gul <- gulls()
-
-gul_v <- gul |>
-  mutate(
-    acceleration = transform_imu(
-      as_acc(gul),
-      acc_calibration("ornitela", units = "standard_free_fall")
-    ),
-    vedba = vedba(acceleration, window = "burst")
-  ) |>
-  filter(!is.na(vedba)) |>
-  sf::st_drop_geometry() |>
-  as_tibble() |>
-  select(individual_local_identifier, timestamp, vedba)
-```
-
-We'll use the [slider](https://slider.r-lib.org/) package to calculate the
-mean VeDBA over the preceding 5 hours at each burst:
-
-```{r}
-library(slider)
-
-gul_v <- gul_v |>
-  group_by(individual_local_identifier) |>
-  mutate(
-    vedba_smooth = slide_index_dbl(
-      as.numeric(vedba),
-      timestamp,
-      mean,
-      .before = lubridate::hours(5)
-    ),
-    vedba_smooth = set_units(vedba_smooth, "standard_free_fall")
-  ) |>
-  ungroup()
-```
-
-A threshold on this rolling mean can then flag periods of prolonged
-inactivity. Suitable thresholds depend on the species and tags in question;
-here we use 0.05 *g*:
-
-```{r inactive_plot}
-threshold <- set_units(0.05, "standard_free_fall")
-
-ggplot(gul_v, aes(x = timestamp)) +
-  geom_line(aes(y = vedba), color = "gray") +
-  geom_line(aes(y = vedba_smooth), color = "navy") +
-  geom_hline(yintercept = threshold, color = "red") +
-  labs(x = "", y = "VeDBA")
-```
-
-This gull doesn't have a true mortality event. The periods of reduced
-activity are likely overnight roosting.
 
 ## References
 
