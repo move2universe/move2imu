@@ -46,9 +46,12 @@ reference:
   - set_imu_units
 
 - title: Activity metrics
-  desc: Summarize acceleration bursts into measures of movement.
+  desc: >
+    Summarize acceleration bursts into measures of movement, or separate
+    acceleration into its static and dynamic components.
   contents:
   - dba
+  - static_acc
 
 - title: Example data
   desc: Bundled datasets used throughout examples and vignettes.

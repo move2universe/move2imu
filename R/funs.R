@@ -308,10 +308,3 @@ starts <- function(x) {
   field(x, "start") <- timestamp_to_POSIXct(value)
   x
 }
-
-# TODO finish function and export?
-static_acc <- function(x) {
-  # should this return a list or a dataframe
-  # TODO fix NA
-  lapply(bursts(x)[!is.na(x)], colMeans)
-}

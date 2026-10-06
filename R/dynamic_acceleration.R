@@ -1,25 +1,22 @@
-#' Dynamic body acceleration (VeDBA and ODBA)
+#' Dynamic body acceleration
 #'
 #' @description
 #' Calculate vectorial dynamic body acceleration (VeDBA) or overall dynamic
 #' body acceleration (ODBA) for each burst in an `acc` vector. Dynamic body
 #' acceleration (DBA) is a widely used proxy for movement-related activity.
 #'
-#' Acceleration recorded on each axis is treated as the sum of a *static*
-#' component (the share of gravity on that axis, which reflects the
-#' orientation of the tag and thus the animal's posture) and a *dynamic*
-#' component (acceleration caused by the animal's own movement). For each
-#' sample, the static component on each axis is estimated as the mean of the
-#' surrounding samples within a centered window of length `window` (or of the
-#' whole burst, if `window = "burst"`). Subtracting it from the recorded values
-#' leaves the dynamic component for each sample. The axes are then combined
-#' for each sample as follows:
+#' `vedba()` and `odba()` extract the dynamic component of the input
+#' acceleration values (see details) and summarize these samples across axes as
+#' follows:
 #'
 #' - VeDBA: \eqn{\sqrt{x^2 + y^2 + z^2}}
 #' - ODBA: \eqn{|x| + |y| + |z|}
 #'
-#' at which point the results are averaged to give a single
-#' value per burst.
+#' These values are then averaged to give a single value per burst.
+#'
+#' These functions are intended to provide burst-level DBA
+#' summaries. For analyses that need per-sample dynamic and/or static
+#' acceleration values, use [dynamic_acc()] and [static_acc()] instead.
 #'
 #' @param x An `acc` vector.
 #' @param window Length of the running mean used to estimate the static
@@ -28,6 +25,17 @@
 #'   component. Bare numeric values are assumed to be in seconds. See details.
 #'
 #' @details
+#' ## Static and dynamic acceleration
+#'
+#' Acceleration recorded on each axis is treated as the sum of a *static*
+#' component (the share of gravity on that axis, which reflects the
+#' orientation of the tag and thus the animal's posture) and a *dynamic*
+#' component (acceleration typically caused by the animal's own movement).
+#' For each sample, the static component on each axis is estimated as the
+#' mean of the surrounding samples within a centered window of length `window`
+#' (or of the whole burst, if `window = "burst"`). Subtracting it from the
+#' recorded values leaves the dynamic component for each sample.
+#'
 #' ## Choosing a window
 #'
 #' The running mean separates the static from the dynamic component by
@@ -51,7 +59,8 @@
 #' `window = "burst"` uses the mean of each whole burst as the static
 #' component, so the effective window is each burst's duration. This can be
 #' useful for short bursts, where a running mean would leave few or no
-#' samples.
+#' samples, but is unlikely to be useful for long recordings of
+#' continuously-sampled data.
 #'
 #' Note that this means that bursts that differ in duration will have DBA
 #' calculated with different window sizes, impacting comparability. Further,
@@ -65,16 +74,15 @@
 #' `window` is converted to the nearest odd number of samples (so that it
 #' can be centered on each sample) using each burst's sampling frequency. An
 #' even number of samples is rounded up. Samples within half a window of either
-#' end of a burst have no static estimate and are excluded from that burst's
-#' mean. Likewise, a missing sample leaves the static component undefined for
-#' every sample whose window includes it, and those samples are also excluded.
+#' end of a burst have no static estimate. Likewise, a missing sample leaves
+#' the static component undefined for every sample whose window includes it.
 #'
-#' DBA cannot be calculated (and `NA` is returned) for bursts that are shorter
-#' than `window`, for windows of fewer than 3 samples, and for bursts with fewer
-#' than 2 samples when `window = "burst"`.
+#' The components cannot be calculated (and return missing values) for
+#' bursts that are shorter than `window`, for windows of fewer than 3
+#' samples, and for bursts with fewer than 2 samples when `window = "burst"`.
 #'
-#' @returns A vector the same length as `x` containing one value per burst,
-#'   in the units of `x` (unitless if `x` has no units).
+#' @returns A vector of VeDBA or ODBA values with the same length and units as
+#'   `x`. Mixed units are converted to the units of the first burst in `x`.
 #'
 #' @references
 #' Shepard, E. L. C., Wilson, R. P., Halsey, L. G., Quintana, F.,
@@ -91,40 +99,21 @@
 #' @name dba
 #'
 #' @examples
-#' a <- set_imu_units(acc_example(), "standard_free_fall")
+#' a <- as_acc(albatrosses())
 #'
-#' # Static component estimated with a 0.5 second running mean
-#' vedba(a, window = units::set_units(0.5, "s"))
+#' a <- transform_imu(
+#'   a,
+#'   acc_calibration("eobs", 1000, units = "standard_free_fall")
+#' )
+#'
+#' # Static component estimated with a 3 second running mean
+#' vedba(a, window = units::set_units(3, "s"))
 #'
 #' # Bare numbers are interpreted as seconds
-#' odba(a, window = 0.5)
+#' odba(a, window = 3)
 #'
-#' # Static component estimated as the mean of each burst
+#' # Burst mean is used as the static acceleration for each burst
 #' vedba(a, window = "burst")
-#'
-#' # One minute of example 20Hz data with 4Hz "wingbeats".
-#' t <- seq(0, 60 - 1 / 20, by = 1 / 20)
-#' strength <- rep(c(0.6, 0.4, 0.1, 0.05, 0.2, 0.5), each = 200)
-#'
-#' raw <- acc(
-#'   list(cbind(X = 2048, Y = 2048, Z = 2048 + 512 * (1 + strength * sin(2 * pi * 4 * t)))),
-#'   frequency = units::set_units(20, "Hz"),
-#'   start = as.POSIXct("2024-01-01", tz = "UTC")
-#' )
-#'
-#' # Calibrate to a standard physical unit before computing DBA
-#' cal <- transform_imu(
-#'   raw,
-#'   acc_calibration(offset = 2048, slope = 1 / 512, units = "standard_free_fall")
-#' )
-#'
-#' # DBA produces a single estimate per burst. For long-running continuous data,
-#' # you likely want to split data into intervals for which you want a DBA
-#' # estimate. To avoid data loss, intervals should be appreciably larger than
-#' # the window.
-#' pieces <- purrr::list_c(split_imu(cal, units::set_units(10, "s")))
-#'
-#' data.frame(start = starts(pieces), vedba = vedba(pieces, window = 1))
 NULL
 
 #' @rdname dba
@@ -139,35 +128,168 @@ odba <- function(x, window) {
   dba_(x, window, .norm = function(d) rowSums(abs(d)))
 }
 
-# Shared implementation for vedba() and odba(). `.norm` combines a matrix of
-# per-axis dynamic acceleration (samples in rows) into one value per sample.
+#' Static and dynamic acceleration
+#'
+#' @description
+#' Separate each sample in an `acc` vector into its static component
+#' (`static_acc()`) and its dynamic component (`dynamic_acc()`).
+#'
+#' These are intended for analyses that need dynamic and/or static acceleration
+#' values for individual samples. For burst-level dynamic body acceleration
+#' summaries, use [vedba()] and [odba()] instead.
+#'
+#' @inheritParams dba
+#'
+#' @inherit dba details
+#'
+#' @returns An `acc` vector the same length as `x`.
+#'
+#' @inherit dba references
+#'
+#' @export
+#'
+#' @examples
+#' # Two minutes of simulated continuous 20 Hz data from a bird alternating
+#' # between 30 seconds of gliding and 30 seconds of flapping (4 Hz wingbeats)
+#' set.seed(1)
+#' t <- seq(0, 120 - 1 / 20, by = 1 / 20)
+#' flapping <- (t %/% 30) %% 2 == 1
+#' wingbeats <- ifelse(flapping, 0.4 * sin(2 * pi * 4 * t), 0)
+#'
+#' a <- acc(
+#'   list(cbind(
+#'     X = rnorm(length(t), sd = 0.05),
+#'     Y = rnorm(length(t), sd = 0.05),
+#'     Z = 1 + wingbeats + rnorm(length(t), sd = 0.05)
+#'   )),
+#'   frequency = units::set_units(20, "Hz"),
+#'   start = as.POSIXct("2024-01-01", tz = "UTC")
+#' )
+#'
+#' a <- set_imu_units(a, "standard_free_fall")
+#'
+#' # The dynamic acc component with a 1 second smoothing window
+#' d_acc <- dynamic_acc(a, window = 1)
+#' d_acc
+#'
+#' # Static component with same window
+#' s_acc <- static_acc(a, window = 1)
+#' s_acc
+#'
+#' if (rlang::is_installed("dygraphs")) {
+#'   plot_imu_trace(d_acc)
+#'   plot_imu_trace(s_acc)
+#' }
+#'
+#' # Split into 10 second chunks to calculate periodic VeDBA
+#' d_split <- split_imu(drop_imu_units(d_acc), units::set_units(10, "s"))
+#' d_split <- purrr::list_c(d_split)
+#'
+#' data.frame(
+#'   start = starts(d_split),
+#'   vedba = purrr::map_dbl(
+#'     bursts(d_split),
+#'     function(b) mean(sqrt(rowSums(b^2)), na.rm = TRUE)
+#'   )
+#' )
+static_acc <- function(x, window) {
+  decompose_acc(x, window, component = "static")
+}
+
+#' @rdname static_acc
+#' @export
+dynamic_acc <- function(x, window) {
+  decompose_acc(x, window, component = "dynamic")
+}
+
+# Shared implementation for vedba() and odba(). Separates the dynamic
+# component of each burst, then `.norm` combines its axes (samples in rows)
+# into one value per sample, which are averaged to give one value per burst.
 dba_ <- function(x, window, .norm, call = rlang::caller_env()) {
+  d <- bursts(decompose_acc(x, window, component = "dynamic", call = call))
+
+  out <- rep(NA_real_, length(x))
+  present <- !purrr::map_lgl(d, is.null)
+
+  if (!any(present)) {
+    return(out)
+  }
+
+  d <- d[present]
+  has_units <- purrr::map_lgl(d, inherits, what = "units")
+
+  vals <- purrr::map_dbl(
+    d,
+    function(b) {
+      if (inherits(b, "units")) {
+        b <- units::drop_units(b)
+      }
+
+      dba <- mean(.norm(b), na.rm = TRUE)
+
+      # If DBA can't be calculated (e.g. bursts too short for the window, or
+      # missing values), we get NaN. Convert to NA for consistency.
+      if (is.nan(dba)) NA_real_ else dba
+    }
+  )
+
+  if (!any(has_units)) {
+    out[present] <- vals
+    return(out)
+  }
+
+  if (!all(has_units)) {
+    cli::cli_abort(
+      "Can't combine bursts with and without units in {.arg x}.",
+      call = call
+    )
+  }
+
+  # For each unique unit present, identify the entries that have it and convert
+  # to the standard output unit (from the first burst)
+  burst_units <- purrr::map_chr(d, units::deparse_unit)
+  out_units <- burst_units[1]
+
+  for (u in unique(burst_units)) {
+    idx <- burst_units == u
+
+    # Attach original units to each burst (stripped for arithmetic above)
+    v <- units::set_units(vals[idx], u, mode = "standard")
+
+    # Convert to consistent output units across all bursts
+    vals[idx] <- as.numeric(units::set_units(v, out_units, mode = "standard"))
+  }
+
+  out[present] <- vals
+  units::set_units(out, out_units, mode = "standard")
+}
+
+# Shared implementation for static_acc() and dynamic_acc(). Splits each burst
+# into its static and dynamic components and returns the requested one as an
+# `acc` vector. Bursts too short for the window are filled with NA, so that
+# the output keeps the same bursts, start times and sample counts as `x`.
+decompose_acc <- function(x,
+                          window,
+                          component = c("static", "dynamic"),
+                          call = rlang::caller_env()) {
+  component <- rlang::arg_match(component)
+
   if (!is_acc(x)) {
     cli::cli_abort("{.arg x} must be an {.cls acc} vector.", call = call)
   }
 
   window <- window_to_sec(window, call = call)
 
-  if (length(x) == 0) {
-    return(numeric(0))
-  }
-
-  x_na <- is.na(x)
-  out <- rep(NA_real_, length(x))
-
-  if (all(x_na)) {
-    return(out)
-  }
-
-  # Number of samples in each burst's window. NULL means use the whole burst.
+  # Window length in samples for each burst. NULL means use the whole burst.
   n <- n_samples(x)
 
   if (is.null(window)) {
-    k <- NULL
-    too_short <- !x_na & n < 2
+    window_samples <- rep(list(NULL), length(x))
+    too_short <- !is.na(x) & n < 2
   } else {
-    k <- dba_window_samples(window, as.numeric(freqs(x)))
-    too_short <- !x_na & (is.na(k) | k < 3 | k > n)
+    window_samples <- samples_in_window(window, as.numeric(freqs(x)))
+    too_short <- !is.na(x) &
+      (is.na(window_samples) | window_samples < 3 | window_samples > n)
   }
 
   if (any(too_short)) {
@@ -177,62 +299,67 @@ dba_ <- function(x, window, .norm, call = rlang::caller_env()) {
     ))
   }
 
-  keep <- !x_na & !too_short
+  out <- purrr::pmap(
+    list(bursts(x), window_samples, too_short),
+    function(b, ws, ts) {
+      if (is.null(b)) {
+        return(NULL)
+      }
 
-  if (!any(keep)) {
-    return(out)
-  }
+      u <- if (inherits(b, "units")) units(b) else NULL
 
-  dba_keep <- purrr::list_simplify(
-    purrr::map2(
-      bursts(x)[keep],
-      if (is.null(k)) list(NULL) else k[keep],
-      function(.br, .k) dba_burst_(.br, .k, .norm)
-    )
+      if (!is.null(u)) {
+        b <- units::drop_units(b)
+      }
+
+      if (ts) {
+        b[] <- NA_real_
+      } else if (component == "static") {
+        b <- static_acc_(b, ws)
+      } else {
+        b <- b - static_acc_(b, ws)
+      }
+
+      if (!is.null(u)) {
+        b <- units::set_units(b, u, mode = "standard")
+      }
+
+      b
+    }
   )
 
-  if (inherits(dba_keep, "units")) {
-    out <- units::set_units(out, units(dba_keep), mode = "standard")
-  }
+  bursts(x) <- new_burst_list(out, sensor = "acc")
 
-  out[keep] <- dba_keep
-
-  out
+  x
 }
 
-# DBA for a single burst. `k` is the running mean length in samples, or NULL
-# to use the burst mean as the static component.
-dba_burst_ <- function(b, k, .norm) {
-  u <- if (inherits(b, "units")) units(b) else NULL
-
-  if (!is.null(u)) {
-    b <- units::drop_units(b)
-  }
-
-  if (is.null(k)) {
-    static <- matrix(colMeans(b), nrow(b), ncol(b), byrow = TRUE)
-  } else {
-    # Running mean from k samples centered on each sample in the axis.
-    # Samples within k %/% 2 of either end get NA.
-    static <- apply(
-      b,
-      2,
-      function(axis) stats::filter(axis, rep(1 / k, k), sides = 2)
+# Static component of a unitless burst matrix. `window_samples` is the running
+# mean length in samples, or NULL to use the burst mean for every sample.
+static_acc_ <- function(b, window_samples) {
+  if (is.null(window_samples)) {
+    return(
+      matrix(
+        colMeans(b),
+        nrow(b),
+        ncol(b),
+        byrow = TRUE,
+        dimnames = dimnames(b)
+      )
     )
   }
 
-  dba <- mean(.norm(b - static), na.rm = TRUE)
+  # Running mean from `window_samples` samples centered on each sample in the
+  # axis. Samples within `window_samples %/% 2` of either end get NA.
+  weights <- rep(1 / window_samples, window_samples)
 
-  # All samples excluded (e.g. due to missing values)
-  if (is.nan(dba)) {
-    dba <- NA_real_
-  }
+  static <- apply(
+    b,
+    2,
+    function(axis) as.numeric(stats::filter(axis, weights, sides = 2))
+  )
 
-  if (!is.null(u)) {
-    dba <- units::set_units(dba, u, mode = "standard")
-  }
-
-  dba
+  # apply() drops the matrix shape for single-sample bursts
+  matrix(static, nrow(b), ncol(b), dimnames = dimnames(b))
 }
 
 # Validate `window` and convert to a bare number of seconds. Returns NULL for
@@ -275,6 +402,6 @@ window_to_sec <- function(window, call = rlang::caller_env()) {
 # that floating point noise just below an even number doesn't change the
 # result (e.g. 0.58 * 100 = 57.9999... would otherwise give 57
 # samples instead of 59).
-dba_window_samples <- function(window, freq) {
+samples_in_window <- function(window, freq) {
   2L * as.integer(floor(round(window * freq, 6) / 2)) + 1L
 }
