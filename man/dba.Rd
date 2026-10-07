@@ -4,7 +4,7 @@
 \alias{dba}
 \alias{vedba}
 \alias{odba}
-\title{Dynamic body acceleration}
+\title{Compute per-burst dynamic body acceleration}
 \usage{
 vedba(x, window)
 

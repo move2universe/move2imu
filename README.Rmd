@@ -76,13 +76,32 @@ Visualize sampling regimes:
 ```{r sampling-effort, fig.alt = "Sampling effort for nine albatross tracks over a two-minute window. Each track is drawn as its own row, with shaded bins marking the times at which acceleration samples were recorded."}
 # Visualize sampling patterns in your data
 alb <- albatrosses()
+a <- as_acc(alb)
 
 plot_sampling_effort(
-  acc = as_acc(alb),
+  acc = a,
   ids = mt_track_id(alb),
   from = as.POSIXct("2008-07-27 00:00:00", tz = "UTC"),
   to = as.POSIXct("2008-07-27 00:02:00", tz = "UTC")
 )
+```
+
+Compute metrics:
+
+```{r}
+# Calibrate e-obs tags to g units
+a <- transform_imu(
+  a, 
+  acc_calibration(
+    "eobs", 
+    tag_id = 1000, 
+    sensitivity = "low",
+    units = "standard_free_fall"
+  )
+)
+
+# Compute VeDBA using 3-second running mean
+vedba(a, window = units::set_units(3, "s"))
 ```
 
 ## Getting help + Contributing

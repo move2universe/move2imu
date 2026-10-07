@@ -238,7 +238,7 @@ some of the collected acceleration data. If we instead want to associate a
 location with each *burst*, an alternative is to interpolate locations to the
 burst times with `move2::mt_interpolate()`.
 
-### Continuous data
+## Continuous data
 
 Some tags record acceleration continuously rather than in bursts. In these cases,
 `vedba()` would return a single value for hours of data. Instead, you can

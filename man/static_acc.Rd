@@ -3,7 +3,7 @@
 \name{static_acc}
 \alias{static_acc}
 \alias{dynamic_acc}
-\title{Static and dynamic acceleration}
+\title{Decompose acceleration into static and dynamic components}
 \usage{
 static_acc(x, window)
 
@@ -116,12 +116,15 @@ a <- set_imu_units(a, "standard_free_fall")
 d_acc <- dynamic_acc(a, window = 1)
 d_acc
 
+if (rlang::is_installed("dygraphs")) {
+  plot_imu_trace(d_acc)
+}
+
 # Static component with same window
 s_acc <- static_acc(a, window = 1)
 s_acc
 
 if (rlang::is_installed("dygraphs")) {
-  plot_imu_trace(d_acc)
   plot_imu_trace(s_acc)
 }
 

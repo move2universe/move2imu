@@ -1,4 +1,4 @@
-#' Dynamic body acceleration
+#' Compute per-burst dynamic body acceleration
 #'
 #' @description
 #' Calculate vectorial dynamic body acceleration (VeDBA) or overall dynamic
@@ -130,7 +130,7 @@ odba <- function(x, window) {
   dba_(x, window, .norm = function(d) rowSums(abs(d)))
 }
 
-#' Static and dynamic acceleration
+#' Decompose acceleration into static and dynamic components
 #'
 #' @description
 #' Separate each sample in an `acc` vector into its static component
@@ -176,12 +176,15 @@ odba <- function(x, window) {
 #' d_acc <- dynamic_acc(a, window = 1)
 #' d_acc
 #'
+#' if (rlang::is_installed("dygraphs")) {
+#'   plot_imu_trace(d_acc)
+#' }
+#'
 #' # Static component with same window
 #' s_acc <- static_acc(a, window = 1)
 #' s_acc
 #'
 #' if (rlang::is_installed("dygraphs")) {
-#'   plot_imu_trace(d_acc)
 #'   plot_imu_trace(s_acc)
 #' }
 #'
