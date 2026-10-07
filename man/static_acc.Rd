@@ -129,8 +129,11 @@ if (rlang::is_installed("dygraphs")) {
 }
 
 # Split into 10 second chunks to calculate periodic VeDBA
-d_split <- split_imu(drop_imu_units(d_acc), units::set_units(10, "s"))
-d_split <- purrr::list_c(d_split)
+d_split <- split_imu(
+  drop_imu_units(d_acc),
+  units::set_units(10, "s"),
+  flatten = TRUE
+)
 
 data.frame(
   start = starts(d_split),
