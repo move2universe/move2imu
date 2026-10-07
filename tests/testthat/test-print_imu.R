@@ -25,6 +25,15 @@ test_that("format rounds column means to two decimals", {
   expect_identical(format(a), "(1.23 5.68 9)")
 })
 
+test_that("format ignores missing samples and shows all-missing axes as NA", {
+  a <- acc(
+    list(cbind(X = c(1, NA, 3), Y = c(NA, NA, NA))),
+    frequency = units::set_units(20, "Hz"),
+    start = .as.POSIXct(0)
+  )
+  expect_identical(format(a), "(2 NA)")
+})
+
 test_that("format renders a missing burst as NA", {
   expect_identical(format(c(acc_example(), NA))[3], NA_character_)
 })
