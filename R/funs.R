@@ -244,22 +244,24 @@ burst_intervals <- function(x, ids = NULL, from = "end") {
 #' @export
 #' @rdname imu-properties
 imu_units <- function(x) {
-  purrr::map_chr(
-    bursts(x),
-    function(b) {
-      if (inherits(b, "units")) as.character(units(b)) else NA_character_
-    }
+  u <- lapply(bursts(x), function(b) if (inherits(b, "units")) units(b))
+
+  # Converting units to text is slow, so do it once per distinct unit and
+  # match the result back to each burst
+  distinct_u <- unique(u)
+
+  distinct_u_str <- purrr::map_chr(
+    distinct_u,
+    function(d) if (is.null(d)) NA_character_ else as.character(d)
   )
+
+  distinct_u_str[match(u, distinct_u)]
 }
 
 #' @export
 #' @importFrom stats na.omit
 #' @rdname imu-properties
 is_uniform <- function(x) {
-  unit_str <- function(b) {
-    if (inherits(b, "units")) units::deparse_unit(b) else NA_character_
-  }
-
   # Both dimensions come from one pass over the bursts
   d <- burst_dims(x)
 
@@ -267,7 +269,7 @@ is_uniform <- function(x) {
     all(duplicated(na.omit(d[2L, ]))[-1]) &&
     all(duplicated(na.omit(freqs(x)))[-1]) &&
     all(duplicated(purrr::map(bursts(x[!is.na(x)]), colnames))[-1]) &&
-    all(duplicated(purrr::map_chr(bursts(x[!is.na(x)]), unit_str))[-1])
+    all(duplicated(imu_units(x[!is.na(x)]))[-1])
 }
 
 #' @export
