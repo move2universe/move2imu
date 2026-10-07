@@ -12,6 +12,7 @@ reference:
   - imu-properties
   - imu-fields
   - imu_summary
+  - imu_samples
   - plot_imu_trace
   - plot_sampling_effort
 
