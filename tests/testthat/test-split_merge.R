@@ -254,8 +254,24 @@ test_that("Handle empty acc vectors when binding", {
   expect_identical(merge_imu(c(acc(), acc())), acc())
 })
 
-test_that("split_imu() on empty acc returns empty list", {
+test_that("split_imu() on empty acc returns correct output", {
   expect_identical(split_imu(acc(), 1), list())
+  expect_identical(split_imu(acc(), 1, flatten = TRUE), acc())
+})
+
+test_that("split_imu(flatten = TRUE) matches concatenating the list output", {
+  a <- acc(
+    c(acc_burst_example(1:60, 1:60), new_burst_list(list(NULL), "acc"), acc_burst_example(101:140)),
+    frequency = c(units::set_units(20, "Hz"), units::set_units(NA, "Hz"), units::set_units(40, "Hz")),
+    start = .as.POSIXct(c(0, 10, 10), tz = "America/New_York")
+  )
+
+  flat <- split_imu(a, 0.5, flatten = TRUE)
+
+  expect_true(is_acc(flat))
+  expect_identical(flat, purrr::reduce(split_imu(a, 0.5), c))
+  expect_identical(attr(starts(flat), "tzone"), "America/New_York")
+  expect_identical(merge_imu(flat, drop = TRUE), a[!is.na(a)])
 })
 
 test_that("split_imu() on single-element acc returns length-1 list", {

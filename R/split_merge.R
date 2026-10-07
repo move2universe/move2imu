@@ -261,9 +261,17 @@ merge_imu <- function(x,
 #' @param interval Numeric or [units][units::units] object defining the time
 #'   intervals at which `x` will be split. If no units are provided, the
 #'   interval is assumed to be in seconds.
+#' @param flatten Logical indicating whether to combine the split pieces into
+#'   a single vector. By default (`flatten = FALSE`), the output is a list
+#'   of the same length as `x`, which retains index correspondence with the
+#'   input. If `flatten = TRUE`, all split pieces are combined into a single
+#'   vector.
 #'
-#' @returns A list of vectors (same class as `x`), the same length as `x`.
-#'   Each element contains the split pieces of the corresponding input burst.
+#' @returns If `flatten = FALSE`, a list of vectors of the same length as `x`,
+#'   each with the class of `x`.
+#'
+#'   If `flatten = TRUE`, a single vector of the same class as `x`.
+#'
 #' @export
 #'
 #' @examples
@@ -276,8 +284,10 @@ merge_imu <- function(x,
 #' x <- split_imu(a, units::set_units(1, "s"))
 #' x
 #'
-#' # Flatten to a single vector
-#' flat <- purrr::reduce(x, c)
+#' # By default, `split_imu()` returns a list of the same length as `x`, which
+#' # is useful when data are stored in a data.frame (see below). To instead get
+#' # a single vector of all the split pieces, use `flatten = TRUE`:
+#' flat <- split_imu(a, units::set_units(1, "s"), flatten = TRUE)
 #' flat
 #'
 #' # Start times are updated to match the start of each split component
@@ -307,12 +317,13 @@ merge_imu <- function(x,
 #' tbl |>
 #'   mutate(burst = merge_imu(burst, ids = id, drop = FALSE))
 #' }
-split_imu <- function(x, interval) {
+split_imu <- function(x, interval, flatten = FALSE) {
   if (!(as.numeric(interval) > 0)) {
     cli::cli_abort("{.arg interval} must be a positive number.")
   }
 
   sensor <- class(x)[1]
+  ptype <- vec_ptype(x)
 
   x <- purrr::pmap(
     list(bursts(x), freqs(x), starts(x)),
@@ -356,6 +367,11 @@ split_imu <- function(x, interval) {
       )
     }
   )
+
+  # `.ptype` keeps the output class when `x` is empty
+  if (flatten) {
+    x <- vec_c(!!!x, .ptype = ptype)
+  }
 
   x
 }
