@@ -70,13 +70,18 @@ We'll demonstrate how to compute vectorial dynamic body acceleration (VeDBA)
 on our albatross data.
 
 First, we calibrate our data to units of *g* to make our DBA results more
-interpretable. For this purpose, we imagine that all the birds in the study
-were affixed with generation 3 e-obs tags.
+interpretable. For this purpose, we suppose that all the birds in the study
+carried first-generation e-obs tags set to low sensitivity.
 
 ```{r}
 alb$acceleration <- transform_imu(
   alb$acceleration,
-  acc_calibration("eobs", tag_id = 4266, units = "standard_free_fall")
+  acc_calibration(
+    "eobs",
+    tag_id = 1000,
+    sensitivity = "low",
+    units = "standard_free_fall"
+  )
 )
 ```
 
