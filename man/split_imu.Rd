@@ -4,7 +4,7 @@
 \alias{split_imu}
 \title{Split an IMU vector at regular intervals}
 \usage{
-split_imu(x, interval)
+split_imu(x, interval, flatten = FALSE)
 }
 \arguments{
 \item{x}{An IMU vector (\code{acc}, \code{mag}, or \code{gyro})}
@@ -12,10 +12,18 @@ split_imu(x, interval)
 \item{interval}{Numeric or \link[units:units]{units} object defining the time
 intervals at which \code{x} will be split. If no units are provided, the
 interval is assumed to be in seconds.}
+
+\item{flatten}{Logical indicating whether to combine the split pieces into
+a single vector. By default (\code{flatten = FALSE}), the output is a list
+of the same length as \code{x}, which retains index correspondence with the
+input. If \code{flatten = TRUE}, all split pieces are combined into a single
+vector.}
 }
 \value{
-A list of vectors (same class as \code{x}), the same length as \code{x}.
-Each element contains the split pieces of the corresponding input burst.
+If \code{flatten = FALSE}, a list of vectors of the same length as \code{x},
+each with the class of \code{x}.
+
+If \code{flatten = TRUE}, a single vector of the same class as \code{x}.
 }
 \description{
 Split the bursts in an IMU vector into bursts of a given time
@@ -36,8 +44,10 @@ a <- acc(
 x <- split_imu(a, units::set_units(1, "s"))
 x
 
-# Flatten to a single vector
-flat <- purrr::reduce(x, c)
+# By default, `split_imu()` returns a list of the same length as `x`, which
+# is useful when data are stored in a data.frame (see below). To instead get
+# a single vector of all the split pieces, use `flatten = TRUE`:
+flat <- split_imu(a, units::set_units(1, "s"), flatten = TRUE)
 flat
 
 # Start times are updated to match the start of each split component
