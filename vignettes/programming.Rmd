@@ -241,12 +241,16 @@ burst times with `move2::mt_interpolate()`.
 ### Continuous data
 
 Some tags record acceleration continuously rather than in bursts. In these cases,
-`vedba()` would return a single value for hours of data. Instead, you can split
-the recording into intervals with `split_imu()` and calculate VeDBA for each
-interval (see the examples in `?vedba`). Intervals should be much longer than
-the window, since each loses about one window's worth of samples at its edges.
-Each interval's start time, from `starts()`, can then be used to link it to GPS
-fixes with a rolling join, as above.
+`vedba()` would return a single value for hours of data. Instead, you can
+separate the dynamic component of the whole recording with `dynamic_acc()`,
+then split it into intervals with `split_imu()` and calculate VeDBA for each
+interval (see the examples in `?dynamic_acc`). Each interval's start time 
+can then be used to link it to GPS fixes with a rolling join, as above.
+
+Separating the dynamic component
+before splitting means that only the samples at the two ends of the full
+recording are lost when calculating the static acceleration, rather than the
+samples at the edges of every interval.
 
 ## References
 
