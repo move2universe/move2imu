@@ -52,7 +52,7 @@ with the same class as <code>x</code>.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">split_imu</span><span class="op">(</span><span class="va">x</span>, <span class="va">interval</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">split_imu</span><span class="op">(</span><span class="va">x</span>, <span class="va">interval</span>, flatten <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -68,11 +68,20 @@ with the same class as <code>x</code>.</p>
 intervals at which <code>x</code> will be split. If no units are provided, the
 interval is assumed to be in seconds.</p></dd>
 
+
+<dt id="arg-flatten">flatten<a class="anchor" aria-label="anchor" href="#arg-flatten"></a></dt>
+<dd><p>Logical indicating whether to combine the split pieces into
+a single vector. By default (<code>flatten = FALSE</code>), the output is a list
+of the same length as <code>x</code>, which retains index correspondence with the
+input. If <code>flatten = TRUE</code>, all split pieces are combined into a single
+vector.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A list of vectors (same class as <code>x</code>), the same length as <code>x</code>.
-Each element contains the split pieces of the corresponding input burst.</p>
+    <p>If <code>flatten = FALSE</code>, a list of vectors of the same length as <code>x</code>,
+each with the class of <code>x</code>.</p>
+<p>If <code>flatten = TRUE</code>, a single vector of the same class as <code>x</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -99,8 +108,10 @@ be derived. In these cases, the burst is returned unchanged.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] (120.5)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> # frequency: 40 [Hz]</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Flatten to a single vector</span></span></span>
-<span class="r-in"><span><span class="va">flat</span> <span class="op">&lt;-</span> <span class="fu">purrr</span><span class="fu">::</span><span class="fu"><a href="https://purrr.tidyverse.org/reference/reduce.html" class="external-link">reduce</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">c</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># By default, `split_imu()` returns a list of the same length as `x`, which</span></span></span>
+<span class="r-in"><span><span class="co"># is useful when data are stored in a data.frame (see below). To instead get</span></span></span>
+<span class="r-in"><span><span class="co"># a single vector of all the split pieces, use `flatten = TRUE`:</span></span></span>
+<span class="r-in"><span><span class="va">flat</span> <span class="op">&lt;-</span> <span class="fu">split_imu</span><span class="op">(</span><span class="va">a</span>, <span class="fu">units</span><span class="fu">::</span><span class="fu"><a href="https://r-quantities.github.io/units/reference/units.html" class="external-link">set_units</a></span><span class="op">(</span><span class="fl">1</span>, <span class="st">"s"</span><span class="op">)</span>, flatten <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">flat</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;acceleration[4]&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] (10.5 10.5) (30.5 30.5) (50.5 50.5) (120.5)    </span>

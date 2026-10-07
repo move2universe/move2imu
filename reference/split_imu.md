@@ -7,7 +7,7 @@ the same class as `x`.
 ## Usage
 
 ``` r
-split_imu(x, interval)
+split_imu(x, interval, flatten = FALSE)
 ```
 
 ## Arguments
@@ -23,10 +23,20 @@ split_imu(x, interval)
   object defining the time intervals at which `x` will be split. If no
   units are provided, the interval is assumed to be in seconds.
 
+- flatten:
+
+  Logical indicating whether to combine the split pieces into a single
+  vector. By default (`flatten = FALSE`), the output is a list of the
+  same length as `x`, which retains index correspondence with the input.
+  If `flatten = TRUE`, all split pieces are combined into a single
+  vector.
+
 ## Value
 
-A list of vectors (same class as `x`), the same length as `x`. Each
-element contains the split pieces of the corresponding input burst.
+If `flatten = FALSE`, a list of vectors of the same length as `x`, each
+with the class of `x`.
+
+If `flatten = TRUE`, a single vector of the same class as `x`.
 
 ## Details
 
@@ -53,8 +63,10 @@ x
 #> [1] (120.5)
 #> # frequency: 40 [Hz]
 
-# Flatten to a single vector
-flat <- purrr::reduce(x, c)
+# By default, `split_imu()` returns a list of the same length as `x`, which
+# is useful when data are stored in a data.frame (see below). To instead get
+# a single vector of all the split pieces, use `flatten = TRUE`:
+flat <- split_imu(a, units::set_units(1, "s"), flatten = TRUE)
 flat
 #> <acceleration[4]>
 #> [1] (10.5 10.5) (30.5 30.5) (50.5 50.5) (120.5)    
