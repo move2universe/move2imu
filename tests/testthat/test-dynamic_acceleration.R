@@ -45,6 +45,7 @@ test_that("Window can be given in any time unit or as bare seconds", {
 
   expect_equal(vedba(a, window = 0.5), expected)
   expect_equal(vedba(a, window = units::set_units(500, "ms")), expected)
+  expect_equal(vedba(a, window = as.difftime(1 / 120, units = "mins")), expected)
 })
 
 test_that("Window is converted to the nearest odd number of samples", {
@@ -89,6 +90,7 @@ test_that("Inputs are validated", {
   expect_error(vedba(a, window = NA), "single duration")
   expect_error(vedba(a, window = -1), "greater than 0")
   expect_error(vedba(a, window = 0), "greater than 0")
+  expect_error(vedba(a, window = Inf), "must be finite")
 
   m <- mag(list(cbind(X = 1:5, Y = 1:5, Z = 1:5)), units::set_units(1, "Hz"))
   expect_error(vedba(m, window = "burst"), "must be an")

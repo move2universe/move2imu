@@ -14,11 +14,14 @@ dynamic_acc(x, window)
 
 \item{window}{Length of the running mean used to estimate the static
 acceleration component. Either a \code{\link[units:units]{units}} object convertible
-to seconds or \code{"burst"} to use the mean of the entire burst as the static
-component. Bare numeric values are assumed to be in seconds. See details.}
+to seconds, a \code{\link[base:difftime]{difftime}} object, or \code{"burst"} to use the
+mean of the entire burst as the static component. Bare numeric values are
+assumed to be in seconds. See details.}
 }
 \value{
-An \code{acc} vector the same length as \code{x}.
+An \code{acc} vector with the same length and burst structure as \code{x}:
+each burst keeps its sample count, start time and units. Samples without
+a static estimate (see details) are \code{NA}.
 }
 \description{
 Separate each sample in an \code{acc} vector into its static component
@@ -93,15 +96,15 @@ samples, and for bursts with fewer than 2 samples when \code{window = "burst"}.
 # Two minutes of simulated continuous 20 Hz data from a bird alternating
 # between 30 seconds of gliding and 30 seconds of flapping (4 Hz wingbeats)
 set.seed(1)
-t <- seq(0, 120 - 1 / 20, by = 1 / 20)
-flapping <- (t \%/\% 30) \%\% 2 == 1
-wingbeats <- ifelse(flapping, 0.4 * sin(2 * pi * 4 * t), 0)
+secs <- seq(0, 120 - 1 / 20, by = 1 / 20)
+flapping <- (secs \%/\% 30) \%\% 2 == 1
+wingbeats <- ifelse(flapping, 0.4 * sin(2 * pi * 4 * secs), 0)
 
 a <- acc(
   list(cbind(
-    X = rnorm(length(t), sd = 0.05),
-    Y = rnorm(length(t), sd = 0.05),
-    Z = 1 + wingbeats + rnorm(length(t), sd = 0.05)
+    X = rnorm(length(secs), sd = 0.05),
+    Y = rnorm(length(secs), sd = 0.05),
+    Z = 1 + wingbeats + rnorm(length(secs), sd = 0.05)
   )),
   frequency = units::set_units(20, "Hz"),
   start = as.POSIXct("2024-01-01", tz = "UTC")

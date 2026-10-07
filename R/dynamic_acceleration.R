@@ -21,8 +21,9 @@
 #' @param x An `acc` vector.
 #' @param window Length of the running mean used to estimate the static
 #'   acceleration component. Either a [`units`][units::units] object convertible
-#'   to seconds or `"burst"` to use the mean of the entire burst as the static
-#'   component. Bare numeric values are assumed to be in seconds. See details.
+#'   to seconds, a [`difftime`][base::difftime] object, or `"burst"` to use the
+#'   mean of the entire burst as the static component. Bare numeric values are
+#'   assumed to be in seconds. See details.
 #'
 #' @details
 #' ## Static and dynamic acceleration
@@ -82,7 +83,8 @@
 #' samples, and for bursts with fewer than 2 samples when `window = "burst"`.
 #'
 #' @returns A vector of VeDBA or ODBA values with the same length and units as
-#'   `x`. Mixed units are converted to the units of the first burst in `x`.
+#'   `x`. Mixed units are converted to the units of the first non-missing burst
+#'   in `x`.
 #'
 #' @references
 #' Shepard, E. L. C., Wilson, R. P., Halsey, L. G., Quintana, F.,
@@ -142,7 +144,9 @@ odba <- function(x, window) {
 #'
 #' @inherit dba details
 #'
-#' @returns An `acc` vector the same length as `x`.
+#' @returns An `acc` vector with the same length and burst structure as `x`:
+#'   each burst keeps its sample count, start time and units. Samples without
+#'   a static estimate (see details) are `NA`.
 #'
 #' @inherit dba references
 #'
@@ -152,15 +156,15 @@ odba <- function(x, window) {
 #' # Two minutes of simulated continuous 20 Hz data from a bird alternating
 #' # between 30 seconds of gliding and 30 seconds of flapping (4 Hz wingbeats)
 #' set.seed(1)
-#' t <- seq(0, 120 - 1 / 20, by = 1 / 20)
-#' flapping <- (t %/% 30) %% 2 == 1
-#' wingbeats <- ifelse(flapping, 0.4 * sin(2 * pi * 4 * t), 0)
+#' secs <- seq(0, 120 - 1 / 20, by = 1 / 20)
+#' flapping <- (secs %/% 30) %% 2 == 1
+#' wingbeats <- ifelse(flapping, 0.4 * sin(2 * pi * 4 * secs), 0)
 #'
 #' a <- acc(
 #'   list(cbind(
-#'     X = rnorm(length(t), sd = 0.05),
-#'     Y = rnorm(length(t), sd = 0.05),
-#'     Z = 1 + wingbeats + rnorm(length(t), sd = 0.05)
+#'     X = rnorm(length(secs), sd = 0.05),
+#'     Y = rnorm(length(secs), sd = 0.05),
+#'     Z = 1 + wingbeats + rnorm(length(secs), sd = 0.05)
 #'   )),
 #'   frequency = units::set_units(20, "Hz"),
 #'   start = as.POSIXct("2024-01-01", tz = "UTC")
@@ -376,6 +380,10 @@ window_to_sec <- function(window, call = rlang::caller_env()) {
     )
   }
 
+  if (inherits(window, "difftime")) {
+    window <- as.numeric(window, units = "secs")
+  }
+
   if (!is.numeric(window) || length(window) != 1 || is.na(window)) {
     cli::cli_abort(
       "{.arg window} must be a single duration or {.val burst}.",
@@ -391,6 +399,10 @@ window_to_sec <- function(window, call = rlang::caller_env()) {
 
   if (!(window > 0)) {
     cli::cli_abort("{.arg window} must be greater than 0.", call = call)
+  }
+
+  if (!is.finite(window)) {
+    cli::cli_abort("{.arg window} must be finite.", call = call)
   }
 
   window

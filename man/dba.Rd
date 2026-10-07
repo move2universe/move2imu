@@ -15,12 +15,14 @@ odba(x, window)
 
 \item{window}{Length of the running mean used to estimate the static
 acceleration component. Either a \code{\link[units:units]{units}} object convertible
-to seconds or \code{"burst"} to use the mean of the entire burst as the static
-component. Bare numeric values are assumed to be in seconds. See details.}
+to seconds, a \code{\link[base:difftime]{difftime}} object, or \code{"burst"} to use the
+mean of the entire burst as the static component. Bare numeric values are
+assumed to be in seconds. See details.}
 }
 \value{
 A vector of VeDBA or ODBA values with the same length and units as
-\code{x}. Mixed units are converted to the units of the first burst in \code{x}.
+\code{x}. Mixed units are converted to the units of the first non-missing burst
+in \code{x}.
 }
 \description{
 Calculate vectorial dynamic body acceleration (VeDBA) or overall dynamic
