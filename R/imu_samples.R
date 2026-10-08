@@ -44,7 +44,7 @@ imu_samples <- function(x) {
   x <- x[burst_i]
 
   n <- n_samples(x)
-  freq <- units::set_units(freqs(x), "Hz", mode = "standard")
+  freq <- freqs(x)
 
   # Offset time from the start of the burst to each of its samples.
   offset <- unlist(
