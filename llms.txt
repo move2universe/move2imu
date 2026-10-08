@@ -143,6 +143,9 @@ Build and explore IMU data vectors
 
   Visualize sample collection times from `imu` or timestamp vectors
 
+- [`imu_samples()`](https://move2universe.github.io/move2imu/reference/imu_samples.md)
+  : Flatten an IMU vector into a data frame of samples
+
 ## Extracting IMU data
 
 Identify IMU data in a `move2` or `data.frame` and extract into an IMU
