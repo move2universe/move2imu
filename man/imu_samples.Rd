@@ -2,7 +2,7 @@
 % Please edit documentation in R/imu_samples.R
 \name{imu_samples}
 \alias{imu_samples}
-\title{Extract IMU samples into a data frame}
+\title{Flatten an IMU vector into a data frame of samples}
 \usage{
 imu_samples(x)
 }
@@ -22,28 +22,54 @@ A data frame with one row per sample and columns:
 Convert an IMU vector to a data frame with one row for each sample in each
 burst. Each row records which burst the sample came from, when it was
 recorded, and its value on each axis.
+
+Most analyses can be done on IMU vectors directly. This function is intended
+primarily for methods that are hard to apply to IMU vectors, such as those
+that require individual sample timestamps and values.
 }
 \details{
 The time of each sample is calculated from its burst's start time and
 sampling frequency. Samples from bursts without a start time or frequency
 are recorded with a \code{NA} time.
 
-Axes that are not present in certain bursts are also filled with \code{NA} values
-for that burst's rows.
-
-Missing bursts have no samples and therefore are not included in the output.
-However, the ID in the \code{burst} column is index-matched to the input and
-therefore matches the input burst in position \code{burst}, accounting for
-missing bursts.
+The \code{burst} column shows the index position in \code{x} for the burst that the
+sample belongs to. Missing bursts contribute no rows to the output but
+are included in the index count. If \code{x} is a column in a \code{data.frame} or
+\code{move2} object, this means that the value of \code{burst} can be used to look up
+attributes in the corresponding rows of that data source by index, for
+instance to attach burst-level metadata (e.g., track ID) to the sample
+data frame (see examples). Attributes that can vary within a burst should
+not be matched this way, as the value of that attribute at the start of the
+burst will be used for the entirety of the burst in the sample output. In
+those cases, consider joining on time instead.
 
 Axis values keep the units of \code{x}. All bursts must have the same units, or
 all must be unitless. Use \code{\link[=set_imu_units]{set_imu_units()}} to convert bursts to a single
 unit, or \code{\link[=transform_imu]{transform_imu()}} to calibrate raw (unitless) values, before calling
 \code{imu_samples()}.
+
+Axes that are not present in certain bursts are filled with \code{NA} values
+for that burst's rows.
 }
 \examples{
 a <- set_imu_units(acc_example(), "standard_free_fall")
 
 samples <- imu_samples(a)
+
+# (Times are recorded to sub-second precision despite printing to the second)
 head(samples)
+
+\dontshow{if (rlang::is_installed("move2")) withAutoprint(\{ # examplesIf}
+# Store acc bursts in a column of the input data
+alb <- albatrosses()
+alb$acc <- as_acc(alb)
+
+samples <- imu_samples(alb$acc)
+
+# Use the `burst` ID column to look up attributes from the input. `burst`
+# is the row of `alb` containing the burst that each sample belongs to.
+samples$track <- move2::mt_track_id(alb)[samples$burst]
+
+head(samples)
+\dontshow{\}) # examplesIf}
 }
