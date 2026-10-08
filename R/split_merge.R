@@ -299,8 +299,8 @@ merge_imu <- function(x,
 #'
 #' identical(m, a)
 #'
-#' \dontrun{
-#' # In a dataframe, split and unnest to retain index matching
+#' @examplesIf rlang::is_installed(c("dplyr", "tidyr", "tibble"))
+#' # In a data frame, split and unnest to give each piece its own row
 #' library(dplyr)
 #' library(tidyr)
 #'
@@ -316,7 +316,6 @@ merge_imu <- function(x,
 #' # Use merge_imu() to recover original bursts
 #' tbl |>
 #'   mutate(burst = merge_imu(burst, ids = id, drop = FALSE))
-#' }
 split_imu <- function(x, interval, flatten = FALSE) {
   if (!(as.numeric(interval) > 0)) {
     cli::cli_abort("{.arg interval} must be a positive number.")

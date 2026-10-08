@@ -90,9 +90,10 @@ Visualize sampling regimes:
 ``` r
 # Visualize sampling patterns in your data
 alb <- albatrosses()
+a <- as_acc(alb)
 
 plot_sampling_effort(
-  acc = as_acc(alb),
+  acc = a,
   ids = mt_track_id(alb),
   from = as.POSIXct("2008-07-27 00:00:00", tz = "UTC"),
   to = as.POSIXct("2008-07-27 00:02:00", tz = "UTC")
@@ -100,6 +101,34 @@ plot_sampling_effort(
 ```
 
 <img src="man/figures/README-sampling-effort-1.png" alt="Sampling effort for nine albatross tracks over a two-minute window. Each track is drawn as its own row, with shaded bins marking the times at which acceleration samples were recorded." width="100%" />
+
+Compute metrics:
+
+``` r
+# Calibrate e-obs tags to g units
+a <- transform_imu(
+  a, 
+  acc_calibration(
+    "eobs", 
+    tag_id = 1000, 
+    sensitivity = "low",
+    units = "standard_free_fall"
+  )
+)
+
+# Compute VeDBA using 3-second running mean
+vedba(a, window = units::set_units(3, "s"))
+#> Units: [standard_free_fall]
+#>  [1]          NA 0.068884904 0.072239477 0.064800946 0.058539038 0.072790297
+#>  [7]          NA 0.073737447 0.132444286 0.102806719 0.068233055 0.060682279
+#> [13] 0.236549955          NA 0.236350722 0.114085328 0.089494390 0.090803532
+#> [19] 0.175975707          NA 0.083250335 0.222811565 0.040281270 0.138025808
+#> [25] 0.053777846          NA 0.072020377 0.078039083 0.045069801 0.059042416
+#> [31] 0.342381587          NA 0.034573195 0.011673462 0.009311533 0.010207175
+#> [37] 0.011146326          NA 0.010442567 0.010344942 0.011322390 0.012764422
+#> [43] 0.010587842          NA 0.033883944 0.012618563 0.010646915 0.018909796
+#> [49] 0.210175793          NA 0.065469180 0.068091649 0.063682861 0.068620226
+```
 
 ## Getting help + Contributing
 

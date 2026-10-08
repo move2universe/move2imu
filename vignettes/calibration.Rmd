@@ -116,14 +116,14 @@ move2imu currently has built-in support for two tag manufacturers:
 [e-obs](https://e-obs.de/) and [Ornitela](https://www.ornitela.com/).
 
 These sample data were collected with e-obs tags.
-The default calibration suggested by e-obs differs by tag generation. Thus,
-to build a calibration, we need to specify both the tag manufacturer and the 
-tag ID, which identifies the tag generation. In this case, imagine that these
-data were collected with the latest generation of e-obs tags (tags with IDs
-greater than 4117):
+The default calibration suggested by e-obs differs by tag generation. Thus, 
+to build a calibration, we need to specify both the tag manufacturer and the
+tag ID, which identifies the tag generation. Based on the timestamps in these
+data, these tags are generation 1 (tag IDs up to 2241). For the purposes of
+demonstration, we'll suppose these were collected on low sensitivity:
 
 ```{r single}
-cal <- acc_calibration(manufacturer = "eobs", tag_id = 4266)
+cal <- acc_calibration(manufacturer = "eobs", tag_id = 1000, sensitivity = "low")
 cal
 ```
 
@@ -148,7 +148,8 @@ Alternatively, we could have also specified the units in the calibration itself:
 ```{r}
 acc_calibration(
   manufacturer = "eobs",
-  tag_id = 4266,
+  tag_id = 1000,
+  sensitivity = "low",
   units = "standard_free_fall"
 )
 ```
@@ -174,8 +175,8 @@ set_imu_units(alb$acceleration[2], "standard_free_fall")
 ## Vectorized calibration
 
 The problem with the above approach is that it assumes that *all* tags used
-in the study had ID `4266` (generation 3). If all the albatrosses tagged in the 
-study used generation 3 e-obs tags, then this wouldn't be a problem.
+in the study were first-generation tags with the same sensitivity setting.
+If that were true, then this wouldn't be a problem.
 
 However, e-obs has revised the default calibration over time, so earlier 
 generations of tags don't necessarily have the same transformation function.
