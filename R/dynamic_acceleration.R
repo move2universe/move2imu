@@ -54,7 +54,7 @@
 #' Shepard et al. (2008) recommend a window of at least 3 seconds for animals
 #' with a stroke period up to 3 seconds, and, for slower strokes, at least one
 #' (and preferably two) stroke cycles. See Shepard et al. (2008) for more
-#' details and `vignette("programming", package = "move2imu")` for a
+#' details and `vignette("metrics", package = "move2imu")` for a
 #' worked example.
 #'
 #' `window = "burst"` uses the mean of each whole burst as the static

@@ -74,7 +74,7 @@ changes are treated as movement and DBA is \strong{overestimated}.
 Shepard et al. (2008) recommend a window of at least 3 seconds for animals
 with a stroke period up to 3 seconds, and, for slower strokes, at least one
 (and preferably two) stroke cycles. See Shepard et al. (2008) for more
-details and \code{vignette("programming", package = "move2imu")} for a
+details and \code{vignette("metrics", package = "move2imu")} for a
 worked example.
 
 \code{window = "burst"} uses the mean of each whole burst as the static
