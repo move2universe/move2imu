@@ -36,9 +36,10 @@ However, the ID in the \code{burst} column is index-matched to the input and
 therefore matches the input burst in position \code{burst}, accounting for
 missing bursts.
 
-Axis values keep the units of \code{x}. All bursts must have the same units, if
-any exist. Use \code{\link[=set_imu_units]{set_imu_units()}} to convert bursts to a single unit or
-\code{\link[=drop_imu_units]{drop_imu_units()}} to remove units before calling \code{imu_samples()}.
+Axis values keep the units of \code{x}. All bursts must have the same units, or
+all must be unitless. Use \code{\link[=set_imu_units]{set_imu_units()}} to convert bursts to a single
+unit, or \code{\link[=transform_imu]{transform_imu()}} to calibrate raw (unitless) values, before calling
+\code{imu_samples()}.
 }
 \examples{
 a <- set_imu_units(acc_example(), "standard_free_fall")

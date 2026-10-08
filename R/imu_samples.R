@@ -20,9 +20,10 @@
 #' therefore matches the input burst in position `burst`, accounting for
 #' missing bursts.
 #'
-#' Axis values keep the units of `x`. All bursts must have the same units, if
-#' any exist. Use [set_imu_units()] to convert bursts to a single unit or
-#' [drop_imu_units()] to remove units before calling `imu_samples()`.
+#' Axis values keep the units of `x`. All bursts must have the same units, or
+#' all must be unitless. Use [set_imu_units()] to convert bursts to a single
+#' unit, or [transform_imu()] to calibrate raw (unitless) values, before calling
+#' `imu_samples()`.
 #'
 #' @returns A data frame with one row per sample and columns:
 #'   - `burst`: The position of the sample's burst in `x`.
@@ -59,8 +60,8 @@ imu_samples <- function(x) {
     cli::cli_abort(c(
       "All bursts in {.arg x} must have the same units.",
       "i" = paste0(
-        "Use {.fn set_imu_units} to convert all bursts to one unit, or ",
-        "{.fn drop_imu_units} to remove units."
+        "See {.help [{.fn transform_imu}](move2imu::transform_imu)} or ",
+        "{.help [{.fn set_imu_units}](move2imu::set_imu_units)}."
       )
     ))
   }
