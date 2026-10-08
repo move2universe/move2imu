@@ -16,28 +16,6 @@ knitr::opts_chunk$set(
   fig.align = "center",
   out.width = "80%"
 )
-
-local({
-  hook_output <- knitr::knit_hooks$get("output")
-  knitr::knit_hooks$set(output = function(x, options) {
-    n <- options$out.lines
-    if (!is.null(n)) {
-      lines <- strsplit(x, "\n", fixed = TRUE)[[1]]
-      if (length(lines) > n) {
-        x <- paste(c(lines[seq_len(n)], "#> ..."), collapse = "\n")
-      }
-    }
-    hook_output(x, options)
-  })
-})
-```
-
-```{css, echo = FALSE}
-.html-widget {
-  margin-left: auto !important;
-  margin-right: auto !important;
-  width: 80% !important;
-}
 ```
 
 Biologging data often contain occasional inconsistencies
@@ -55,14 +33,14 @@ provides several tools that help facilitate this process.
 
 ## Data structures
 
-Recall that when extracting IMU data from a `move2` object into an IMU vector,
-move2imu supports two general data structures:
+[Recall](move2imu.html#input-data-formats) that when extracting IMU data from a `move2`
+object into an IMU vector, move2imu supports two general data structures:
 
-- In **compact data**, bursts are stored in a single row. IMU values are
+- In **compact format**, bursts are stored in a single row. IMU values are
   provided as a space-delimited string and sampling frequencies and axes
   are contained as separate metadata columns.
   
-- In **expanded data**, each row represents an individual sample.
+- In **expanded format**, each row represents an individual sample.
   Each sample's timestamp is recorded explicitly. Sequences of timestamps are
   used to derive the burst boundaries and sampling frequencies.
 
@@ -88,7 +66,7 @@ fake timestamps:
 ```{r stage-expanded}
 gul <- gulls()
 
-# Select first 21 rows where ACC data are present
+# Select first 21 rows where acc data are present
 gul <- gul[acc_sample_rows(gul), ][1:21, ]
 
 # Artificially modify the timestamps for this vignette
@@ -102,9 +80,10 @@ ts <- c(
 gul$timestamp <- as.POSIXct(ts, origin = "1970-01-01", tz = "UTC")
 ```
 
-To be able to identify burst start and endpoints, `as_acc()` (and other `as_*()` functions) requires that 
-the input `move2` is ordered by timestamp within each track ID. Duplicate
-timestamps within the same track must also be resolved before parsing IMU data.
+To be able to identify burst start and endpoints, `as_acc()` (and other `as_*()`
+functions) requires that the input `move2` is ordered by timestamp within each
+track ID. Duplicate timestamps within the same track must also be resolved
+before parsing IMU data.
 
 If we try to build bursts from unordered data, we get an error:
 
@@ -112,27 +91,28 @@ If we try to build bursts from unordered data, we get an error:
 as_acc(gul)
 ```
 
-We can use move2 to order our data and to filter
-out any duplicate records. Here, we use move2 to sort on track ID and time and
-then select the first record in all cases where timestamps are duplicated:
+We can order our data and filter out any duplicate records using move2's
+accessors and helpers. Here, we sort on track ID and time and then select the
+first record in all cases where timestamps are duplicated:
 
 ```{r}
 # Order by track ID and timestamp
 gul <- gul[order(mt_track_id(gul), mt_time(gul)), ]
 
 # Select a single record for any duplicated timestamps
-gul <- move2::mt_filter_unique(gul, criterion = "first")
+gul <- mt_filter_unique(gul, criterion = "first")
 ```
 
 Now, it's possible to build our IMU bursts:
 
 ```{r}
+# Use `drop = TRUE` to view only those bursts that are present
 a <- as_acc(gul, drop = TRUE)
 
 a
 ```
 
-## Addressing parsing issues in expanded data
+## Addressing parsing issues in expanded-format data
 
 From the output, we can see that we have multiple sampling frequencies
 represented, so we know that the data are not fully uniform.
@@ -153,7 +133,7 @@ We can get an overview of the burst properties with `summary()`:
 summary(a)
 ```
 
-As we can see, we have bursts that span from a 1Hz to a 20Hz sampling frequency,
+As we can see, we have bursts that span from a 1 Hz to a 20 Hz sampling frequency,
 and some bursts only have 1 sample. Further, the durations of the bursts
 span from 0.25 seconds at a minimum to a maximum of 7 seconds.
 
@@ -167,7 +147,7 @@ tibble::tibble(
 )
 ```
 
-Here we see two bursts at 20Hz, 1 burst of 7 samples at 1Hz, and two bursts 
+Here we see two bursts at 20 Hz, 1 burst of 7 samples at 1 Hz, and two bursts 
 with only a single sample and no frequency. To understand where this output
 might be coming from, we first need to describe how bursts are identified
 in expanded-format data.
@@ -188,7 +168,7 @@ gaps
 ```
 
 Each interval represents a local estimate of the sampling frequency. For
-instance, a signal collected at 20Hz would produce intervals of 0.05 seconds.
+instance, a signal collected at 20 Hz would produce intervals of 0.05 seconds.
 When a sequence of intervals are all identical, the samples are grouped into
 a single burst with a frequency derived from that interval. Whenever the
 time interval between samples changes, a new burst is initiated.
@@ -207,14 +187,14 @@ gaps[5:8]
 ```
 
 Up to this point, the timestamps had been arriving regularly every
-50 milliseconds (ms), or at 20Hz. However,
+50 milliseconds (ms), or at 20 Hz. However,
 the 7th timestamp comes slightly late: 52.5ms elapse before it
 arrives, and the subsequent timestamp thus comes relatively quickly (47.5ms)
 as the sampling frequency reestablishes itself.
 
 This local sampling frequency change initiates a new burst starting with
 the 7th timestamp. However, since this perturbation is quite small and the
-20Hz sampling frequency starts again immediately afterward, it seems more
+20 Hz sampling frequency starts again immediately afterward, it seems more
 likely that this individual timestamp was simply recorded late rather
 than representing a new collection frequency.
 
@@ -248,9 +228,9 @@ freqs(a)
 n_samples(a)
 ```
 
-Note that the second burst, recorded at 1Hz, does not get subsumed into the
+Note that the second burst, recorded at 1 Hz, does not get subsumed into the
 first, as the sampling frequencies are much more than 10.5% different.
-However, at very extreme values of freq_tol, you *could* in theory force these
+However, at very extreme values of `freq_tol`, you *could* in theory force these
 signals to merge as well:
 
 ```{r}
@@ -259,7 +239,7 @@ as_acc(gul, freq_tol = 600, drop = TRUE)
 ```
 
 As you can see, this produces a completely spurious burst sampling frequency
-of 0.317Hz, as the tolerance blends signals from the two frequencies together,
+of 0.317 Hz, as the tolerance blends signals from the two frequencies together,
 masking the gap between them. Essentially, we've spread out the time gap
 between the two bursts across all of the samples in this single burst, which
 drastically distorts the true sampling rate. Thus, you should strive to 
@@ -291,7 +271,7 @@ are regular.
 This may be useful if you prefer to treat each sample in isolation alongside
 its corresponding GPS fix.
 
-For instance, if we set `min_freq = 2`, we would explode the 1Hz burst from
+For instance, if we set `min_freq = 2`, we would explode the 1 Hz burst from
 above into individual samples:
 
 ```{r}
@@ -303,23 +283,23 @@ prevent them from merging back together (e.g. with `merge_imu()`), so this tool
 is primarily useful for analyses that are coarse enough that individual
 samples are sufficient.
 
-## Addressing merging issues in compact data
+## Addressing merging issues in compact-format data
 
-With compact data, several samples are contained in a single row, and the
+In compact format, several samples are contained in a single row, and the
 sampling frequency is recorded explicitly. This means that we don't need to
 identify burst boundaries based on the raw timestamps, as we do with
 expanded-format data. However, timestamp noise can still produce some
-irregularities when building bursts from compact data.
+irregularities when building bursts from compact-format data.
 
 This time, we'll load the albatross data from the package. Again, we'll need
-to artificially modify the file to introduce some noise, as the data are
+to artificially modify the data to introduce some noise, as the data are
 otherwise quite clean.
 
 ```{r stage-compact}
 alb <- albatrosses()
 
 # Filter to just acc data for this demo
-alb <- alb[!is.na(alb$eobs_accelerations_raw), ]
+alb <- alb[acc_sample_rows(alb), ]
 
 # Simulate jittered timestamps for demo
 jitter <- rep(c(0, .02, .01, .03, .02), 9)
@@ -333,7 +313,7 @@ proceeding:
 
 ```{r}
 alb <- alb[order(mt_track_id(alb), mt_time(alb)), ]
-alb <- move2::mt_filter_unique(alb, criterion = "first")
+alb <- mt_filter_unique(alb, criterion = "first")
 ```
 
 Let's go ahead and extract our acceleration data:
@@ -395,8 +375,8 @@ of at most 0.03 seconds (and with the same sampling frequency) to be merged.
 a <- as_acc(alb, gap_tol = 0.03, drop = TRUE)
 ```
 
-Now we can see that the remaining gaps are all around 600 seconds long, and so
-clearly don't belong to any adjacent bursts:
+Now we can see that the remaining positive gaps are all around 600 seconds
+long, and so clearly don't belong to any adjacent bursts:
 
 ```{r}
 burst_intervals(a)
@@ -405,7 +385,7 @@ burst_intervals(a)
 ### Recalculating burst frequencies
 
 Notice that the frequencies of the output have shifted slightly, so that they
-no longer align with the 5Hz frequency recorded in the input data source itself:
+no longer align with the 5 Hz frequency recorded in the input data source itself:
 
 ```{r}
 freqs(a)
@@ -413,9 +393,8 @@ freqs(a)
 
 When merging bursts, the burst frequency is *recalculated* after the merge
 from the new number of samples and the elapsed time span of the burst. When
-noise is present in the timestamps, the overall time span
-of a merged burst thus incorporates this noise into its overall time span, 
-leading to a derived burst frequency that is slightly different from the 
+noise is present in the timestamps, it is incorporated into the merged burst's
+time span, so the derived burst frequency differs slightly from the
 recorded frequency.
 
 The recalculated frequency ensures that the elapsed time from the first to
@@ -462,4 +441,6 @@ unique(n_samples(a))
 ```
 
 This is true to the input data, but may need to
-be resolved depending on the analysis you intend to run.
+be resolved if your analysis requires regular burst sizes (for instance,
+you could use `split_imu()` to split bursts into intervals of a common
+duration).

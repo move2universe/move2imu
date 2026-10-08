@@ -6,7 +6,7 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
-  
+
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -41,9 +41,11 @@ local({
 ```
 
 Biologging devices often record information about an animal's behavior using
-an inertial measurement unit (IMU) that collects acceleration, magnetometer,
-and/or orientation data. Because collecting these data can be battery- and storage-intensive, they are often recorded intermittently in rapid sets of samples at a fixed frequency, which we will refer to as *bursts*. These bursts of IMU
-measurements provide regular snapshots of an animal's behavior and activity.
+an inertial measurement unit (IMU) that collects accelerometer, magnetometer,
+and/or gyroscope data. Because collecting these data can be battery- and
+storage-intensive, they are often recorded intermittently in rapid sets of
+samples at a fixed frequency, which we will refer to as *bursts*. These bursts
+of IMU measurements provide regular snapshots of an animal's behavior and activity.
 
 (Note that while some IMUs allow you to record data continuously 
 for longer periods of time, we still use the term *burst* to refer to a
@@ -51,7 +53,7 @@ distinct set of fixed-frequency IMU data samples, regardless of how long
 such a "burst" lasts.)
 
 move2imu provides an R vector representation of these bursts so that they
-can be easily manipulated, analyzed, and linked to other tracking data---for
+can be easily manipulated, analyzed, and linked to other tracking data—for
 instance, those stored in a `move2` object. The package currently supports three sensor
 types:
 
@@ -73,7 +75,10 @@ library(dplyr)
 You can create an `acc` vector from scratch by providing a list of burst
 matrices (containing the raw acceleration data) and the associated sampling
 frequency for those observations. Each burst can contain up to three recording
-axes: `X`, `Y`, and/or `Z`. Note that the frequency must be provided in frequency units (in this case, `"Hz"`). move2imu uses the [units](https://r-quantities.github.io/units/) package to support unit manipulation.
+axes: `X`, `Y`, and/or `Z`. Note that the frequency must be provided in
+frequency units (in this case, `"Hz"`). move2imu uses the
+[units](https://r-quantities.github.io/units/) package to support unit
+manipulation.
 
 ```{r create}
 raw_acc <- cbind(
@@ -84,7 +89,7 @@ raw_acc <- cbind(
 
 a1 <- acc(
   bursts = list(raw_acc),
-  frequency = units::as_units(40, "Hz")
+  frequency = units::set_units(40, "Hz")
 )
 
 a1
@@ -103,7 +108,7 @@ a2 <- acc(
     cbind(X = sin(1:20 / 10), Y = cos(1:20 / 10)),
     cbind(X = sin(1:20 / 10 + 2), Y = cos(1:20 / 10 + 3))
   ),
-  frequency = units::as_units(30, "Hz"),
+  frequency = units::set_units(30, "Hz"),
   start = as.POSIXct(c("2026-06-01 00:00:00", "2026-06-01 00:01:00"), tz = "UTC")
 )
 ```
@@ -178,6 +183,16 @@ as_acc(gul)
 Even though the albatross and gulls data sources store their acceleration data
 differently, because each adheres to the Movebank data model, `as_acc()`
 seamlessly parses the data into a set of `acc` burst matrices.
+
+There are two general ways IMU data are stored:
+
+- In **compact format** (like the albatross data), each burst is stored in a
+  single row. The IMU values are provided as a space-delimited string, and the
+  axes and sampling frequency are recorded in separate columns.
+
+- In **expanded format** (like the gulls data), each row holds an individual
+  sample with its own timestamp. Burst boundaries and sampling frequencies are
+  derived from the sequence of timestamps.
 
 For more details about the ways Movebank stores acceleration data, see 
 `movebank_acc_colsets()`.
@@ -259,7 +274,7 @@ starts(a)
 
 These can be used to easily explore the distributions of these properties:
 
-```{r summary_hist, fig.width=6, fig.height=4}
+```{r summary_hist}
 # Distribution of inter-burst intervals
 hist(burst_intervals(a), main = "Burst intervals (s)")
 
@@ -323,16 +338,16 @@ You can also plot the values recorded by an IMU vector over time with
 [`dygraph`](https://rstudio.github.io/dygraphs/) that you can zoom
 into with the mouse:
 
-```{r plot, fig.width=6}
+```{r plot}
 a <- as_acc(gulls())
 
 plot_imu_trace(a)
 ```
 
-You can also pass a single burst (or a subset) for a focused view —
-here, the wing beats are clearly visible on the Z axis:
+You can also pass a single burst (or a subset) for a focused view—
+here, the wingbeats are clearly visible on the Z axis:
 
-```{r plot_one, fig.width=6}
+```{r plot_one}
 plot_imu_trace(a[422])
 ```
 
@@ -341,51 +356,20 @@ The plot is returned unstyled. Additional arguments are passed to
 the output plot. For instance, to add axis labels and ensure times are labeled
 in UTC instead of the browser's local time zone:
 
-```{r plot_styled, fig.width=6}
-plot_imu_trace(a[422], main = "Wing beats", ylab = "Acceleration (g)") |>
+```{r plot_styled}
+plot_imu_trace(a[422], main = "Wingbeats", ylab = "Acceleration (raw)") |>
   dygraphs::dyOptions(labelsUTC = TRUE)
 ```
-
-<!-- ## A single burst in 3D -->
-
-<!-- For a closer look at one burst, the matrix of samples is just an -->
-<!-- ordinary numeric matrix and can be plotted with base graphics: -->
-
-<!-- ```{r plot3d, fig.width=6, fig.height=6} -->
-<!-- b <- bursts(a)[[21]] -->
-<!-- e  <- 0.1 -->
-
-<!-- p <- persp( -->
-<!--   z = matrix(min(b[, "Z"]) - e, ncol = 2, nrow = 2), -->
-<!--   x = range(b[, "X"]), -->
-<!--   y = range(b[, "Y"]), -->
-<!--   xlim = range(b[, "X"]) + c(-e, e), -->
-<!--   ylim = range(b[, "Y"]) + c(-e, e), -->
-<!--   zlim = range(b[, "Z"]) + c(-e, e), -->
-<!--   border = NA, -->
-<!--   xlab = "X", -->
-<!--   ylab = "Y", -->
-<!--   zlab = "Z", -->
-<!--   ticktype = "detailed", cex.axis = 0.65, -->
-<!--   theta = -160, phi = 20, expand = 0.5, col = "white", scale = FALSE -->
-<!-- ) -->
-
-<!-- lines(trans3d(b[, "X"], b[, "Y"], min(b[, "Z"]) - e, p), col = "tomato") -->
-
-<!-- apply(b, 1, function(x, bottom) { -->
-<!--   lines(trans3d(x["X"], x["Y"], c(x["Z"], bottom - e), p), col = "gray") -->
-<!-- }, bottom = min(b[, "Z"])) -->
-
-<!-- lines(trans3d(b[, "X"], b[, "Y"], b[, "Z"], p), col = "red") -->
-
-<!-- points(trans3d(b[, "X"], b[, "Y"], b[, "Z"], p), col = "red", pch = 19) -->
-<!-- ``` -->
 
 ## Next steps
 
 If your data are stored as raw ADC values rather than physical units,
 see the [calibration vignette](calibration.html) to learn how to convert them.
 
-See the [programming with bursts](programming.html) vignette for a demonstration
-of how to compute values from `acc` bursts and link them back to GPS
-coordinates in a `move2` object.
+See the [programming with acceleration bursts](programming.html) vignette
+for a demonstration of how to compute activity metrics from `acc` bursts
+and link them back to GPS coordinates in a `move2` object.
+
+If your bursts have unexpected frequencies or sample counts, see the
+[timestamp noise vignette](timestamps.html) for strategies to diagnose and
+correct irregular timestamps.

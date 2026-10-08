@@ -6,7 +6,7 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
-  
+
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -36,7 +36,9 @@ Many accelerometer tags store their measurements as raw integers produced by
 the analog-to-digital converter (ADC). By themselves, these values have no
 physical units. To convert the raw ADC values to interpretable acceleration
 units (e.g., m/s²), we need to define the transformation that maps each
-ADC value to its corresponding value in the target unit.
+ADC value to its corresponding value in the target unit. (This vignette focuses
+on acceleration data, as move2imu currently supports calibration for
+accelerometer data only.)
 
 For acceleration, this is a simple linear transformation, requiring:
 
@@ -55,7 +57,7 @@ definitions.
 For a set of acceleration bursts that all come from the same tag manufacturer
 and tag generation, the transformation from ADC to physical units is likely
 to be essentially identical. However, for a more complex dataset with 
-long-running deployments and/or multiple tag manufacturers, each tag will
+various tag settings and/or tag manufacturers, each tag will
 need its own transformation.
 
 move2imu facilitates this transformation process with two functions:
@@ -165,6 +167,7 @@ values themselves.
 ```{r}
 alb$acceleration[2]
 
+# Highly implausible acceleration values!
 set_imu_units(alb$acceleration[2], "standard_free_fall")
 ```
 
@@ -261,12 +264,18 @@ orientation for Ornitela tags to match other tags used in the study if those
 tags define the y-axis in the opposite direction:
 
 ```{r override}
+# An example burst of "Ornitela" data
+orn <- acc(
+  list(cbind(X = c(-20, 15, 5), Y = c(240, 180, 210), Z = c(970, 990, 980))),
+  frequency = units::set_units(25, "Hz")
+)
+
 cal1 <- acc_calibration("ornitela")
 cal2 <- acc_calibration("ornitela", orientation_y = -1)
 
-transform_imu(alb$acceleration[2], cal1)
+transform_imu(orn, cal1)
 
-transform_imu(alb$acceleration[2], cal2)
+transform_imu(orn, cal2)
 ```
 
 User-supplied values always take precedence over the manufacturer
