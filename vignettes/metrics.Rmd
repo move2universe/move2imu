@@ -16,6 +16,20 @@ knitr::opts_chunk$set(
   fig.align = "center",
   out.width = "80%"
 )
+
+# Shared style for the plots in this vignette
+ggplot2::theme_set(
+  ggplot2::theme_minimal(base_size = 12) +
+    ggplot2::theme(
+      panel.grid.minor = ggplot2::element_blank(),
+      plot.title = ggplot2::element_text(
+        size = ggplot2::rel(1.4),
+        face = "bold"
+      ),
+      plot.subtitle = ggplot2::element_text(colour = "grey35"),
+      plot.title.position = "plot"
+    )
+)
 ```
 
 After extracting IMU data into a vector of bursts (see
@@ -86,8 +100,169 @@ to separate cyclical patterns (e.g. wingbeats) from stable acceleration signals.
 
 In general, the window length should span several cycles of the primary
 movement of interest, but remain short enough to avoid misclassifying
-changes in posture as movements. Shepard et al. (2008) suggest at least a
-3-second window for species whose stroke cycles are shorter than this.
+changes in posture as movements.
+
+The figure below shows how the window length affects the decomposition of
+static and dynamic acceleration. We've generated some example 25 Hz data showing
+an acceleration pattern for a hypothetical bird, and plotted the values from
+one of its axes. The bird shows a cyclical flapping pattern, glides, and then
+adjusts its posture (e.g. to start a descent), producing an overall change in
+the share of gravity on this axis. In this case the
+wingbeats are the dynamic movement of interest that we want to estimate, meaning
+a good decomposition is one that isolates the cyclical pattern from the posture
+change.
+
+On the left, the blue line shows the static acceleration estimated for the
+given window size (shown as a shaded blue rectangle). In the first row,
+where the window is shorter than one wingbeat, the running mean reproduces
+much of the oscillation, thus incorporating it into the static component.
+This means we underestimate the portion of the signal that comes from dynamic
+sources.
+
+```{r window-demo, echo = FALSE, fig.width = 8, fig.height = 7, out.width = "100%"}
+hz <- 25
+secs <- seq(0, 10 - 1 / hz, by = 1 / hz)
+
+# Posture: body pitch drops from 5 to -20 degrees over 0.75 s around 7 s. The
+# static acceleration on the surge (X) axis is the share of gravity at that
+# pitch; the Z axis carries the rest, close to 1 g.
+pitch_change <- pmin(pmax((secs - 7) / 0.75 + 0.5, 0), 1)
+pitch <- 5 - 25 * pitch_change
+posture <- sin(pitch * pi / 180)
+
+# Movement: 8 wingbeats with a 0.5 s period, from 1.5 to 5.5 s
+flapping <- secs >= 1.5 & secs < 5.5
+wingbeats <- ifelse(flapping, 0.3 * sin(2 * pi * 2 * secs), 0)
+
+# Add some noise
+set.seed(1)
+x <- posture + wingbeats + rnorm(length(secs), sd = 0.01)
+
+sim <- acc(
+  list(cbind(X = x, Y = 0, Z = cos(pitch * pi / 180))),
+  frequency = units::set_units(hz, "Hz"),
+  start = as.POSIXct("2024-01-01", tz = "UTC")
+)
+
+window_labels <- c(
+  "0.25" = "0.25 s",
+  "1" = "1 s",
+  "4" = "4 s",
+  "burst" = "Burst mean"
+)
+
+# Window values as passed to static_acc(): seconds, or "burst"
+as_window <- function(w) if (w == "burst") "burst" else as.numeric(w)
+
+# Static and dynamic components of the X axis for each window
+components <- purrr::map(
+  names(window_labels),
+  function(w) {
+    s <- bursts(static_acc(sim, window = as_window(w)))[[1]][, "X"]
+    d <- bursts(dynamic_acc(sim, window = as_window(w)))[[1]][, "X"]
+
+    bind_rows(
+      data.frame(
+        panel = "Static (posture)", t = secs, raw = x,
+        estimate = s, simulated = posture
+      ),
+      data.frame(
+        panel = "Dynamic (movement)", t = secs, raw = NA,
+        estimate = d, simulated = wingbeats
+      )
+    ) |>
+      mutate(window = window_labels[[w]])
+  }
+) |>
+  bind_rows() |>
+  mutate(
+    panel = factor(panel, c("Static (posture)", "Dynamic (movement)")),
+    window = factor(window, window_labels)
+  )
+
+# VeDBA computed by vedba() for each window, and for the wingbeats alone
+vedba_labels <- data.frame(
+  window = factor(window_labels, window_labels),
+  panel = factor("Dynamic (movement)", levels(components$panel)),
+  vedba = purrr::map_dbl(
+    names(window_labels),
+    function(w) as.numeric(vedba(sim, window = as_window(w)))
+  )
+)
+wingbeat_vedba <- mean(abs(wingbeats))
+
+# One example window per row, centered on the peak of a wingbeat. The burst
+# mean uses the whole burst for every sample.
+example_t <- 3.12
+half_widths <- suppressWarnings(as.numeric(names(window_labels))) / 2
+example_windows <- data.frame(
+  window = factor(window_labels, window_labels),
+  panel = factor("Static (posture)", levels(components$panel)),
+  xmin = ifelse(is.na(half_widths), min(secs), example_t - half_widths),
+  xmax = ifelse(is.na(half_widths), max(secs), example_t + half_widths)
+)
+example_points <- components |>
+  filter(panel == "Static (posture)", near(t, example_t))
+
+ggplot(components, aes(x = t)) +
+  geom_rect(
+    data = example_windows,
+    aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf),
+    inherit.aes = FALSE, fill = "#2a6fb0", alpha = 0.12
+  ) +
+  geom_line(aes(y = raw), colour = "grey75", linewidth = 0.3, na.rm = TRUE) +
+  geom_line(aes(y = simulated), linetype = "22", linewidth = 0.4) +
+  geom_line(aes(y = estimate, colour = panel), linewidth = 0.7, na.rm = TRUE) +
+  geom_point(
+    data = example_points, aes(y = estimate),
+    colour = "#2a6fb0", size = 2.5
+  ) +
+  geom_text(
+    data = vedba_labels,
+    aes(
+      x = 10, y = Inf,
+      label = sprintf("VeDBA: %.2f g", vedba)
+    ),
+    hjust = 1, vjust = 1.3, size = 3.8, colour = "grey20"
+  ) +
+  scale_colour_manual(values = c("#2a6fb0", "#c4561d"), guide = "none") +
+  scale_y_continuous(breaks = c(-0.4, 0, 0.4), limits = c(-0.45, 0.75)) +
+  facet_grid(window ~ panel) +
+  labs(
+    x = "Time (s)",
+    y = "Acceleration (g)",
+    title = "The effect of smoothing window length",
+    subtitle = paste0(
+      "Dashed lines show the simulated posture and wingbeats.\n",
+      "Shaded bands show the window used to estimate the static acceleration at the marked point.\n",
+      "VeDBA of the wingbeats alone is ", sprintf("%.2f g", wingbeat_vedba), "."
+    )
+  ) +
+  theme(
+    panel.spacing.y = unit(1, "lines"),
+    strip.text = element_text(size = rel(1))
+  )
+```
+
+As the window size increases in the second row, we average several oscillations
+together, canceling them out. This leaves most of the oscillatory behavior
+correctly in the dynamic component, producing a good estimate of the dynamic
+acceleration.
+
+As the window keeps getting longer, though, we start to average the postural
+change with samples where no postural change exists, and end up treating
+some of the static acceleration as movement.
+
+Finally, when we use the mean of the
+burst as the static estimate, we classify the entire postural change as dynamic,
+producing an overestimate of the dynamic acceleration in this case.
+
+The estimates we use for activity metrics, like VeDBA, thus
+depend on an appropriate selection of the decomposition window, which
+depends both on the behavior(s) of interest as well as the sampling methodology.
+
+For species whose stroke cycles are shorter than 3 seconds,
+Shepard et al. (2008) suggest at least a 3-second window.
 Albatrosses mostly soar rather than flap, but the repeating movements that do
 appear in these data (likely including occasional wingbeats) last about a
 second or less, so we will adopt this guidance here.
@@ -101,8 +276,9 @@ alb$vedba <- vedba(alb$acceleration, window = units::set_units(3, "s"))
 alb$vedba
 ```
 
-It's also possible to identify an appropriate window by computing VeDBA at
-multiple window lengths and finding the point at which the curve flattens:
+Shepard et al. (2008) also suggest identifying an appropriate window by
+computing VeDBA at multiple window lengths and finding the point at which the
+curve flattens:
 
 ```{r sensitivity}
 alb_acc <- alb$acceleration[!is.na(alb$acceleration)]
@@ -119,9 +295,14 @@ v <- purrr::map_dbl(
 d <- data.frame(window = windows, vedba = v)
 
 ggplot(d, aes(x = window, y = vedba)) +
-  geom_line() +
-  geom_point() +
-  labs(x = "Window (s)", y = "Median VeDBA (g)")
+  geom_line(colour = "#c4561d", linewidth = 0.7) +
+  geom_point(colour = "#c4561d", size = 2.5) +
+  labs(
+    x = "Window (s)",
+    y = "Median VeDBA (g)",
+    title = "VeDBA across window lengths",
+    subtitle = "Median over all albatross bursts"
+  )
 ```
 
 VeDBA rises steeply for windows up to about 1.5 seconds and changes little
@@ -131,8 +312,9 @@ beyond about 3 seconds, which supports choosing a 3-second window.
 
 Some data are collected in shorter bursts that may not fit a meaningful window.
 In these cases, you can pass `window = "burst"`, which estimates the static
-component as the mean of each whole burst. However, these DBA results should
-be interpreted with caution.
+component as the mean of each whole burst. For very short bursts (a few
+seconds or less), which are unlikely to contain major posture changes, the
+mean can produce a reasonable estimate of static acceleration.
 
 Furthermore, VeDBA is sensitive not only to the window length but also to
 other features of the data, like sampling rate and number of axes.
