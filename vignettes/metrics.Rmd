@@ -86,7 +86,161 @@ to separate cyclical patterns (e.g. wingbeats) from stable acceleration signals.
 
 In general, the window length should span several cycles of the primary
 movement of interest, but remain short enough to avoid misclassifying
-changes in posture as movements. Shepard et al. (2008) suggest at least a
+changes in posture as movements.
+
+The figure below shows how the window length affects the decomposition of
+static and dynamic acceleration. We've generated some example 20 Hz data on a
+single acceleration axis showing an acceleration pattern for a hypothetical bird.
+The bird shows a cyclical flapping pattern, glides, and then adjusts its
+posture (e.g. to start a descent), producing an overall change in the static
+gravitational acceleration vector on this axis.
+
+On the left, the blue line shows the static acceleration estimated for the
+given window size, shown as a shaded blue rectangle. When the window is shorter
+than the flapping frequency, the running mean reproduces much of that
+oscillation, thus incorporating it into the static component. This means 
+we underestimate the portion of the signal that comes from dynamic sources.
+
+As the window size increases (the middle panel), we average several oscillations
+together, canceling them out. This leaves most of the oscillatory behavior
+correctly in the dynamic component, producing a good estimate of the dynamic
+acceleration. When the posture changes, we incorporate most of this signal
+correctly into the static signal, because the frequency of the change is slow
+relative to the running mean window.
+
+When the window is too long, though, we begin to incorporate the postural
+change across a long period of samples, thus treating some of the static
+acceleration as movement.
+
+Finally, the bottom row uses the mean of the entire recording as the static
+estimate. This approach assumes that little to no postural change occurred
+during the recording. As you can see, while this succesfully captures the
+wingbeats in the dynamic component, it also classifies the postural change
+as dynamic as well, overestimating the dynamic acceleration.
+
+```{r window-demo, echo = FALSE, fig.width = 8, fig.height = 7, out.width = "100%"}
+hz <- 20
+secs <- seq(0, 20 - 1 / hz, by = 1 / hz)
+
+# Posture: body pitch drops from 5 to -20 degrees over 1.5 s around 14 s. The
+# static acceleration on the axis is the share of gravity at that pitch.
+pitch_change <- pmin(pmax((secs - 14) / 1.5 + 0.5, 0), 1)
+pitch <- 5 - 25 * pitch_change
+true_static <- sin(pitch * pi / 180)
+
+# Movement: 8 wingbeats with a 1 s period, from 2 to 10 s
+flapping <- secs >= 2 & secs < 10
+true_dynamic <- ifelse(flapping, 0.3 * sin(2 * pi * secs), 0)
+
+set.seed(1)
+z <- true_static + true_dynamic + rnorm(length(secs), sd = 0.01)
+
+sim <- acc(
+  list(cbind(X = 0, Y = 0, Z = z)),
+  frequency = units::set_units(hz, "Hz"),
+  start = as.POSIXct("2024-01-01", tz = "UTC")
+)
+
+window_labels <- c(
+  "0.5" = "0.5 s (too short)",
+  "2" = "2 s (about right)",
+  "8" = "8 s (too long)",
+  "burst" = "Burst mean"
+)
+
+# Window values as passed to static_acc(): seconds, or "burst"
+as_window <- function(w) if (w == "burst") "burst" else as.numeric(w)
+
+# Static and dynamic components of the Z axis for each window
+components <- purrr::map(
+  names(window_labels),
+  function(w) {
+    s <- bursts(static_acc(sim, window = as_window(w)))[[1]][, "Z"]
+    d <- bursts(dynamic_acc(sim, window = as_window(w)))[[1]][, "Z"]
+
+    bind_rows(
+      data.frame(
+        panel = "Static (posture)", t = secs, raw = z,
+        estimate = s, truth = true_static
+      ),
+      data.frame(
+        panel = "Dynamic (movement)", t = secs, raw = NA,
+        estimate = d, truth = true_dynamic
+      )
+    ) |>
+      mutate(window = window_labels[[w]])
+  }
+) |>
+  bind_rows() |>
+  mutate(
+    panel = factor(panel, c("Static (posture)", "Dynamic (movement)")),
+    window = factor(window, window_labels)
+  )
+
+# Estimated and true VeDBA (mean absolute dynamic acceleration on one axis) for
+# each window, over the samples that have an estimate
+vedba_labels <- components |>
+  filter(panel == "Dynamic (movement)", !is.na(estimate)) |>
+  group_by(window, panel) |>
+  summarize(
+    vedba = mean(abs(estimate)),
+    true_vedba = mean(abs(truth)),
+    .groups = "drop"
+  )
+
+# One example window per row, centered on the peak of a wingbeat. The burst
+# mean uses the whole burst for every sample.
+example_t <- 6.25
+half_widths <- suppressWarnings(as.numeric(names(window_labels))) / 2
+example_windows <- data.frame(
+  window = factor(window_labels, window_labels),
+  panel = factor("Static (posture)", levels(components$panel)),
+  xmin = ifelse(is.na(half_widths), min(secs), example_t - half_widths),
+  xmax = ifelse(is.na(half_widths), max(secs), example_t + half_widths)
+)
+example_points <- components |>
+  filter(panel == "Static (posture)", t == example_t)
+
+ggplot(components, aes(x = t)) +
+  geom_rect(
+    data = example_windows,
+    aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf),
+    inherit.aes = FALSE, fill = "#2a6fb0", alpha = 0.12
+  ) +
+  geom_line(aes(y = raw), colour = "grey75", linewidth = 0.3, na.rm = TRUE) +
+  geom_line(aes(y = truth), linetype = "22", linewidth = 0.4) +
+  geom_line(aes(y = estimate, colour = panel), linewidth = 0.7, na.rm = TRUE) +
+  geom_point(
+    data = example_points, aes(y = estimate),
+    colour = "#2a6fb0", size = 2.5
+  ) +
+  geom_text(
+    data = vedba_labels,
+    aes(
+      x = 20, y = Inf,
+      label = sprintf("VeDBA %.2f g (true %.2f g)", vedba, true_vedba)
+    ),
+    hjust = 1, vjust = 1.4, size = 3, colour = "grey20"
+  ) +
+  scale_colour_manual(values = c("#2a6fb0", "#c4561d"), guide = "none") +
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.25))) +
+  facet_grid(window ~ panel, scales = "free_y") +
+  labs(
+    x = "Time (s)",
+    y = "Acceleration (g)",
+    subtitle = paste(
+      "Dashed lines show the true values.",
+      "Shaded bands show the window used to estimate the marked point."
+    )
+  ) +
+  theme_minimal() +
+  theme(panel.grid.minor = element_blank())
+```
+
+Thus, our ability to correctly estimate activity metrics, like VeDBA,
+depend on an appropriate selection of the decomposition window.
+
+Shepard et al. (2008) suggest at least a
 3-second window for species whose stroke cycles are shorter than this.
 Albatrosses mostly soar rather than flap, but the repeating movements that do
 appear in these data (likely including occasional wingbeats) last about a
