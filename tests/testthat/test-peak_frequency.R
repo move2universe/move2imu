@@ -32,29 +32,23 @@ test_that("Multiple axis peak freq and changing freq", {
   )
 })
 
-test_that("length does not influnce result", {
-  x <- sin(1:199 / (5 / (pi * 2)))
-  z <- cos(1:199 / (100 / (pi * 2)))
-
+test_that("when N does not contain a whole number of cycles, the reported peak is the nearest FFT bin", {
+  # Period-5 and period-100 sinusoids over N=199 samples. N is not a
+  # multiple of either period, so no FFT bin lands exactly on the true
+  # frequency. The reported peak should be the nearest available bin:
+  # bin * fs / N, where bin is round(N/period).
+  N <- 199
+  x <- sin(seq_len(N) / (5 / (pi * 2)))
+  z <- cos(seq_len(N) / (100 / (pi * 2)))
   acc_l <- acc_burst_example(x = x, z = z)
 
-  a <- acc(acc_l, units::set_units(100, "Hz"))
-  expect_equal(
-    peak_frequency(a),
-    list(units::set_units(c(X = 20, Z = 1), "Hz"))
-  )
-
-  a <- acc(acc_l, units::set_units(200, "Hz"))
-  expect_equal(
-    peak_frequency(a),
-    list(units::set_units(c(X = 40, Z = 2), "Hz"))
-  )
-
-  a <- acc(acc_l, units::set_units(400, "Hz"))
-  expect_equal(
-    peak_frequency(a),
-    list(units::set_units(c(X = 80, Z = 4), "Hz"))
-  )
+  for (fs in c(100, 200, 400)) {
+    a <- acc(acc_l, units::set_units(fs, "Hz"))
+    expect_equal(
+      peak_frequency(a),
+      list(units::set_units(c(X = 40, Z = 2) * fs / N, "Hz"))
+    )
+  }
 })
 
 test_that("Multiple axis peak freq intercept does not matter", {
@@ -115,6 +109,38 @@ test_that("Resolution alows to identify partial frequencies", {
     peak_frequency(a, resolution = units::set_units(0.025, "Hz"))
   ))
   expect_equal((((p / .025) + .5) %% 1) - .5, rep(0, 3))
+})
+
+test_that("non-integer fs/resolution rounds up rather than truncating", {
+  # When freq / resolution is not round, we want to give a slightly finer
+  # grid than requested.
+  N <- 200
+  fs <- 200
+  m <- cbind(X = sin(2 * pi * seq_len(N) / 16))
+  a <- acc(list(m), units::set_units(fs, "Hz"))
+
+  # A 12.5 Hz tone lands closest to bin 42 of the 667-point FFT.
+  expect_equal(
+    peak_frequency(a, resolution = units::set_units(0.3, "Hz")),
+    list(units::set_units(c(X = 42 * fs / 667), "Hz"))
+  )
+})
+
+test_that("Use default spacing when resolution too coarse", {
+  fs <- 200
+  m_short <- cbind(X = sin(2 * pi * seq_len(100) / 20)) # default spacing = 2 Hz
+  m_long <- cbind(X = sin(2 * pi * seq_len(400) / 20)) # default spacing = 0.5 Hz
+  a <- acc(list(m_short, m_long), units::set_units(fs, "Hz"))
+
+  # Request 1 Hz: short burst (2 Hz) gets padded; long burst (0.5 Hz) is
+  # already finer than requested and keeps its default spacing.
+  expect_warning(
+    out <- peak_frequency(a, resolution = units::set_units(1, "Hz")),
+    "Using the default spacing"
+  )
+  expect_length(out, 2)
+  # Long-burst peak matches the result with no `resolution`.
+  expect_equal(out[[2]], peak_frequency(a)[[2]])
 })
 
 test_that("peak_frequency returns NA for NA elements", {

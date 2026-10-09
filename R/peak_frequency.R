@@ -1,16 +1,25 @@
 #' Calculate the peak frequency per axis for bursts
 #'
-#' @inheritParams n_axis
-#' @param resolution A scalar frequency, in [units][units::units] convertible to
-#'   Hz.
+#' For each burst, find the frequency at which each axis oscillates most
+#' strongly, such as a wingbeat or stride frequency.
 #'
-#' @returns returns a list with the same length as `x` with the peak frequency per axis
+#' @inheritParams n_axis
+#' @param resolution The spacing of the frequencies used to search for the peak
+#'   frequency, in [units][units::units] convertible to Hz. For example, 0.1 Hz
+#'   searches on a 0.1 Hz grid. By default, the spacing is the inverse of the
+#'   burst duration. A finer grid locates a single clear peak more precisely,
+#'   but two peaks can only be told apart if they are more than roughly
+#'   1 / (burst duration) apart.
+#'
+#' @returns a list with the same length as `x` with the peak frequency per axis
 #'
 #' @details
-#' Use the `resolution` argument to increase the resolution of the result by
-#' padding the sample vector with zeros. Note that increasing resolution without
-#' increasing the number of samples in a burst has only a limited ability to
-#' more closely determine the true frequency.
+#' The peak is found with a Fourier transform. By default, the grid spacing used
+#' is 1 / (burst duration): for example, 0.5 Hz for a 2-second burst.
+#' `resolution` makes the spacing finer. If the sampling frequency is not an
+#' exact multiple of `resolution`, the spacing is made slightly finer than
+#' requested. Bursts whose default spacing is already finer than `resolution`
+#' keep their default spacing.
 #'
 #' @noRd
 #'
@@ -59,13 +68,32 @@ peak_frequency <- function(x, resolution = NA) {
 
   x_keep <- x[!x_na]
 
+  # Operate on plain numbers and reattach Hz at the end, since units
+  # arithmetic per burst is slow. Frequencies and `resolution` are both Hz.
+  fqs_num <- as.numeric(freqs(x_keep))
+  res_num <- if (!is.na(resolution)) as.numeric(resolution) else NA_real_
+
+  if (!is.na(res_num)) {
+    n_have <- vapply(bursts(x_keep), nrow, integer(1))
+    n_need <- ceiling(fqs_num / res_num)
+    n_fallback <- sum(n_have > n_need)
+    if (n_fallback > 0) {
+      cli::cli_warn(paste0(
+        "Using the default spacing for {n_fallback} ",
+        "burst{?s} with default spacing finer than {.arg resolution}."
+      ))
+    }
+  }
+
   peak_freq_non_na <- purrr::map2(
     bursts(x_keep),
-    freqs(x_keep),
+    fqs_num,
     function(b, fq) {
-      peak_freq_(b, fq, resolution = resolution)
+      peak_freq_(b, fq, resolution = res_num)
     }
   )
+
+  peak_freq_non_na <- lapply(peak_freq_non_na, as_hz)
 
   if (all(!x_na)) {
     return(peak_freq_non_na)
@@ -77,22 +105,31 @@ peak_frequency <- function(x, resolution = NA) {
   peak_freq
 }
 
-# Peak frequency for a single burst and freq
-peak_freq_ <- function(burst, freq, resolution = NA) {
+# Peak frequency for a single burst. `freq` and `resolution` are plain numeric
+peak_freq_ <- function(burst, freq, resolution = NA_real_) {
   if (inherits(burst, "units")) {
     burst <- units::drop_units(burst)
   }
 
-  b_centered <- t(burst) - colMeans(burst)
+  b_centered <- sweep(burst, 2, colMeans(burst), FUN = "-")
 
   if (!is.na(resolution)) {
-    # freq and resolution are both Hz, so ratio is unitless
-    to_pad <- units::drop_units(freq / resolution) - nrow(burst)
-    b_centered <- cbind(b_centered, matrix(0, ncol = to_pad, nrow = nrow(b_centered)))
+    to_pad <- ceiling(freq / resolution) - nrow(burst)
+    if (to_pad > 0) {
+      b_centered <- rbind(
+        b_centered,
+        matrix(0, nrow = to_pad, ncol = ncol(b_centered))
+      )
+    }
   }
 
-  b_mod <- do.call(rbind, lapply(apply(b_centered, 1, stats::fft, simplify = F), Mod))[, 1:ceiling(ncol(b_centered) / 2), drop = FALSE]
-  peak <- apply(b_mod, 1, which.max)
+  b_mod <- Mod(stats::mvfft(b_centered))
 
-  (peak - 1) * (freq / ncol(b_mod) / 2)
+  # Keep positive frequencies only.
+  half <- ceiling(nrow(b_mod) / 2)
+  b_mod <- b_mod[seq_len(half), , drop = FALSE]
+
+  peak <- apply(b_mod, 2, which.max)
+
+  (peak - 1) * (freq / nrow(b_centered))
 }
