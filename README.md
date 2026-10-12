@@ -117,7 +117,7 @@ a <- transform_imu(
 )
 
 # Compute VeDBA using 3-second running mean
-vedba(a, window = units::set_units(3, "s"))
+vedba(a, smoothing_window = units::set_units(3, "s"))
 #> Units: [standard_free_fall]
 #>  [1]          NA 0.068884904 0.072239477 0.064800946 0.058539038 0.072790297
 #>  [7]          NA 0.073737447 0.132444286 0.102806719 0.068233055 0.060682279

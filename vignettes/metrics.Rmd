@@ -158,8 +158,8 @@ as_window <- function(w) if (w == "burst") "burst" else as.numeric(w)
 components <- purrr::map(
   names(window_labels),
   function(w) {
-    s <- bursts(static_acc(sim, window = as_window(w)))[[1]][, "X"]
-    d <- bursts(dynamic_acc(sim, window = as_window(w)))[[1]][, "X"]
+    s <- bursts(static_acc(sim, smoothing_window = as_window(w)))[[1]][, "X"]
+    d <- bursts(dynamic_acc(sim, smoothing_window = as_window(w)))[[1]][, "X"]
 
     bind_rows(
       data.frame(
@@ -186,7 +186,7 @@ vedba_labels <- data.frame(
   panel = factor("Dynamic (movement)", levels(components$panel)),
   vedba = purrr::map_dbl(
     names(window_labels),
-    function(w) as.numeric(vedba(sim, window = as_window(w)))
+    function(w) as.numeric(vedba(sim, smoothing_window = as_window(w)))
   )
 )
 wingbeat_vedba <- mean(abs(wingbeats))
@@ -271,7 +271,10 @@ To compute VeDBA, we simply use the `vedba()` function with the chosen
 window.
 
 ```{r}
-alb$vedba <- vedba(alb$acceleration, window = units::set_units(3, "s"))
+alb$vedba <- vedba(
+  alb$acceleration,
+  smoothing_window = units::set_units(3, "s")
+)
 
 alb$vedba
 ```
@@ -289,7 +292,7 @@ windows <- c(3, 5, 7, 11, 15, 21, 31) / 5
 # Median VeDBA at each window size
 v <- purrr::map_dbl(
   windows,
-  function(w) median(as.numeric(vedba(alb_acc, window = w)))
+  function(w) median(as.numeric(vedba(alb_acc, smoothing_window = w)))
 )
 
 d <- data.frame(window = windows, vedba = v)
@@ -311,7 +314,7 @@ beyond about 3 seconds, which supports choosing a 3-second window.
 ### Caveats
 
 Some data are collected in shorter bursts that may not fit a meaningful window.
-In these cases, you can pass `window = "burst"`, which estimates the static
+In these cases, you can pass `smoothing_window = "burst"`, which estimates the static
 component as the mean of each whole burst. For very short bursts (a few
 seconds or less), which are unlikely to contain major posture changes, the
 mean can produce a reasonable estimate of static acceleration.

@@ -6,18 +6,21 @@
 \alias{odba}
 \title{Compute per-burst dynamic body acceleration}
 \usage{
-vedba(x, window)
+vedba(x, smoothing_window)
 
-odba(x, window)
+odba(x, smoothing_window)
 }
 \arguments{
 \item{x}{An \code{acc} vector.}
 
-\item{window}{Length of the running mean used to estimate the static
-acceleration component. Either a \code{\link[units:units]{units}} object convertible
-to seconds, a \code{\link[base:difftime]{difftime}} object, or \code{"burst"} to use the
-mean of the entire burst as the static component. Bare numeric values are
-assumed to be in seconds. See details.}
+\item{smoothing_window}{Length of the running mean used to estimate the
+static acceleration component. Either a \code{\link[units:units]{units}} object
+convertible to seconds, a \code{\link[base:difftime]{difftime}} object, or
+\code{"burst"} to use the mean of the entire burst as the static component.
+Bare numeric values are assumed to be in seconds. See details.
+
+This only affects how the static component is estimated; it does not
+split bursts into shorter intervals.}
 }
 \value{
 A vector of VeDBA or ODBA values with the same length and units as
@@ -39,9 +42,10 @@ follows:
 
 These values are then averaged to give a single value per burst.
 
-These functions are intended to provide burst-level DBA
-summaries. For analyses that need per-sample dynamic and/or static
-acceleration values, use \code{\link[=dynamic_acc]{dynamic_acc()}} and \code{\link[=static_acc]{static_acc()}} instead.
+These functions are intended to provide burst-level DBA summaries.
+For analyses that need per-sample dynamic and/or static acceleration values
+(e.g., to compute activity metrics at intervals across a continuous
+stream of data), use \code{\link[=dynamic_acc]{dynamic_acc()}} and \code{\link[=static_acc]{static_acc()}} instead.
 }
 \details{
 \subsection{Static and dynamic acceleration}{
@@ -51,9 +55,10 @@ component (the share of gravity on that axis, which reflects the
 orientation of the tag and thus the animal's posture) and a \emph{dynamic}
 component (acceleration typically caused by the animal's own movement).
 For each sample, the static component on each axis is estimated as the
-mean of the surrounding samples within a centered window of length \code{window}
-(or of the whole burst, if \code{window = "burst"}). Subtracting it from the
-recorded values leaves the dynamic component for each sample.
+mean of the surrounding samples within a centered window of length
+\code{smoothing_window} (or of the whole burst, if
+\code{smoothing_window = "burst"}). Subtracting it from the recorded values
+leaves the dynamic component for each sample.
 }
 
 \subsection{Choosing a window}{
@@ -77,7 +82,7 @@ with a stroke period up to 3 seconds, and, for slower strokes, at least one
 details and \code{vignette("metrics", package = "move2imu")} for a
 worked example.
 
-\code{window = "burst"} uses the mean of each whole burst as the static
+\code{smoothing_window = "burst"} uses the mean of each whole burst as the static
 component, so the effective window is each burst's duration. This can be
 useful for short bursts, where a running mean would leave few or no
 samples, but is unlikely to be useful for long recordings of
@@ -93,15 +98,17 @@ numeric window should be provided.
 
 \subsection{Applying the smoothing window}{
 
-\code{window} is converted to the nearest odd number of samples (so that it
-can be centered on each sample) using each burst's sampling frequency. An
-even number of samples is rounded up. Samples within half a window of either
-end of a burst have no static estimate. Likewise, a missing sample leaves
-the static component undefined for every sample whose window includes it.
+\code{smoothing_window} is converted to the nearest odd number of samples (so
+that it can be centered on each sample) using each burst's sampling
+frequency. An even number of samples is rounded up. Samples within half a
+window of either end of a burst have no static estimate. Likewise, a
+missing sample leaves the static component undefined for every sample whose
+window includes it.
 
 The components cannot be calculated (and return missing values) for
-bursts that are shorter than \code{window}, for windows of fewer than 3
-samples, and for bursts with fewer than 2 samples when \code{window = "burst"}.
+bursts that are shorter than \code{smoothing_window}, for windows of fewer than
+3 samples, and for bursts with fewer than 2 samples when
+\code{smoothing_window = "burst"}.
 }
 }
 \examples{
@@ -113,13 +120,13 @@ a <- transform_imu(
 )
 
 # Static component estimated with a 3 second running mean
-vedba(a, window = units::set_units(3, "s"))
+vedba(a, smoothing_window = units::set_units(3, "s"))
 
 # Bare numbers are interpreted as seconds
-odba(a, window = 3)
+odba(a, smoothing_window = 3)
 
 # Burst mean is used as the static acceleration for each burst
-vedba(a, window = "burst")
+vedba(a, smoothing_window = "burst")
 }
 \references{
 Shepard, E. L. C., Wilson, R. P., Halsey, L. G., Quintana, F.,

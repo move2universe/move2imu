@@ -14,16 +14,20 @@
 #'
 #' These values are then averaged to give a single value per burst.
 #'
-#' These functions are intended to provide burst-level DBA
-#' summaries. For analyses that need per-sample dynamic and/or static
-#' acceleration values, use [dynamic_acc()] and [static_acc()] instead.
+#' These functions are intended to provide burst-level DBA summaries.
+#' For analyses that need per-sample dynamic and/or static acceleration values
+#' (e.g., to compute activity metrics at intervals across a continuous
+#' stream of data), use [dynamic_acc()] and [static_acc()] instead.
 #'
 #' @param x An `acc` vector.
-#' @param window Length of the running mean used to estimate the static
-#'   acceleration component. Either a [`units`][units::units] object convertible
-#'   to seconds, a [`difftime`][base::difftime] object, or `"burst"` to use the
-#'   mean of the entire burst as the static component. Bare numeric values are
-#'   assumed to be in seconds. See details.
+#' @param smoothing_window Length of the running mean used to estimate the
+#'   static acceleration component. Either a [`units`][units::units] object
+#'   convertible to seconds, a [`difftime`][base::difftime] object, or
+#'   `"burst"` to use the mean of the entire burst as the static component.
+#'   Bare numeric values are assumed to be in seconds. See details.
+#'
+#'   This only affects how the static component is estimated; it does not
+#'   split bursts into shorter intervals.
 #'
 #' @details
 #' ## Static and dynamic acceleration
@@ -33,9 +37,10 @@
 #' orientation of the tag and thus the animal's posture) and a *dynamic*
 #' component (acceleration typically caused by the animal's own movement).
 #' For each sample, the static component on each axis is estimated as the
-#' mean of the surrounding samples within a centered window of length `window`
-#' (or of the whole burst, if `window = "burst"`). Subtracting it from the
-#' recorded values leaves the dynamic component for each sample.
+#' mean of the surrounding samples within a centered window of length
+#' `smoothing_window` (or of the whole burst, if
+#' `smoothing_window = "burst"`). Subtracting it from the recorded values
+#' leaves the dynamic component for each sample.
 #'
 #' ## Choosing a window
 #'
@@ -57,7 +62,7 @@
 #' details and `vignette("metrics", package = "move2imu")` for a
 #' worked example.
 #'
-#' `window = "burst"` uses the mean of each whole burst as the static
+#' `smoothing_window = "burst"` uses the mean of each whole burst as the static
 #' component, so the effective window is each burst's duration. This can be
 #' useful for short bursts, where a running mean would leave few or no
 #' samples, but is unlikely to be useful for long recordings of
@@ -72,15 +77,17 @@
 #'
 #' ## Applying the smoothing window
 #'
-#' `window` is converted to the nearest odd number of samples (so that it
-#' can be centered on each sample) using each burst's sampling frequency. An
-#' even number of samples is rounded up. Samples within half a window of either
-#' end of a burst have no static estimate. Likewise, a missing sample leaves
-#' the static component undefined for every sample whose window includes it.
+#' `smoothing_window` is converted to the nearest odd number of samples (so
+#' that it can be centered on each sample) using each burst's sampling
+#' frequency. An even number of samples is rounded up. Samples within half a
+#' window of either end of a burst have no static estimate. Likewise, a
+#' missing sample leaves the static component undefined for every sample whose
+#' window includes it.
 #'
 #' The components cannot be calculated (and return missing values) for
-#' bursts that are shorter than `window`, for windows of fewer than 3
-#' samples, and for bursts with fewer than 2 samples when `window = "burst"`.
+#' bursts that are shorter than `smoothing_window`, for windows of fewer than
+#' 3 samples, and for bursts with fewer than 2 samples when
+#' `smoothing_window = "burst"`.
 #'
 #' @returns A vector of VeDBA or ODBA values with the same length and units as
 #'   `x`. Mixed units are converted to the units of the first non-missing burst
@@ -109,25 +116,25 @@
 #' )
 #'
 #' # Static component estimated with a 3 second running mean
-#' vedba(a, window = units::set_units(3, "s"))
+#' vedba(a, smoothing_window = units::set_units(3, "s"))
 #'
 #' # Bare numbers are interpreted as seconds
-#' odba(a, window = 3)
+#' odba(a, smoothing_window = 3)
 #'
 #' # Burst mean is used as the static acceleration for each burst
-#' vedba(a, window = "burst")
+#' vedba(a, smoothing_window = "burst")
 NULL
 
 #' @rdname dba
 #' @export
-vedba <- function(x, window) {
-  dba_(x, window, .norm = function(d) sqrt(rowSums(d^2)))
+vedba <- function(x, smoothing_window) {
+  dba_(x, smoothing_window, .norm = function(d) sqrt(rowSums(d^2)))
 }
 
 #' @rdname dba
 #' @export
-odba <- function(x, window) {
-  dba_(x, window, .norm = function(d) rowSums(abs(d)))
+odba <- function(x, smoothing_window) {
+  dba_(x, smoothing_window, .norm = function(d) rowSums(abs(d)))
 }
 
 #' Decompose acceleration into static and dynamic components
@@ -173,7 +180,7 @@ odba <- function(x, window) {
 #' a <- set_imu_units(a, "standard_free_fall")
 #'
 #' # The dynamic acc component with a 1 second smoothing window
-#' d_acc <- dynamic_acc(a, window = 1)
+#' d_acc <- dynamic_acc(a, smoothing_window = 1)
 #' d_acc
 #'
 #' if (rlang::is_installed("dygraphs")) {
@@ -181,14 +188,15 @@ odba <- function(x, window) {
 #' }
 #'
 #' # Static component with same window
-#' s_acc <- static_acc(a, window = 1)
+#' s_acc <- static_acc(a, smoothing_window = 1)
 #' s_acc
 #'
 #' if (rlang::is_installed("dygraphs")) {
 #'   plot_imu_trace(s_acc)
 #' }
 #'
-#' # Split into 10 second chunks to calculate periodic VeDBA
+#' # Split the dynamic component into 10 second chunks to calculate periodic
+#' # VeDBA.
 #' d_split <- split_imu(
 #'   drop_imu_units(d_acc),
 #'   units::set_units(10, "s"),
@@ -202,21 +210,23 @@ odba <- function(x, window) {
 #'     function(b) mean(sqrt(rowSums(b^2)), na.rm = TRUE)
 #'   )
 #' )
-static_acc <- function(x, window) {
-  decompose_acc(x, window, component = "static")
+static_acc <- function(x, smoothing_window) {
+  decompose_acc(x, smoothing_window, component = "static")
 }
 
 #' @rdname static_acc
 #' @export
-dynamic_acc <- function(x, window) {
-  decompose_acc(x, window, component = "dynamic")
+dynamic_acc <- function(x, smoothing_window) {
+  decompose_acc(x, smoothing_window, component = "dynamic")
 }
 
 # Shared implementation for vedba() and odba(). Separates the dynamic
 # component of each burst, then `.norm` combines its axes (samples in rows)
 # into one value per sample, which are averaged to give one value per burst.
-dba_ <- function(x, window, .norm, call = rlang::caller_env()) {
-  d <- bursts(decompose_acc(x, window, component = "dynamic", call = call))
+dba_ <- function(x, smoothing_window, .norm, call = rlang::caller_env()) {
+  d <- bursts(
+    decompose_acc(x, smoothing_window, component = "dynamic", call = call)
+  )
 
   out <- rep(NA_real_, length(x))
   present <- !purrr::map_lgl(d, is.null)
@@ -279,7 +289,7 @@ dba_ <- function(x, window, .norm, call = rlang::caller_env()) {
 # `acc` vector. Bursts too short for the window are filled with NA, so that
 # the output keeps the same bursts, start times and sample counts as `x`.
 decompose_acc <- function(x,
-                          window,
+                          smoothing_window,
                           component = c("static", "dynamic"),
                           call = rlang::caller_env()) {
   component <- rlang::arg_match(component)
@@ -288,7 +298,7 @@ decompose_acc <- function(x,
     cli::cli_abort("{.arg x} must be an {.cls acc} vector.", call = call)
   }
 
-  window <- window_to_sec(window, call = call)
+  window <- window_to_sec(smoothing_window, call = call)
 
   # Window length in samples for each burst. NULL means use the whole burst.
   n <- n_samples(x)
@@ -304,7 +314,7 @@ decompose_acc <- function(x,
 
   if (any(too_short)) {
     cli::cli_warn(c(
-      "Returning NA for {sum(too_short)} {cli::qty(sum(too_short))}burst{?s} too short for the requested {.arg window}.",
+      "Returning NA for {sum(too_short)} {cli::qty(sum(too_short))}burst{?s} too short for the requested {.arg smoothing_window}.",
       "i" = "A window must span at least 3 samples and no more than the burst."
     ))
   }
@@ -372,8 +382,8 @@ static_acc_ <- function(b, window_samples) {
   matrix(static, nrow(b), ncol(b), dimnames = dimnames(b))
 }
 
-# Validate `window` and convert to a bare number of seconds. Returns NULL for
-# `window = "burst"`.
+# Validate `smoothing_window` and convert to a bare number of seconds. Returns
+# NULL for `smoothing_window = "burst"`.
 window_to_sec <- function(window, call = rlang::caller_env()) {
   if (is.character(window)) {
     if (identical(window, "burst")) {
@@ -381,7 +391,7 @@ window_to_sec <- function(window, call = rlang::caller_env()) {
     }
 
     cli::cli_abort(
-      "{.arg window} must be a duration or {.val burst}, not {.val {window}}.",
+      "{.arg smoothing_window} must be a duration or {.val burst}, not {.val {window}}.",
       call = call
     )
   }
@@ -392,7 +402,7 @@ window_to_sec <- function(window, call = rlang::caller_env()) {
 
   if (!is.numeric(window) || length(window) != 1 || is.na(window)) {
     cli::cli_abort(
-      "{.arg window} must be a single duration or {.val burst}.",
+      "{.arg smoothing_window} must be a single duration or {.val burst}.",
       call = call
     )
   }
@@ -404,11 +414,14 @@ window_to_sec <- function(window, call = rlang::caller_env()) {
   window <- as.numeric(window)
 
   if (!(window > 0)) {
-    cli::cli_abort("{.arg window} must be greater than 0.", call = call)
+    cli::cli_abort(
+      "{.arg smoothing_window} must be greater than 0.",
+      call = call
+    )
   }
 
   if (!is.finite(window)) {
-    cli::cli_abort("{.arg window} must be finite.", call = call)
+    cli::cli_abort("{.arg smoothing_window} must be finite.", call = call)
   }
 
   window

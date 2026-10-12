@@ -101,7 +101,7 @@ a <- transform_imu(
 )
 
 # Compute VeDBA using 3-second running mean
-vedba(a, window = units::set_units(3, "s"))
+vedba(a, smoothing_window = units::set_units(3, "s"))
 ```
 
 ## Getting help + Contributing
