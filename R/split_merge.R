@@ -79,6 +79,8 @@ merge_imu <- function(x,
                       gap_tol = 1e-6,
                       freq_tol = 1e-2,
                       drop = FALSE) {
+  assert_imu(x)
+
   n <- vec_size(x)
 
   if (!is.null(ids) && length(ids) != n) {
@@ -321,6 +323,8 @@ merge_imu <- function(x,
 #'   mutate(burst = merge_imu(burst, ids = id, drop = FALSE))
 #' }
 split_imu <- function(x, interval, flatten = FALSE) {
+  assert_imu(x)
+
   if (!(as.numeric(interval) > 0)) {
     abort_move2imu("{.arg interval} must be a positive number.")
   }

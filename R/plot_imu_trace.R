@@ -41,6 +41,7 @@
 #' plot_imu_trace(acc_example()) |>
 #'   dygraphs::dyOptions(useDataTimezone = TRUE)
 plot_imu_trace <- function(x, ...) {
+  assert_imu(x)
   rlang::check_installed("dygraphs")
 
   time <- starts(x)

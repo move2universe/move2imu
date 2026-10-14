@@ -338,7 +338,7 @@ bin_samples_ <- function(...,
 
   bad_type <- !purrr::map_lgl(
     lanes,
-    function(l) inherits(l, "imu") || is_timestamp(l)
+    function(l) is_imu(l) || is_timestamp(l)
   )
 
   if (any(bad_type)) {
@@ -641,7 +641,7 @@ samples_before <- function(cutoff, burst_start, burst_period, burst_n_samp) {
 burst_timing <- function(x) {
   # If `lane` is an `imu`, take the timing from its metadata. Otherwise `lane`
   # must be a date-like object and we can use the timestamps themselves
-  if (inherits(x, "imu")) {
+  if (is_imu(x)) {
     has_data <- !is.na(x)
 
     with_data <- x[has_data]

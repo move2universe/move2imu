@@ -73,3 +73,7 @@ test_that("plot_imu_trace unions the axes of bursts with different columns", {
 
   expect_identical(g$x$attrs$labels, c("second", "X", "Y", "Z"))
 })
+
+test_that("plot_imu_trace() rejects non-IMU input", {
+  expect_error(plot_imu_trace(1:3), class = "move2imu_error_imu_invalid")
+})

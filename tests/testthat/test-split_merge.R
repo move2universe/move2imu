@@ -762,3 +762,8 @@ test_that("merge_imu preserves the input time zone when bursts merge", {
     expect_identical(starts(dropped), .as.POSIXct(0, tz))
   }
 })
+
+test_that("split_imu() and merge_imu() reject non-IMU input", {
+  expect_error(split_imu(1:3, 1), class = "move2imu_error_imu_invalid")
+  expect_error(merge_imu(1:3), class = "move2imu_error_imu_invalid")
+})

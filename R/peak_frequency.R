@@ -53,6 +53,8 @@
 #'
 #' peak_frequency(a, units::set_units(.005, "Hz"))
 peak_frequency <- function(x, resolution = NA) {
+  assert_imu(x)
+
   if (!is.na(resolution)) {
     resolution <- as_hz(resolution)
   }

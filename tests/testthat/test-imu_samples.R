@@ -114,5 +114,5 @@ test_that("Empty input gives a data frame with no rows", {
 })
 
 test_that("x must be an IMU vector", {
-  expect_error(imu_samples(1:3), "must be an IMU vector")
+  expect_error(imu_samples(1:3), class = "move2imu_error_imu_invalid")
 })

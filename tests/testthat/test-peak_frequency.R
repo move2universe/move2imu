@@ -209,3 +209,7 @@ test_that("peak_frequency is unit-equivalent across convertible frequency units"
     p_hz_r
   )
 })
+
+test_that("peak_frequency() rejects non-IMU input", {
+  expect_error(peak_frequency(1:3), class = "move2imu_error_imu_invalid")
+})
