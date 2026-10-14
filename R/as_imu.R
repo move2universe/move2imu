@@ -48,20 +48,25 @@ as_imu.data.frame <- function(x,
                               ...) {
   # Check lengths and NA track IDs for consistency with move2 inputs
   if (length(timestamp) != nrow(x)) {
-    cli::cli_abort(
-      "{.arg timestamp} must be the same length as {.arg x} ({nrow(x)}), not {length(timestamp)}."
+    abort_move2imu(
+      "{.arg timestamp} must be the same length as {.arg x} ({nrow(x)}), not {length(timestamp)}.",
+      class = "size_incompatible"
     )
   }
 
   if (!is.null(track_id)) {
     if (length(track_id) != nrow(x)) {
-      cli::cli_abort(
-        "{.arg track_id} must be the same length as {.arg x} ({nrow(x)}), not {length(track_id)}."
+      abort_move2imu(
+        "{.arg track_id} must be the same length as {.arg x} ({nrow(x)}), not {length(track_id)}.",
+        class = "size_incompatible"
       )
     }
 
     if (anyNA(track_id)) {
-      cli::cli_abort("{.arg track_id} must not contain missing values.")
+      abort_move2imu(
+        "{.arg track_id} must not contain missing values.",
+        class = "track_missing"
+      )
     }
   }
 
@@ -96,13 +101,13 @@ as_imu_table <- function(x,
 
   # Check input arg validity, including units matching and positive values
   if (as.numeric(as_hz(min_freq)) < 0) {
-    cli::cli_abort("{.arg min_freq} must be greater than or equal to 0.")
+    abort_move2imu("{.arg min_freq} must be greater than or equal to 0.")
   }
 
   check_freq_tol(freq_tol)
 
   if (as.numeric(units::set_units(gap_tol, "s")) < 0) {
-    cli::cli_abort("{.arg gap_tol} must be greater than or equal to 0.")
+    abort_move2imu("{.arg gap_tol} must be greater than or equal to 0.")
   }
 
   if (nrow(x) == 0) {
@@ -117,10 +122,13 @@ as_imu_table <- function(x,
 
   if (any(dup)) {
     dup_fn <- paste0("duplicated_", sensor, "_rows")
-    cli::cli_abort(c(
-      "{.arg x} contains {sum(dup)} row{?s} with multiple sources of {sensor} data.",
-      "i" = "Use {.help [{.fun {dup_fn}}](move2imu::{dup_fn})} to identify duplications."
-    ))
+    abort_move2imu(
+      c(
+        "{.arg x} contains {sum(dup)} row{?s} with multiple sources of {sensor} data.",
+        "i" = "Use {.help [{.fun {dup_fn}}](move2imu::{dup_fn})} to identify duplications."
+      ),
+      class = c("colset_duplicated_rows", "colset")
+    )
   }
 
   # Use lapply as we don't need purrr's index errors here. User likely
@@ -167,7 +175,10 @@ as_imu_ <- function(x,
   imu_rows <- imu_sample_rows(x, sensor = sensor, colset = colset)
 
   if (any(imu_rows) && any(is.na(timestamp[imu_rows]))) {
-    cli::cli_abort("All timestamps associated with IMU data must be non-NA.")
+    abort_move2imu(
+      "All timestamps associated with IMU data must be non-NA.",
+      class = c("timestamp_missing", "timestamp")
+    )
   }
 
   if (any(imu_rows)) {
@@ -312,16 +323,22 @@ parse_colsets <- function(x, colset, sensor, quiet = FALSE) {
     } else if (rlang::is_list(colset) && all(purrr::map_lgl(colset, is_imu_colset))) {
       colsets <- colset
     } else {
-      cli::cli_abort(c(
-        "{.arg colset} must be an {.cls imu_colset} object or a list of {.cls imu_colset} objects.",
-        "i" = "Use {.help [{.fun imu_colset}](move2imu::imu_colset)} to create an {.cls imu_colset} object."
-      ))
+      abort_move2imu(
+        c(
+          "{.arg colset} must be an {.cls imu_colset} object or a list of {.cls imu_colset} objects.",
+          "i" = "Use {.help [{.fun imu_colset}](move2imu::imu_colset)} to create an {.cls imu_colset} object."
+        ),
+        class = c("colset_invalid", "colset")
+      )
     }
   } else {
     colsets <- active_colsets_(x, sensor = sensor)
 
     if (!quiet && length(colsets) > 1) {
-      cli::cli_warn("Detected multiple valid {sensor} column sets.")
+      warn_move2imu(
+        "Detected multiple valid {sensor} column sets.",
+        class = c("colset_multiple", "colset")
+      )
     }
   }
 
@@ -577,17 +594,18 @@ check_time_order <- function(timestamp,
                              hint_move2 = FALSE,
                              call = rlang::caller_env()) {
   if (!ids_cleaved(track_id)) {
-    cli::cli_abort(
+    abort_move2imu(
       c(
         "Not all tracks are grouped in {.arg x}.",
         "i" = "Sort {.arg x} by track before building bursts."
       ),
+      class = "track_ungrouped",
       call = call
     )
   }
 
   if (!times_ordered(timestamp, track_id)) {
-    cli::cli_abort(
+    abort_move2imu(
       c(
         "Timestamps must be strictly increasing within each track.",
         "i" = if (hint_move2) {
@@ -596,6 +614,7 @@ check_time_order <- function(timestamp,
           "Order data by track and time and remove duplicate timestamps."
         }
       ),
+      class = c("timestamp_unordered", "timestamp"),
       call = call
     )
   }
@@ -610,7 +629,7 @@ check_move2_dots <- function(..., call = rlang::caller_env()) {
   supplied <- intersect(c("timestamp", "track_id"), ...names())
 
   if (length(supplied) > 0) {
-    cli::cli_abort(
+    abort_move2imu(
       c(
         "{.arg {supplied}} must not be supplied when {.arg x} is a {.cls move2}.",
         "i" = "Timestamps and track IDs are taken from the {.cls move2} object's metadata.",
@@ -647,11 +666,12 @@ check_colset <- function(x, colset, call = rlang::caller_env()) {
 
 assert_colset_has_data <- function(x, colset, call = rlang::caller_env()) {
   if (all(cols_empty(x, colset))) {
-    cli::cli_abort(
+    abort_move2imu(
       c(
         "The provided {.arg colset} columns contain no data.",
         "x" = "Column{?s} {.val {colset}} {?is/are} empty."
       ),
+      class = c("colset_empty", "colset"),
       call = call
     )
   }
@@ -672,11 +692,12 @@ assert_matched_units <- function(x, cols, call = rlang::caller_env()) {
   )
 
   if (length(unique_units) != 1) {
-    cli::cli_abort(
+    abort_move2imu(
       c(
         "Multiple units detected across input columns.",
         "i" = "All columns must have consistent units."
       ),
+      class = c("units_mixed", "units"),
       call = call
     )
   }
@@ -687,11 +708,12 @@ assert_colset_numeric <- function(x, colset, call = rlang::caller_env()) {
 
   if (any(!cols_num)) {
     non_numeric <- colset[!cols_num]
-    cli::cli_abort(
+    abort_move2imu(
       c(
         "Detected non-numeric column{?s}: {.val {non_numeric}}.",
         "i" = "Columns must contain numeric data."
       ),
+      class = c("colset_column_invalid", "colset"),
       call = call
     )
   }
@@ -703,22 +725,25 @@ assert_compact_col_types <- function(x, colset, call = rlang::caller_env()) {
   freq_col <- colset[["frequency"]]
 
   if (!is.character(x[[bursts_col]]) && !is.factor(x[[bursts_col]])) {
-    cli::cli_abort(
+    abort_move2imu(
       "{.arg bursts} column {.val {bursts_col}} must be character, not {.cls {class(x[[bursts_col]])[1]}}.",
+      class = c("colset_column_invalid", "colset"),
       call = call
     )
   }
 
   if (!is.character(x[[axes_col]]) && !is.factor(x[[axes_col]])) {
-    cli::cli_abort(
+    abort_move2imu(
       "{.arg axes} column {.val {axes_col}} must be character, not {.cls {class(x[[axes_col]])[1]}}.",
+      class = c("colset_column_invalid", "colset"),
       call = call
     )
   }
 
   if (!is.numeric(x[[freq_col]])) {
-    cli::cli_abort(
+    abort_move2imu(
       "{.arg frequency} column {.val {freq_col}} must be numeric, not {.cls {class(x[[freq_col]])[1]}}.",
+      class = c("colset_column_invalid", "colset"),
       call = call
     )
   }

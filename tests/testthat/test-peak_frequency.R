@@ -136,7 +136,7 @@ test_that("Use default spacing when resolution too coarse", {
   # already finer than requested and keeps its default spacing.
   expect_warning(
     out <- peak_frequency(a, resolution = units::set_units(1, "Hz")),
-    "Using the default spacing"
+    class = "move2imu_warning_default_spacing"
   )
   expect_length(out, 2)
   # Long-burst peak matches the result with no `resolution`.

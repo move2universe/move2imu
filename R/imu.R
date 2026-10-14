@@ -71,7 +71,7 @@ burst_list <- function(x, sensor) {
   )
 
   if (any(!is_valid)) {
-    cli::cli_abort(
+    abort_move2imu(
       "Bursts must be numeric matrices with unique columns named {.val X},
        {.val Y}, or {.val Z}."
     )
@@ -104,7 +104,7 @@ assert_imu <- function(x,
     collapse = "/"
   )
 
-  cli::cli_abort(
+  abort_move2imu(
     "{.arg {arg}} must be an IMU vector ({types_fmt}).",
     call = call
   )

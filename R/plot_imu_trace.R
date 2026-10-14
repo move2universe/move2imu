@@ -51,19 +51,25 @@ plot_imu_trace <- function(x, ...) {
   keep <- present & !is.na(time) & !is.na(freq)
 
   if (!any(keep)) {
-    cli::cli_abort(
+    abort_move2imu(
       "Can't plot bursts without start timestamps and sampling frequencies."
     )
   }
 
   n_no_start <- sum(present & is.na(time))
   if (n_no_start > 0) {
-    cli::cli_warn("Omitting {n_no_start} burst{?s} with no start timestamp.")
+    warn_move2imu(
+      "Omitting {n_no_start} burst{?s} with no start timestamp.",
+      class = "bursts_omitted"
+    )
   }
 
   n_no_freq <- sum(present & !is.na(time) & is.na(freq))
   if (n_no_freq > 0) {
-    cli::cli_warn("Omitting {n_no_freq} burst{?s} with no sampling frequency.")
+    warn_move2imu(
+      "Omitting {n_no_freq} burst{?s} with no sampling frequency.",
+      class = "bursts_omitted"
+    )
   }
 
 

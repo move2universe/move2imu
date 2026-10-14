@@ -88,7 +88,7 @@ test_that("constructor replaces metadata with NA when bursts are missing", {
 test_that("frequency must be in frequency-compatible units", {
   expect_error(
     acc(list(cbind(X = 1:3)), frequency = units::set_units(10, "km")),
-    "frequency unit"
+    class = "move2imu_error_units_incompatible"
   )
 
   # Valid frequency units are accepted and converted to Hz
@@ -119,7 +119,7 @@ test_that("`freqs<-` coerces the replacement to Hz", {
   # Non-frequency units are rejected
   expect_error(
     freqs(a) <- units::set_units(1, "km"),
-    "frequency unit"
+    class = "move2imu_error_units_incompatible"
   )
 })
 
@@ -326,7 +326,7 @@ test_that("burst_intervals does not measure across ID boundaries", {
 
   expect_error(
     burst_intervals(a, ids = c("a", "b")),
-    "same length"
+    class = "move2imu_error_size_incompatible"
   )
 })
 

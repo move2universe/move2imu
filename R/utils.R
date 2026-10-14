@@ -49,14 +49,14 @@ is_timestamp <- function(x) {
 # error. Simple guard to avoid this potential confusion.
 check_freq_tol <- function(freq_tol, call = rlang::caller_env()) {
   if (inherits(freq_tol, "units")) {
-    cli::cli_abort(
+    abort_move2imu(
       "{.arg freq_tol} must be a bare numeric value, not a {.cls units} object.",
       call = call
     )
   }
 
   if (as.numeric(freq_tol) < 0) {
-    cli::cli_abort(
+    abort_move2imu(
       "{.arg freq_tol} must be greater than or equal to 0.",
       call = call
     )
@@ -86,11 +86,12 @@ timestamp_to_POSIXct <- function(x,
   }
 
   if (!is_timestamp(x)) {
-    cli::cli_abort(
+    abort_move2imu(
       c(
         "{.arg {arg}} must be a timestamp, not {.cls {class(x)[1]}}.",
         "i" = "Supply a {.cls POSIXct}, {.cls POSIXlt}, {.cls Date}, or a bare numeric value."
       ),
+      class = c("timestamp_invalid", "timestamp"),
       call = call
     )
   }
@@ -135,8 +136,9 @@ as_hz <- function(x, arg = rlang::caller_arg(x), call = rlang::caller_env()) {
   }
 
   if (!units::ud_are_convertible(units::deparse_unit(x), "Hz")) {
-    cli::cli_abort(
+    abort_move2imu(
       "{.arg {arg}} must be convertible to a frequency unit (Hz).",
+      class = c("units_incompatible", "units"),
       call = call
     )
   }

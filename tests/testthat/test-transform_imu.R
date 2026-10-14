@@ -52,8 +52,14 @@ test_that("transform_imu() recycles length-1 calibration", {
 
 test_that("transform_imu() errors on non-imu_calibration input", {
   a <- acc_example()
-  expect_error(transform_imu(a, "not a calibration"), "imu_calibration")
-  expect_error(transform_imu(a, list(1, 2)), "imu_calibration")
+  expect_error(
+    transform_imu(a, "not a calibration"),
+    class = "move2imu_error_calibration_invalid"
+  )
+  expect_error(
+    transform_imu(a, list(1, 2)),
+    class = "move2imu_error_calibration_invalid"
+  )
 })
 
 test_that("transform_imu() errors when calibration class mismatches sensor", {
@@ -63,7 +69,7 @@ test_that("transform_imu() errors when calibration class mismatches sensor", {
   fake_mag_cal <- vctrs::new_rcrd(list(x = 1), class = c("mag_calibration", "imu_calibration"))
   expect_error(
     transform_imu(a, fake_mag_cal),
-    "Cannot apply.*mag_calibration.*acc"
+    class = "move2imu_error_calibration_sensor_incompatible"
   )
 })
 
@@ -88,7 +94,10 @@ test_that("transform_imu() warns on already-calibrated data", {
   a <- acc_example()
   tf <- acc_calibration(offset = 2048, slope = 0.001)
   calibrated <- transform_imu(a, tf)
-  expect_warning(transform_imu(calibrated[1], tf), "pre-existing units")
+  expect_warning(
+    transform_imu(calibrated[1], tf),
+    class = "move2imu_warning_calibration_has_units"
+  )
 })
 
 test_that("transform_imu() warns on axes missing calibration params", {
@@ -97,7 +106,7 @@ test_that("transform_imu() warns on axes missing calibration params", {
 
   expect_warning(
     result <- transform_imu(a, acc_calibration(offset_x = 2048, slope_x = 0.001)),
-    "introduced NA values"
+    class = "move2imu_warning_calibration_introduced_na"
   )
 })
 
@@ -111,7 +120,7 @@ test_that("transform_imu() warns on missing params even when input has NAs", {
 
   expect_warning(
     result <- transform_imu(a, acc_calibration(offset_x = 2048, slope_x = 0.001)),
-    "introduced NA values"
+    class = "move2imu_warning_calibration_introduced_na"
   )
   expect_true(all(is.na(bursts(result)[[1]][, c("Y", "Z")])))
 })
@@ -200,7 +209,10 @@ test_that("transform_imu() warns only when data is lost to a missing calibration
 
   cal_complete <- acc_calibration(offset = 2048, slope = 0.001)
 
-  expect_warning(transform_imu(a, cal_missing), "Returning NA")
+  expect_warning(
+    transform_imu(a, cal_missing),
+    class = "move2imu_warning_calibration_missing"
+  )
   expect_no_warning(transform_imu(a, cal_complete))
 
   # Missing calibration shouldn't warn if there aren't any data to begin with

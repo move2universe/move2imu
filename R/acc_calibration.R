@@ -164,7 +164,7 @@ acc_calibration <- function(manufacturer = NULL,
 #' @rdname acc_calibration
 as_acc_calibration <- function(df) {
   if (!is.data.frame(df)) {
-    cli::cli_abort("{.arg df} must be a data frame.")
+    abort_move2imu("{.arg df} must be a data frame.")
   }
 
   args <- list(
@@ -198,18 +198,18 @@ build_calibrations <- function(args) {
   }
 
   # Build each spec independently; one that can't be resolved becomes a missing
-  # (`NA`) calibration. Capture the failure reason so they can be summarized
-  # rather than silently dropped.
+  # (`NA`) calibration. If a calibration error, capture the failure reason
+  # so all can be summarized rather than silently dropped.
   results <- purrr::pmap(
     args,
     function(...) {
       tryCatch(
         list(cal = acc_calibration_(...), reason = NA_character_),
-        error = function(cnd) {
+        move2imu_error_calibration_spec_invalid = function(cnd) {
           list(
             cal = vctrs::vec_init(new_acc_calibration(), 1L),
-            # Keep only the leading line so multi-line condition messages (e.g.
-            # an arg_match "Did you mean?" hint) read cleanly as one bullet.
+            # Keep only the leading line so multi-line condition messages
+            # read cleanly as one bullet.
             reason = sub("\n.*$", "", conditionMessage(cnd))
           )
         }
@@ -242,25 +242,42 @@ acc_calibration_ <- function(manufacturer = NULL,
                              orientation_y = NULL,
                              orientation_z = NULL,
                              units = "m/s^2") {
-  rlang::arg_match(units, c("m/s^2", "standard_free_fall"))
+  # Errors here use `stop_move2imu()` rather than cli to improve processing time
+  # as these are run per calibration and are caught by `build_calibrations()`
+  # anyway
+  valid_units <- c("m/s^2", "standard_free_fall")
+
+  if (!rlang::is_string(units) || !units %in% valid_units) {
+    stop_move2imu(
+      paste0(
+        "`units` must be \"m/s^2\" or \"standard_free_fall\", not ",
+        encodeString(as.character(units[1]), quote = "\""), "."
+      ),
+      class = c("calibration_spec_invalid", "calibration")
+    )
+  }
 
   # Resolve manufacturer defaults, then let user-provided values override
   if (!rlang::is_null(manufacturer) && !rlang::is_na(manufacturer)) {
     if (manufacturer == "eobs") {
       if (rlang::is_null(tag_id) || rlang::is_na(tag_id)) {
-        # Note: use stop() rather than rlang to improve processing time since these
-        # errors are caught by build_calibrations() in the user-facing API anyway
-        stop("`tag_id` must be provided when `manufacturer = \"eobs\"`")
+        stop_move2imu(
+          "`tag_id` must be provided when `manufacturer = \"eobs\"`",
+          class = c("calibration_spec_invalid", "calibration")
+        )
       }
 
       specs <- eobs_specs(tag_id, first_valid(sensitivity, "low"))
     } else if (manufacturer == "ornitela") {
       specs <- ornitela_specs()
     } else {
-      stop(paste0(
-        "Unrecognized manufacturer: \"", manufacturer,
-        "\". Must be \"eobs\" or \"ornitela\"."
-      ))
+      stop_move2imu(
+        paste0(
+          "Unrecognized manufacturer: \"", manufacturer,
+          "\". Must be \"eobs\" or \"ornitela\"."
+        ),
+        class = c("calibration_spec_invalid", "calibration")
+      )
     }
 
     # User-provided values take priority over manufacturer defaults
@@ -284,7 +301,10 @@ acc_calibration_ <- function(manufacturer = NULL,
       Z = !null_or_na(offset_z) && !null_or_na(slope_z)
     )
     if (!any(complete_axis)) {
-      stop("a custom calibration needs both an `offset` and a `slope` on at least one axis")
+      stop_move2imu(
+        "a custom calibration needs both an `offset` and a `slope` on at least one axis",
+        class = c("calibration_spec_invalid", "calibration")
+      )
     }
   }
 
@@ -294,7 +314,10 @@ acc_calibration_ <- function(manufacturer = NULL,
   orientation_z <- first_valid(orientation_z, 1L)
 
   if (!all(c(orientation_x, orientation_y, orientation_z) %in% c(-1L, 1L))) {
-    stop("`orientation` must be 1 or -1.")
+    stop_move2imu(
+      "`orientation` must be 1 or -1.",
+      class = c("calibration_spec_invalid", "calibration")
+    )
   }
 
   new_acc_calibration(
@@ -388,10 +411,23 @@ eobs_specs <- function(tag_id, sensitivity = "low") {
   # guard against factor tag ID, which as.numeric coerces to its level
   tag_id <- as.numeric(as.character(tag_id))
   sensitivity <- rep_len(sensitivity, length(tag_id))
-  rlang::arg_match(sensitivity, c("low", "high"), multiple = TRUE)
+
+  bad_sensitivity <- setdiff(sensitivity, c("low", "high"))
+  if (length(bad_sensitivity) > 0) {
+    stop_move2imu(
+      paste0(
+        "`sensitivity` must be \"low\" or \"high\", not ",
+        encodeString(as.character(bad_sensitivity[1]), quote = "\""), "."
+      ),
+      class = c("calibration_spec_invalid", "calibration")
+    )
+  }
 
   if (any(is.na(tag_id))) {
-    rlang::abort("Cannot look up eobs tag specs for missing `tag_id`")
+    stop_move2imu(
+      "Cannot look up eobs tag specs for missing `tag_id`",
+      class = c("calibration_spec_invalid", "calibration")
+    )
   }
 
   config <- eobs_default_specs()
@@ -433,7 +469,10 @@ eobs_specs <- function(tag_id, sensitivity = "low") {
       )
     )
 
-    rlang::abort(unique(msgs))
+    stop_move2imu(
+      paste(unique(msgs), collapse = "\n"),
+      class = c("calibration_spec_invalid", "calibration")
+    )
   }
 
   data.frame(
@@ -540,13 +579,13 @@ warn_unresolved_calibrations <- function(reasons) {
     )
   }
 
-  cli::cli_warn(
+  warn_move2imu(
     c(
       "Returning NA for {n_na} calibration{?s} that could not be resolved:",
       rlang::set_names(bullets, rep("*", length(bullets))),
       "i" = "See {.help [{.fun acc_calibration}](move2imu::acc_calibration)} for details about accepted calibration inputs."
     ),
-    class = "move2imu_unresolved_calibration"
+    class = c("calibration_unresolved", "calibration")
   )
 }
 

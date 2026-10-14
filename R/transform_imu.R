@@ -48,20 +48,26 @@ transform_imu <- function(x, calibration) {
   assert_imu(x)
 
   if (!inherits(calibration, "imu_calibration")) {
-    cli::cli_abort(c(
-      "{.arg calibration} must be an {.cls imu_calibration} object.",
-      "i" = "Use e.g. {.help [{.fn acc_calibration}](move2imu::acc_calibration)} to create one."
-    ))
+    abort_move2imu(
+      c(
+        "{.arg calibration} must be an {.cls imu_calibration} object.",
+        "i" = "Use e.g. {.help [{.fn acc_calibration}](move2imu::acc_calibration)} to create one."
+      ),
+      class = c("calibration_invalid", "calibration")
+    )
   }
 
   sensor <- class(x)[1]
   expected <- paste0(sensor, "_calibration")
 
   if (!inherits(calibration, expected)) {
-    cli::cli_abort(c(
-      "Cannot apply {.cls {class(calibration)[1]}} to an {.cls {sensor}} vector.",
-      "i" = "Expected an {.cls {expected}} object."
-    ))
+    abort_move2imu(
+      c(
+        "Cannot apply {.cls {class(calibration)[1]}} to {.cls {sensor}} data.",
+        "i" = "Calibration is currently supported only for {.cls acc} vectors."
+      ),
+      class = c("calibration_sensor_incompatible", "calibration")
+    )
   }
 
   calibration <- vctrs::vec_recycle(calibration, length(x))
@@ -72,11 +78,12 @@ transform_imu <- function(x, calibration) {
   uncalibrated <- missing_cal & !is.na(x)
 
   if (any(uncalibrated)) {
-    cli::cli_warn(
+    warn_move2imu(
       paste0(
         "Returning NA for {sum(uncalibrated)} {cli::qty(sum(uncalibrated))}burst{?s} ",
         "with data but no calibration."
-      )
+      ),
+      class = c("calibration_missing", "calibration")
     )
   }
 
@@ -125,19 +132,23 @@ transform_imu <- function(x, calibration) {
   }
 
   if (n_w_units > 0L) {
-    cli::cli_warn(
+    warn_move2imu(
       paste0(
         "Cannot calibrate {n_w_units} {cli::qty(n_w_units)}burst{?s} with ",
         "pre-existing units. Returning input."
-      )
+      ),
+      class = c("calibration_has_units", "calibration")
     )
   }
 
   if (introduced_na) {
-    cli::cli_warn(c(
-      "Calibration introduced NA values in some axes.",
-      "i" = "Did you specify calibration parameters for all recorded axes?"
-    ))
+    warn_move2imu(
+      c(
+        "Calibration introduced NA values in some axes.",
+        "i" = "Did you specify calibration parameters for all recorded axes?"
+      ),
+      class = c("calibration_introduced_na", "calibration")
+    )
   }
 
   bursts(x) <- new_burst_list(out, sensor = sensor)

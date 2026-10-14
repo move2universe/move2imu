@@ -78,10 +78,13 @@ peak_frequency <- function(x, resolution = NA) {
     n_need <- ceiling(fqs_num / res_num)
     n_fallback <- sum(n_have > n_need)
     if (n_fallback > 0) {
-      cli::cli_warn(paste0(
-        "Using the default spacing for {n_fallback} ",
-        "burst{?s} with default spacing finer than {.arg resolution}."
-      ))
+      warn_move2imu(
+        paste0(
+          "Using the default spacing for {n_fallback} ",
+          "burst{?s} with default spacing finer than {.arg resolution}."
+        ),
+        class = "default_spacing"
+      )
     }
   }
 

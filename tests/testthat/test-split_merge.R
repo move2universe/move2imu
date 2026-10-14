@@ -478,7 +478,10 @@ test_that("merge_imu validates ids length", {
     start = .as.POSIXct(c(0, 3, 6))
   )
 
-  expect_error(merge_imu(a, ids = c(1, 1)), "same length")
+  expect_error(
+    merge_imu(a, ids = c(1, 1)),
+    class = "move2imu_error_size_incompatible"
+  )
 })
 
 test_that("split_imu start times track actual samples for non-integer chunks", {

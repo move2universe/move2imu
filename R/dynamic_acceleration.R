@@ -25,7 +25,7 @@
 #' odba(a)
 vedba <- function(x) {
   if (!is_acc(x)) {
-    cli::cli_abort("{.arg x} must be an {.cls acc} vector.")
+    abort_move2imu("{.arg x} must be an {.cls acc} vector.")
   }
   dba_(x, .f = function(.br) vedba_(.br))
 }
@@ -33,7 +33,7 @@ vedba <- function(x) {
 #' @noRd
 odba <- function(x) {
   if (!is_acc(x)) {
-    cli::cli_abort("{.arg x} must be an {.cls acc} vector.")
+    abort_move2imu("{.arg x} must be an {.cls acc} vector.")
   }
   dba_(x, .f = function(.br) odba_(.br))
 }
