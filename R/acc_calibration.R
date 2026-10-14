@@ -167,6 +167,11 @@ as_acc_calibration <- function(df) {
     abort_move2imu("{.arg df} must be a data frame.")
   }
 
+  # Convert factor columns to character for consistent behavior. Factor `units`
+  # fail validation, and numeric columns stored as factors would otherwise be
+  # read as their internal codes.
+  df[] <- lapply(df, function(col) if (is.factor(col)) as.character(col) else col)
+
   args <- list(
     tag_id = df[["tag_id"]],
     manufacturer = df[["manufacturer"]],

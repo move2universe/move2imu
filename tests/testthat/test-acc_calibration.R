@@ -394,6 +394,29 @@ test_that("as_acc_calibration() NA orientation falls back to manufacturer defaul
   expect_identical(transform_burst(b, cal[1]), transform_burst(b, cal_default[1]))
 })
 
+test_that("as_acc_calibration() treats factor columns as character", {
+  df <- data.frame(
+    manufacturer = c("eobs", NA),
+    tag_id = c(1000, NA),
+    offset = c(NA, 2048),
+    offset_x = c(NA, "7"),
+    slope = c(NA, 0.001),
+    units = c("standard_free_fall", NA),
+    stringsAsFactors = TRUE
+  )
+  df_chr <- data.frame(
+    manufacturer = c("eobs", NA),
+    tag_id = c(1000, NA),
+    offset = c(NA, 2048),
+    offset_x = c(NA, 7),
+    slope = c(NA, 0.001),
+    units = c("standard_free_fall", NA)
+  )
+
+  expect_no_warning(cal <- as_acc_calibration(df))
+  expect_identical(cal, as_acc_calibration(df_chr))
+})
+
 test_that("as_acc_calibration() silently ignores unrecognized columns", {
   df <- data.frame(tag_id = 1, offset = 2048, slope = 0.001, notes = "test")
   expect_silent(as_acc_calibration(df))
