@@ -7,7 +7,11 @@ format.imu <- function(x, ...) {
     if (is.null(x)) {
       return(NA_character_)
     }
-    m <- round(colMeans(x), 2)
+    # Mean of each axis, ignoring missing samples. Axes with no samples at all
+    # give NaN, which is shown as NA.
+    m <- colMeans(x, na.rm = TRUE)
+    m[is.nan(m)] <- NA
+    m <- round(m, 2)
 
     if (inherits(x, "units")) {
       u <- (units(x))

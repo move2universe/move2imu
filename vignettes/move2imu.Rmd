@@ -386,6 +386,6 @@ plot_imu_trace(a[422], main = "Wing beats", ylab = "Acceleration (g)") |>
 If your data are stored as raw ADC values rather than physical units,
 see the [calibration vignette](calibration.html) to learn how to convert them.
 
-See the [programming with bursts](programming.html) vignette for a demonstration
-of how to compute values from `acc` bursts and link them back to GPS
+See the [example workflow vignette](metrics.html) for a demonstration
+of how to compute activity metrics from `acc` bursts and link them back to GPS
 coordinates in a `move2` object.
