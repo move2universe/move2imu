@@ -478,7 +478,10 @@ test_that("merge_imu validates ids length", {
     start = .as.POSIXct(c(0, 3, 6))
   )
 
-  expect_error(merge_imu(a, ids = c(1, 1)), "same length")
+  expect_error(
+    merge_imu(a, ids = c(1, 1)),
+    class = "move2imu_error_size_incompatible"
+  )
 })
 
 test_that("split_imu start times track actual samples for non-integer chunks", {
@@ -758,4 +761,9 @@ test_that("merge_imu preserves the input time zone when bursts merge", {
     # The merged start is the first burst's start, unchanged
     expect_identical(starts(dropped), .as.POSIXct(0, tz))
   }
+})
+
+test_that("split_imu() and merge_imu() reject non-IMU input", {
+  expect_error(split_imu(1:3, 1), class = "move2imu_error_imu_invalid")
+  expect_error(merge_imu(1:3), class = "move2imu_error_imu_invalid")
 })

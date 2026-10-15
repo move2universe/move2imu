@@ -199,7 +199,10 @@ burst_intervals <- function(x, ids = NULL, from = "end") {
   n <- vec_size(x)
 
   if (!is.null(ids) && length(ids) != n) {
-    cli::cli_abort("{.arg ids} must be the same length as {.arg x}.")
+    abort_move2imu(
+      "{.arg ids} must be the same length as {.arg x}.",
+      class = "size_incompatible"
+    )
   }
 
   if (n == 0) {

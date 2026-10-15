@@ -56,7 +56,7 @@ test_that("active_mag_colsets() errors when no mag colset is present", {
   m$magnetic_field_y <- NULL
   m$magnetic_field_z <- NULL
 
-  expect_error(active_mag_colsets(m), "Could not identify a full")
+  expect_error(active_mag_colsets(m), class = "move2imu_error_colset_not_detected")
 })
 
 test_that("duplicated_mag_rows() detects overlap across colsets", {
@@ -83,14 +83,15 @@ test_that("as_mag() errors on overlapping mag rows with a mag-specific message",
 
   expect_error(
     suppressWarnings(as_mag_df(m)),
-    "multiple sources of mag data"
+    "multiple sources of mag data",
+    class = "move2imu_error_colset_duplicated_rows"
   )
 })
 
 test_that("as_mag() rejects a non-mag colset argument", {
   expect_error(
     as_mag_df(mag_example_expanded(), colset = "foobar"),
-    "must be an <imu_colset>"
+    class = "move2imu_error_colset_invalid"
   )
 })
 
@@ -104,7 +105,7 @@ test_that("as_mag() errors when the requested colset columns are missing", {
   # Expanded-format fixture doesn't have compact-format mag columns
   expect_error(
     as_mag_df(mag_example_expanded(), colset = mag_colset_raw()),
-    "Missing columns"
+    class = "move2imu_error_colset_columns_not_found"
   )
 })
 

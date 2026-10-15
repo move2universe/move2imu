@@ -391,7 +391,7 @@ test_that("Warn and drop on improper frequency inputs", {
     start = .as.POSIXct(c(0, 100))
   )
 
-  expect_warning(b <- bin_samples(a), "Omitting 1 burst")
+  expect_warning(b <- bin_samples(a), class = "move2imu_warning_bursts_omitted")
   expect_equal(sum(b$n), 10L)
 })
 

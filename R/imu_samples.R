@@ -82,13 +82,16 @@ imu_samples <- function(x) {
   u <- unique(imu_units(x))
 
   if (length(u) > 1) {
-    cli::cli_abort(c(
-      "All bursts in {.arg x} must have the same units.",
-      "i" = paste0(
-        "See {.help [{.fn transform_imu}](move2imu::transform_imu)} or ",
-        "{.help [{.fn set_imu_units}](move2imu::set_imu_units)}."
-      )
-    ))
+    abort_move2imu(
+      c(
+        "All bursts in {.arg x} must have the same units.",
+        "i" = paste0(
+          "See {.help [{.fn transform_imu}](move2imu::transform_imu)} or ",
+          "{.help [{.fn set_imu_units}](move2imu::set_imu_units)}."
+        )
+      ),
+      class = c("units_mixed", "units")
+    )
   }
 
   b <- bursts(drop_imu_units(x))

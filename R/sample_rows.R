@@ -70,7 +70,7 @@ gyro_sample_rows <- function(x, colset = NULL) {
 imu_sample_rows <- function(x, sensor, colset = NULL) {
   colsets <- tryCatch(
     parse_colsets(x, colset, sensor, quiet = TRUE),
-    move2imu_no_active_colset = function(e) NULL
+    move2imu_error_colset_not_detected = function(e) NULL
   )
 
   out <- logical(nrow(x))

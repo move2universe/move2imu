@@ -71,12 +71,12 @@ test_that("Bursts with different units give an error", {
   a1 <- set_imu_units(acc_example()[1], "standard_free_fall")
   a2 <- set_imu_units(acc_example()[2], "m/s^2")
 
-  expect_error(imu_samples(c(a1, a2)), "must have the same units")
+  expect_error(imu_samples(c(a1, a2)), class = "move2imu_error_units_mixed")
 
   # Bursts with units mixed with unitless bursts
   expect_error(
     imu_samples(c(a1, drop_imu_units(a2))),
-    "must have the same units"
+    class = "move2imu_error_units_mixed"
   )
 })
 
@@ -114,5 +114,5 @@ test_that("Empty input gives a data frame with no rows", {
 })
 
 test_that("x must be an IMU vector", {
-  expect_error(imu_samples(1:3), "must be an IMU vector")
+  expect_error(imu_samples(1:3), class = "move2imu_error_imu_invalid")
 })

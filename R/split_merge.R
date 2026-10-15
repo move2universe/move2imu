@@ -79,10 +79,15 @@ merge_imu <- function(x,
                       gap_tol = 1e-6,
                       freq_tol = 1e-2,
                       drop = FALSE) {
+  assert_imu(x)
+
   n <- vec_size(x)
 
   if (!is.null(ids) && length(ids) != n) {
-    cli::cli_abort("{.arg ids} must be the same length as {.arg x}.")
+    abort_move2imu(
+      "{.arg ids} must be the same length as {.arg x}.",
+      class = "size_incompatible"
+    )
   }
 
   # `gap_tol` is an absolute time; normalize to seconds once here. Every time
@@ -91,7 +96,7 @@ merge_imu <- function(x,
   gap_tol <- as.numeric(units::set_units(gap_tol, "s"))
 
   if (gap_tol < 0) {
-    cli::cli_abort("{.arg gap_tol} must be greater than or equal to 0.")
+    abort_move2imu("{.arg gap_tol} must be greater than or equal to 0.")
   }
 
   check_freq_tol(freq_tol)
@@ -318,8 +323,10 @@ merge_imu <- function(x,
 #'   mutate(burst = merge_imu(burst, ids = id, drop = FALSE))
 #' }
 split_imu <- function(x, interval, flatten = FALSE) {
+  assert_imu(x)
+
   if (!(as.numeric(interval) > 0)) {
-    cli::cli_abort("{.arg interval} must be a positive number.")
+    abort_move2imu("{.arg interval} must be a positive number.")
   }
 
   sensor <- class(x)[1]

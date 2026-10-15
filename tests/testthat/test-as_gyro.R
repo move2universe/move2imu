@@ -45,7 +45,10 @@ test_that("active_gyro_colsets() errors when no gyro colset is present", {
   g$angular_velocity_y <- NULL
   g$angular_velocity_z <- NULL
 
-  expect_error(active_gyro_colsets(g), "Could not identify a full")
+  expect_error(
+    active_gyro_colsets(g),
+    class = "move2imu_error_colset_not_detected"
+  )
 })
 
 test_that("duplicated_gyro_rows() detects overlap across colsets", {
@@ -72,14 +75,15 @@ test_that("as_gyro() errors on overlapping gyro rows with a gyro-specific messag
 
   expect_error(
     suppressWarnings(as_gyro_df(g)),
-    "multiple sources of gyro data"
+    "multiple sources of gyro data",
+    class = "move2imu_error_colset_duplicated_rows"
   )
 })
 
 test_that("as_gyro() rejects a non-gyro colset argument", {
   expect_error(
     as_gyro_df(gyro_example_expanded(), colset = "foobar"),
-    "must be an <imu_colset>"
+    class = "move2imu_error_colset_invalid"
   )
 })
 
@@ -92,7 +96,7 @@ test_that("as_gyro() accepts a user-supplied gyro_colset", {
 test_that("as_gyro() errors when the requested colset columns are missing", {
   expect_error(
     as_gyro_df(gyro_example_expanded(), colset = gyro_colset_raw()),
-    "Missing columns"
+    class = "move2imu_error_colset_columns_not_found"
   )
 })
 

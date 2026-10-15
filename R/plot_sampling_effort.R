@@ -314,31 +314,35 @@ bin_samples_ <- function(...,
   lanes <- rlang::dots_list(..., .named = TRUE, .homonyms = "error")
 
   if (length(lanes) == 0L) {
-    cli::cli_abort("No data provided to {.arg ...}.")
+    abort_move2imu("No data provided to {.arg ...}.")
   }
 
   lane_sizes <- unique(vctrs::list_sizes(lanes))
 
   if (length(lane_sizes) > 1) {
-    cli::cli_abort(c(
-      "All elements in `...` must be the same length.",
-      x = "Got lengths {lane_sizes}"
-    ))
+    abort_move2imu(
+      c(
+        "All elements in `...` must be the same length.",
+        x = "Got lengths {lane_sizes}"
+      ),
+      class = "size_incompatible"
+    )
   }
 
   if (!is.null(ids) && length(ids) != lane_sizes[[1]]) {
-    cli::cli_abort(
-      "Length of `ids` ({length(ids)}) must match length of each vector in `...` ({lane_sizes[[1]]})"
+    abort_move2imu(
+      "Length of `ids` ({length(ids)}) must match length of each vector in `...` ({lane_sizes[[1]]})",
+      class = "size_incompatible"
     )
   }
 
   bad_type <- !purrr::map_lgl(
     lanes,
-    function(l) inherits(l, "imu") || is_timestamp(l)
+    function(l) is_imu(l) || is_timestamp(l)
   )
 
   if (any(bad_type)) {
-    cli::cli_abort(c(
+    abort_move2imu(c(
       "Every input to {.arg ...} must be an {.cls imu} or timestamp vector.",
       x = "Problems with {.arg {names(lanes)[bad_type]}}."
     ))
@@ -354,7 +358,7 @@ bin_samples_ <- function(...,
   to <- timestamp_to_sec(to)
 
   if (!is.null(from) && !is.null(to) && to <= from) {
-    cli::cli_abort("{.arg to} must be after {.arg from}.")
+    abort_move2imu("{.arg to} must be after {.arg from}.")
   }
 
   lane_timing <- purrr::map(lanes, burst_timing)
@@ -375,7 +379,7 @@ bin_samples_ <- function(...,
   )
 
   if (length(burst_bounds) == 0L) {
-    cli::cli_abort("None of the data inputs have any timestamp information recorded.")
+    abort_move2imu("None of the data inputs have any timestamp information recorded.")
   }
 
   # Get default time window. If user provided `from`/`to`, they are used,
@@ -449,7 +453,7 @@ bin_samples_ <- function(...,
   )
 
   if (is.null(out)) {
-    cli::cli_abort("No samples fall in the requested time window.")
+    abort_move2imu("No samples fall in the requested time window.")
   }
 
   # `rbind()` derives row names from the lane labels, which duplicates the
@@ -543,7 +547,7 @@ count_in_bins <- function(start,
     n_bursts <- length(start)
 
     if (n_bursts < max_cells) {
-      cli::cli_abort(
+      abort_move2imu(
         c(
           "{.arg bin_width} is too fine for the bursts in these data.",
           i = "Increase {.arg bin_width} or restrict the time range with {.arg from}/{.arg to}."
@@ -551,7 +555,7 @@ count_in_bins <- function(start,
         call = call
       )
     } else {
-      cli::cli_abort(
+      abort_move2imu(
         c(
           "Too many input bursts.",
           i = "Restrict the time range with {.arg from}/{.arg to}."
@@ -637,7 +641,7 @@ samples_before <- function(cutoff, burst_start, burst_period, burst_n_samp) {
 burst_timing <- function(x) {
   # If `lane` is an `imu`, take the timing from its metadata. Otherwise `lane`
   # must be a date-like object and we can use the timestamps themselves
-  if (inherits(x, "imu")) {
+  if (is_imu(x)) {
     has_data <- !is.na(x)
 
     with_data <- x[has_data]
@@ -664,9 +668,10 @@ burst_timing <- function(x) {
         samp_period <= 0)
 
     if (any(no_timing)) {
-      cli::cli_warn(
+      warn_move2imu(
         "Omitting {sum(no_timing)} burst{?s} with no start time or no usable
-         sampling frequency."
+         sampling frequency.",
+        class = "bursts_omitted"
       )
     }
 
@@ -706,12 +711,12 @@ bin_to_sec <- function(bin_width,
   force(arg)
 
   if (length(bin_width) != 1L) {
-    cli::cli_abort("{.arg {arg}} must be length 1.", call = call)
+    abort_move2imu("{.arg {arg}} must be length 1.", call = call)
   }
 
   # Guard the coercion below, which otherwise fails without argument context
   if (!is.numeric(bin_width) && !inherits(bin_width, c("units", "difftime"))) {
-    cli::cli_abort(
+    abort_move2imu(
       "{.arg {arg}} must be a {.cls units} object, a {.cls difftime}, or a
        number of seconds, not {.cls {class(bin_width)[1]}}.",
       call = call
@@ -725,7 +730,7 @@ bin_to_sec <- function(bin_width,
   bin_width <- as.numeric(units::set_units(bin_width, "s"))
 
   if (!is.finite(bin_width) || bin_width <= 0) {
-    cli::cli_abort(
+    abort_move2imu(
       "{.arg {arg}} must be a finite number greater than 0.",
       call = call
     )
@@ -753,12 +758,12 @@ timestamp_to_sec <- function(x,
   x <- timestamp_to_POSIXct(x, arg = arg, call = call)
 
   if (length(x) != 1L) {
-    cli::cli_abort("{.arg {arg}} must be length 1.", call = call)
+    abort_move2imu("{.arg {arg}} must be length 1.", call = call)
   }
 
   # Catches `NA` and an infinite datetime in one
   if (!is.finite(x)) {
-    cli::cli_abort("{.arg {arg}} must be a finite datetime.", call = call)
+    abort_move2imu("{.arg {arg}} must be a finite datetime.", call = call)
   }
 
   as.numeric(x)

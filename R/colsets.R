@@ -62,20 +62,27 @@ imu_colset <- function(x = NULL,
   has_compact <- length(compact_args) > 0
 
   if (has_expanded && has_compact) {
-    cli::cli_abort(c(
-      "Cannot mix expanded-format and compact-format columns in a single imu_colset.",
-      "i" = "Use either {.code x}/{.code y}/{.code z} (expanded-format) or {.code bursts}/{.code axes}/{.code frequency} (compact-format)."
-    ))
+    abort_move2imu(
+      c(
+        "Cannot mix expanded-format and compact-format columns in a single imu_colset.",
+        "i" = "Use either {.code x}/{.code y}/{.code z} (expanded-format) or {.code bursts}/{.code axes}/{.code frequency} (compact-format)."
+      ),
+      class = c("colset_invalid", "colset")
+    )
   }
 
   if (!has_expanded && !has_compact) {
-    cli::cli_abort("No IMU data columns specified.")
+    abort_move2imu(
+      "No IMU data columns specified.",
+      class = c("colset_invalid", "colset")
+    )
   }
 
   if (has_compact) {
     if (length(compact_args) != 3) {
-      cli::cli_abort(
-        "Compact-format {.fun imu_colset} requires {.code bursts}, {.code axes}, and {.code frequency} columns."
+      abort_move2imu(
+        "Compact-format {.fun imu_colset} requires {.code bursts}, {.code axes}, and {.code frequency} columns.",
+        class = c("colset_invalid", "colset")
       )
     }
 
@@ -408,7 +415,10 @@ colset_type <- function(x) {
   } else if (inherits(x, "imu_colset_expanded")) {
     "expanded"
   } else {
-    cli::cli_abort("{.arg x} must be an {.cls imu_colset}.")
+    abort_move2imu(
+      "{.arg x} must be an {.cls imu_colset}.",
+      class = c("colset_invalid", "colset")
+    )
   }
 }
 
@@ -598,11 +608,12 @@ assert_all_cols_present <- function(x, cols, call = rlang::caller_env()) {
   if (!all(cols %in% colnames(x))) {
     cols <- cols[which(!cols %in% colnames(x))]
 
-    cli::cli_abort(
+    abort_move2imu(
       c(
         "Missing columns provided.",
         "x" = "Could not find column{?s} {.val {cols}}."
       ),
+      class = c("colset_columns_not_found", "colset"),
       call = call
     )
   }
@@ -610,12 +621,12 @@ assert_all_cols_present <- function(x, cols, call = rlang::caller_env()) {
 
 abort_missing_colset <- function(sensor, call = rlang::caller_env()) {
   fn <- paste0("movebank_", sensor, "_colsets")
-  cli::cli_abort(
+  abort_move2imu(
     c(
       "Could not identify a full {sensor} column set in the input data.",
       "i" = "Use {.fn {fn}} to see supported {sensor} column sets."
     ),
-    class = "move2imu_no_active_colset",
+    class = c("colset_not_detected", "colset"),
     call = call
   )
 }

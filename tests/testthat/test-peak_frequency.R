@@ -136,7 +136,7 @@ test_that("Use default spacing when resolution too coarse", {
   # already finer than requested and keeps its default spacing.
   expect_warning(
     out <- peak_frequency(a, resolution = units::set_units(1, "Hz")),
-    "Using the default spacing"
+    class = "move2imu_warning_default_spacing"
   )
   expect_length(out, 2)
   # Long-burst peak matches the result with no `resolution`.
@@ -208,4 +208,8 @@ test_that("peak_frequency is unit-equivalent across convertible frequency units"
     units::set_units(p_min_r, "Hz", mode = "standard"),
     p_hz_r
   )
+})
+
+test_that("peak_frequency() rejects non-IMU input", {
+  expect_error(peak_frequency(1:3), class = "move2imu_error_imu_invalid")
 })

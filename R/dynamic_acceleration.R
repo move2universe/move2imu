@@ -24,17 +24,13 @@
 #'
 #' odba(a)
 vedba <- function(x) {
-  if (!is_acc(x)) {
-    cli::cli_abort("{.arg x} must be an {.cls acc} vector.")
-  }
+  assert_imu(x, sensor = "acc")
   dba_(x, .f = function(.br) vedba_(.br))
 }
 
 #' @noRd
 odba <- function(x) {
-  if (!is_acc(x)) {
-    cli::cli_abort("{.arg x} must be an {.cls acc} vector.")
-  }
+  assert_imu(x, sensor = "acc")
   dba_(x, .f = function(.br) odba_(.br))
 }
 
