@@ -109,3 +109,25 @@ test_that("accessors reject non-move2 input", {
   expect_error(mt_acc_column(df), "must be a <move2> object")
   expect_error(mt_acc(df), "must be a <move2> object")
 })
+
+test_that("column accessor errors have move2imu condition classes", {
+  m <- move2_with_imu()
+
+  expect_error(mt_acc_column(m), class = "move2imu_error_imu_column_missing")
+  expect_error(mt_set_acc_column(m, "foobar"), class = "move2imu_error_imu_column_not_found")
+  expect_error(mt_set_acc_column(m, "m"), class = "move2imu_error_imu_sensor_incompatible")
+  expect_error(mt_set_acc_column(m, "id"), class = "move2imu_error_imu_invalid")
+  expect_error(mt_set_acc_column(m, 1), class = "move2imu_error")
+  expect_error(mt_acc(data.frame(a = 1)), class = "move2imu_error")
+
+  m <- mt_set_acc_column(m, "a")
+  attr(m, "acc_column") <- 1L
+  expect_error(mt_acc_column(m), class = "move2imu_error_imu_column_invalid")
+
+  m <- mt_set_acc_column(m, "a")
+  m$a <- NULL
+  expect_error(mt_acc(m), class = "move2imu_error_imu_column_not_found")
+
+  m$a <- m$m
+  expect_error(mt_acc(m), class = "move2imu_error_imu_sensor_incompatible")
+})

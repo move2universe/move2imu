@@ -152,11 +152,12 @@ mt_imu_column <- function(x, sensor, call = rlang::caller_env()) {
 
   if (is.null(col)) {
     setter <- paste0("mt_set_", sensor, "_column")
-    cli::cli_abort(
+    abort_move2imu(
       c(
         "No `{nm}` detected.",
         i = "Set one with {.help [{.fn {setter}}](move2imu::{setter})}."
       ),
+      class = c("imu_column_missing", "imu_column"),
       call = call
     )
   }
@@ -164,8 +165,9 @@ mt_imu_column <- function(x, sensor, call = rlang::caller_env()) {
   # Ensure value is length-1 character. Setters enforce this as well, but users
   # could manipulate attributes manually.
   if (!rlang::is_scalar_character(col)) {
-    cli::cli_abort(
+    abort_move2imu(
       "The `{nm}` attribute must be a {.cls character} of length 1.",
+      class = c("imu_column_invalid", "imu_column"),
       call = call
     )
   }
@@ -180,27 +182,23 @@ mt_set_imu_column <- function(x, sensor, value, call = rlang::caller_env()) {
   assert_move2(x, call = call)
 
   if (!rlang::is_string(value)) {
-    cli::cli_abort(
+    abort_move2imu(
       "{.arg value} must be a length-1 character.",
       call = call
     )
   }
 
   if (!rlang::has_name(x, value)) {
-    cli::cli_abort(
+    abort_move2imu(
       "{.arg value} must be the name of a column in {.arg x}.",
+      class = c("imu_column_not_found", "imu_column"),
       call = call
     )
   }
 
   col <- x[[value]]
 
-  if (!inherits(col, sensor)) {
-    cli::cli_abort(
-      "Column {.val {value}} must be of class {.cls {sensor}}, not {.cls {class(col)[1]}}.",
-      call = call
-    )
-  }
+  assert_imu_column_class(col, value, sensor, call = call)
 
   attr(x, imu_column_attr(sensor)) <- value
   
@@ -215,22 +213,38 @@ mt_imu <- function(x, sensor, call = rlang::caller_env()) {
   nm <- imu_column_attr(sensor)
 
   if (!rlang::has_name(x, col)) {
-    cli::cli_abort(
+    abort_move2imu(
       "`{nm}` {.val {col}} does not exist in {.arg x}.",
+      class = c("imu_column_not_found", "imu_column"),
       call = call
     )
   }
 
   vals <- x[[col]]
 
-  if (!inherits(vals, sensor)) {
-    cli::cli_abort(
-      "Column {.val {col}} must be of class {.cls {sensor}}, not {.cls {class(vals)[1]}}.",
-      call = call
-    )
-  }
+  assert_imu_column_class(vals, col, sensor, call = call)
 
   vals
+}
+
+# Check that the values of a designated IMU column (named `col`) are an IMU
+# vector for the expected sensor. Uses the same error classes as `assert_imu()`.
+assert_imu_column_class <- function(vals, col, sensor, call = rlang::caller_env()) {
+  if (inherits(vals, sensor)) {
+    return(invisible(vals))
+  }
+
+  if (is_imu(vals)) {
+    err_class <- c("imu_sensor_incompatible", "imu")
+  } else {
+    err_class <- c("imu_invalid", "imu")
+  }
+
+  abort_move2imu(
+    "Column {.val {col}} must be of class {.cls {sensor}}, not {.cls {class(vals)[1]}}.",
+    class = err_class,
+    call = call
+  )
 }
 
 # Attribute name storing the column that holds a given IMU data type in a
@@ -244,7 +258,7 @@ imu_column_attr <- function(sensor) {
 # for consistency with similar columns (time, track ID)
 assert_move2 <- function(x, call = rlang::caller_env()) {
   if (!inherits(x, "move2")) {
-    cli::cli_abort("{.arg x} must be a {.cls move2} object.", call = call)
+    abort_move2imu("{.arg x} must be a {.cls move2} object.", call = call)
   }
   invisible(x)
 }

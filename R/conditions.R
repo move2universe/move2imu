@@ -21,6 +21,7 @@
 #   move2imu_error_calibration: Calibration object construction and application
 #   move2imu_error_colset: IMU column set specification and presence in a data source
 #   move2imu_error_imu: Input that is not an IMU vector, or not for the expected sensor
+#   move2imu_error_imu_column: Designated IMU column in a move2 missing or invalid
 #   move2imu_error_timestamp: Missing or invalid timestamps
 #   move2imu_error_units: Inconsistent or invalid units
 #
