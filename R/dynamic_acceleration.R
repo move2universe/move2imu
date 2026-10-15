@@ -259,8 +259,9 @@ dba_ <- function(x, smoothing_window, .norm, call = rlang::caller_env()) {
   }
 
   if (!all(has_units)) {
-    cli::cli_abort(
+    abort_move2imu(
       "Can't combine bursts with and without units in {.arg x}.",
+      class = c("units_mixed", "units"),
       call = call
     )
   }
@@ -311,7 +312,7 @@ decompose_acc <- function(x,
   }
 
   if (any(too_short)) {
-    cli::cli_warn(c(
+    warn_move2imu(c(
       "Returning NA for {sum(too_short)} {cli::qty(sum(too_short))}burst{?s} too short for the requested {.arg smoothing_window}.",
       "i" = "A window must span at least 3 samples and no more than the burst."
     ))
@@ -388,7 +389,7 @@ window_to_sec <- function(window, call = rlang::caller_env()) {
       return(NULL)
     }
 
-    cli::cli_abort(
+    abort_move2imu(
       "{.arg smoothing_window} must be a duration or {.val burst}, not {.val {window}}.",
       call = call
     )
@@ -399,7 +400,7 @@ window_to_sec <- function(window, call = rlang::caller_env()) {
   }
 
   if (!is.numeric(window) || length(window) != 1 || is.na(window)) {
-    cli::cli_abort(
+    abort_move2imu(
       "{.arg smoothing_window} must be a single duration or {.val burst}.",
       call = call
     )
@@ -412,14 +413,14 @@ window_to_sec <- function(window, call = rlang::caller_env()) {
   window <- as.numeric(window)
 
   if (!(window > 0)) {
-    cli::cli_abort(
+    abort_move2imu(
       "{.arg smoothing_window} must be greater than 0.",
       call = call
     )
   }
 
   if (!is.finite(window)) {
-    cli::cli_abort("{.arg smoothing_window} must be finite.", call = call)
+    abort_move2imu("{.arg smoothing_window} must be finite.", call = call)
   }
 
   window

@@ -164,7 +164,10 @@ test_that("Bursts in different units are converted to the first burst's units", 
 
 test_that("Bursts with and without units can't be combined", {
   a <- c(acc_example()[1], set_imu_units(acc_example()[2], "m/s^2"))
-  expect_error(vedba(a, smoothing_window = "burst"), "Can't combine")
+  expect_error(
+    vedba(a, smoothing_window = "burst"),
+    class = "move2imu_error_units_mixed"
+  )
 })
 
 test_that("static_acc() and dynamic_acc() return per-sample components", {
