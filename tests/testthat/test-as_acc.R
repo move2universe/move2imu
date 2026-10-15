@@ -642,6 +642,64 @@ test_that("compact bursts must also be ordered and unique within a track", {
   expect_no_error(as_acc_df(comp))
 })
 
+test_that("compact rows without burst values become missing bursts", {
+  d <- acc_example_compact(.as.POSIXct(c(0, 10)))
+  d$eobs_accelerations_raw[2] <- NA
+
+  # Axes and frequency alone are not data
+  a <- as_acc_df(d)
+
+  expect_identical(is.na(a), c(FALSE, TRUE))
+  expect_identical(is.na(a), !acc_sample_rows(d))
+})
+
+test_that("compact rows missing only a frequency keep their samples", {
+  d <- acc_example_compact(.as.POSIXct(c(0, 10)))
+  d$eobs_acceleration_sampling_frequency_per_axis[2] <- NA
+
+  a <- as_acc_df(d)
+
+  expect_identical(is.na(a), c(FALSE, FALSE))
+  expect_identical(is.na(a), !acc_sample_rows(d))
+  expect_identical(bursts(a)[[2]], bursts(a)[[1]])
+  expect_true(is.na(freqs(a)[2]))
+
+  # The colset is still detected when no row has a frequency
+  d$eobs_acceleration_sampling_frequency_per_axis <- NA_real_
+
+  a <- as_acc_df(d)
+
+  expect_identical(is.na(a), c(FALSE, FALSE))
+  expect_identical(acc_sample_rows(d), c(TRUE, TRUE))
+  expect_true(all(is.na(freqs(a))))
+})
+
+test_that("compact bursts must hold a whole number of numeric samples", {
+  d <- acc_example_compact(.as.POSIXct(c(0, 10)))
+
+  bad <- c("1 2 3 4 5", "", "  ", "1 2 abc")
+
+  for (b in bad) {
+    d$eobs_accelerations_raw[2] <- b
+    expect_error(as_acc_df(d), class = "move2imu_error_colset_bursts_invalid")
+  }
+
+  # A burst with no axes can't be shaped into samples, though the row still
+  # holds data
+  d$eobs_accelerations_raw[2] <- "1 2 3"
+
+  for (axes in c("", NA)) {
+    d$eobs_acceleration_axes[2] <- axes
+    expect_identical(acc_sample_rows(d), c(TRUE, TRUE))
+    expect_error(as_acc_df(d), class = "move2imu_error_colset_bursts_invalid")
+  }
+
+  # All invalid rows are reported
+  d$eobs_acceleration_axes <- "XYZ"
+  d$eobs_accelerations_raw <- "1 2"
+  expect_error(as_acc_df(d), "rows 1 and 2")
+})
+
 test_that("tracks that are not grouped together are rejected", {
   d <- acc_example_expanded(c(1, 2, 3, 4), id = c("a", "b", "a", "b"))
 

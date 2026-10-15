@@ -205,9 +205,8 @@ as_imu_ <- function(x,
     )
   } else if (type == "compact") {
     out <- as_imu_compact(
-      x[[colset[["bursts"]]]],
-      x[[colset[["axes"]]]],
-      x[[colset[["frequency"]]]],
+      x,
+      colset = colset,
       sensor = sensor,
       timestamp = timestamp
     )
@@ -232,28 +231,55 @@ as_imu_ <- function(x,
   out
 }
 
-as_imu_compact <- function(x, axes, freq, sensor, timestamp) {
-  colnms <- strsplit(as.character(axes), "")
-  n_axis <- nchar(as.character(axes))
-  vals_split <- strsplit(as.character(x), " ", fixed = TRUE)
+as_imu_compact <- function(x, colset, sensor, timestamp) {
+  i <- which_imu_vals(x, colset = colset)
 
-  mlist <- purrr::map(vals_split, function(x) as.numeric(x))
+  axes <- as.character(x[[colset[["axes"]]]][i])
+  axis_nms <- strsplit(axes, "")
+  n_axis <- lengths(axis_nms)
 
-  i <- !is.na(n_axis)
-
-  mlist[!i] <- list(NULL)
-
-  mlist[i] <- mapply(
-    matrix,
-    mlist[i],
-    ncol = n_axis[i],
-    MoreArgs = list(byrow = TRUE),
-    SIMPLIFY = FALSE
+  # Non-numeric values in the burst string become NA here and are reported
+  # by the check below
+  vals <- suppressWarnings(
+    purrr::map(
+      strsplit(as.character(x[[colset[["bursts"]]]][i]), " ", fixed = TRUE),
+      as.numeric
+    )
   )
 
-  mlist[i] <- mapply("colnames<-", mlist[i], colnms[i], SIMPLIFY = FALSE)
+  # Error on malformed bursts: those with no axes, no values, any non-numeric
+  # value, or a value count not divisible by the number of axes.
+  n_vals <- lengths(vals)
+  bad <- is.na(axes) | n_axis == 0 | n_vals == 0 | n_vals %% n_axis != 0 |
+    purrr::map_lgl(vals, anyNA)
 
-  imu(sensor = sensor, bursts = mlist, frequency = freq, start = timestamp)
+  if (any(bad)) {
+    abort_move2imu(
+      c(
+        "{cli::qty(sum(bad))}Malformed burst{?s} in row{?s} {i[bad]}.",
+        "i" = "Bursts must contain space-delimited numeric values, and the number of values must be divisible by the number of axes."
+      ),
+      class = c("colset_bursts_invalid", "colset")
+    )
+  }
+
+  bursts <- purrr::pmap(
+    list(vals, n_axis, axis_nms),
+    function(v, k, nms) {
+      matrix(v, ncol = k, byrow = TRUE, dimnames = list(NULL, nms))
+    }
+  )
+
+  out <- empty_imu(sensor, nrow(x), timestamp)
+
+  out[i] <- imu(
+    sensor,
+    bursts = bursts,
+    frequency = x[[colset[["frequency"]]]][i],
+    start = timestamp[i]
+  )
+
+  out
 }
 
 as_imu_expanded <- function(x,
@@ -294,15 +320,7 @@ as_imu_expanded <- function(x,
   })
 
   # Attach bursts to index of the first record that belongs to that burst
-  out <- vec_rep(
-    imu(
-      sensor,
-      bursts = list(NULL),
-      frequency = units::set_units(NA, "Hz"),
-      start = as.POSIXct(NA, tz = attr(timestamp, "tzone") %||% "")
-    ),
-    nrow(x)
-  )
+  out <- empty_imu(sensor, nrow(x), timestamp)
 
   i <- purrr::map_int(burst_idx, 1L) # first index of each burst
   freq <- snap_freq(parsed$freq)
@@ -312,6 +330,20 @@ as_imu_expanded <- function(x,
   }
 
   out
+}
+
+# Helper to create an empty `imu` vector of length `n`, to be filled in with
+# parsed bursts at correct index positions.
+empty_imu <- function(sensor, n, timestamp) {
+  vec_rep(
+    imu(
+      sensor,
+      bursts = list(NULL),
+      frequency = units::set_units(NA, "Hz"),
+      start = as.POSIXct(NA, tz = attr(timestamp, "tzone") %||% "")
+    ),
+    n
+  )
 }
 
 # Resolve user-supplied `colset` into a list of validated IMU colsets.
@@ -357,11 +389,13 @@ which_imu_vals <- function(x, colset) {
 
   type <- colset_type(colset)
 
-  # Expanded-format columns only need at least one column to have data
+  # Expanded-format rows only need at least one column to have data.
+  # Compact-format rows have data when they have burst values. (Whether those
+  # values form a valid burst is checked when parsing.)
   if (type == "expanded") {
     has_vals <- which(rowSums(!is.na(x[colset])) > 0)
   } else {
-    has_vals <- which(rowSums(!is.na(x[colset])) == length(colset))
+    has_vals <- which(!is.na(x[[colset[["bursts"]]]]))
   }
 
   has_vals

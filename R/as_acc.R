@@ -79,6 +79,11 @@
 #' [move2::mt_filter_unique()] for help diagnosing issues with data
 #' organization.
 #'
+#' If the IMU data are malformed, `as_*()` will throw an error. Expanded-format
+#' columns must be numeric. Compact-format bursts must have axes and contain
+#' space-delimited numeric values, and the number of values must be divisible
+#' by the number of axes.
+#'
 #' ## Dealing with noise in recorded timestamps
 #'
 #' Noise in the recorded timestamps of the input data can disrupt the

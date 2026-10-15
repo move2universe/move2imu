@@ -132,6 +132,11 @@ resolved before calling \verb{as_*()}. For \code{move2} inputs, see
 \code{\link[move2:mt_is_track_id_cleaved]{move2::mt_is_track_id_cleaved()}}, \code{\link[move2:mt_is_time_ordered]{move2::mt_is_time_ordered()}}, and
 \code{\link[move2:mt_filter_unique]{move2::mt_filter_unique()}} for help diagnosing issues with data
 organization.
+
+If the IMU data are malformed, \verb{as_*()} will throw an error. Expanded-format
+columns must be numeric. Compact-format bursts must have axes and contain
+space-delimited numeric values, and the number of values must be divisible
+by the number of axes.
 }
 
 \subsection{Dealing with noise in recorded timestamps}{
