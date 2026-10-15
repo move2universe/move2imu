@@ -75,7 +75,7 @@ set_imu_units(a_ms2, "standard_free_fall")
 
 # Units must be appropriate for the sensor type of the input
 try(set_imu_units(a, "kg"))
-#> Error in set_imu_units_(x, value, reference = "m/s^2", sensor = "acc") : 
+#> Error in set_imu_units_(x, value, reference = "m/s^2") : 
 #>   kg units not valid for <acc> vector.
 #> ℹ Units must be convertible to m/s^2.
 
