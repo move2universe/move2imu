@@ -31,7 +31,7 @@
 #'    tracking network for large birds for the project/study LBBG_ZEEBRUGGE.
 #'    Acceleration data are provided in expanded format from
 #'    trackers developed by the University of Amsterdam Bird Tracking
-#'    System ([UvA-BiTS](http://www.uva-bits.nl)).
+#'    System ([UvA-BiTS](https://www.uva-bits.nl/)).
 #'
 #'    Only individual 5508292 is included.
 #'
@@ -48,12 +48,18 @@ NULL
 #' @export
 albatrosses <- function() {
   rlang::check_installed("move2")
-  readRDS(system.file("extdata", "albatrosses.rds", package = "move2imu"))
+  move2imu_example("albatrosses")
 }
 
 #' @rdname example_data
 #' @export
 gulls <- function() {
   rlang::check_installed("move2")
-  readRDS(system.file("extdata", "gulls.rds", package = "move2imu"))
+  move2imu_example("gulls")
+}
+
+# Load example dataset. readRDS() can load without move2 present. We use
+# the data to build analogous data.frame sources for unit tests.
+move2imu_example <- function(name) {
+  readRDS(system.file("extdata", paste0(name, ".rds"), package = "move2imu"))
 }

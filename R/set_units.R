@@ -51,18 +51,24 @@ set_imu_units <- function(x, value, ...) {
 }
 
 #' @export
+set_imu_units.default <- function(x, value, ...) {
+  assert_imu(x)
+  set_imu_units_(x, value)
+}
+
+#' @export
 set_imu_units.acc <- function(x, value, ...) {
-  set_imu_units_(x, value, reference = "m/s^2", sensor = "acc")
+  set_imu_units_(x, value, reference = "m/s^2")
 }
 
 #' @export
 set_imu_units.mag <- function(x, value, ...) {
-  set_imu_units_(x, value, reference = "tesla", sensor = "mag")
+  set_imu_units_(x, value, reference = "tesla")
 }
 
 #' @export
 set_imu_units.gyro <- function(x, value, ...) {
-  set_imu_units_(x, value, reference = "degree/s", sensor = "gyro")
+  set_imu_units_(x, value, reference = "degree/s")
 }
 
 # Also include methods for units::set_units, which may be some users' intuition:
@@ -118,19 +124,27 @@ drop_units.gyro <- function(x, ...) {
   drop_imu_units(x)
 }
 
-set_imu_units_ <- function(x, value, reference, sensor) {
+# Attach or convert units on every burst. If `reference` is given, `value` must
+# be convertible to it (e.g. an acceleration unit for `acc`). Without a
+# reference, any unit is accepted.
+set_imu_units_ <- function(x, value, reference = NULL) {
+  sensor <- class(x)[1]
+
   if (!is.character(value) || length(value) != 1) {
-    cli::cli_abort("{.arg value} must be a character string of length 1.")
+    abort_move2imu("{.arg value} must be a character string of length 1.")
   }
 
-  can_convert <- units::ud_are_convertible(reference, value)
-
-  if (!can_convert) {
-    cli::cli_abort(c(
-      "{value} units not valid for {.cls {sensor}} vector.",
-      "i" = "Units must be convertible to {reference}."
-    ))
+  if (!is.null(reference) && !units::ud_are_convertible(reference, value)) {
+    abort_move2imu(
+      c(
+        "{value} units not valid for {.cls {sensor}} vector.",
+        "i" = "Units must be convertible to {reference}."
+      ),
+      class = c("units_incompatible", "units")
+    )
   }
+
+  value <- units(units::as_units(value))
 
   bursts_converted <- purrr::map(
     bursts(x),

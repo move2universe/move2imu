@@ -17,41 +17,141 @@ as_imu.move2 <- function(x,
                          merge_continuous = TRUE,
                          drop = FALSE,
                          ...) {
+  check_move2_dots(...)
+
+  as_imu_table(
+    x,
+    sensor = sensor,
+    colset = colset,
+    min_freq = min_freq,
+    freq_tol = freq_tol,
+    gap_tol = gap_tol,
+    merge_continuous = merge_continuous,
+    drop = drop,
+    timestamp = move2::mt_time(x),
+    track_id = move2::mt_track_id(x),
+    ...
+  )
+}
+
+#' @export
+as_imu.data.frame <- function(x,
+                              sensor,
+                              timestamp,
+                              track_id,
+                              colset = NULL,
+                              min_freq = 0,
+                              freq_tol = 1e-2,
+                              gap_tol = 1e-6,
+                              merge_continuous = TRUE,
+                              drop = FALSE,
+                              ...) {
+  # Check lengths and NA track IDs for consistency with move2 inputs
+  if (length(timestamp) != nrow(x)) {
+    abort_move2imu(
+      "{.arg timestamp} must be the same length as {.arg x} ({nrow(x)}), not {length(timestamp)}.",
+      class = "size_incompatible"
+    )
+  }
+
+  if (!is.null(track_id)) {
+    if (length(track_id) != nrow(x)) {
+      abort_move2imu(
+        "{.arg track_id} must be the same length as {.arg x} ({nrow(x)}), not {length(track_id)}.",
+        class = "size_incompatible"
+      )
+    }
+
+    if (anyNA(track_id)) {
+      abort_move2imu(
+        "{.arg track_id} must not contain missing values.",
+        class = "track_missing"
+      )
+    }
+  }
+
+  as_imu_table(
+    x,
+    sensor = sensor,
+    timestamp = timestamp,
+    track_id = track_id,
+    colset = colset,
+    min_freq = min_freq,
+    freq_tol = freq_tol,
+    gap_tol = gap_tol,
+    merge_continuous = merge_continuous,
+    drop = drop,
+    ...
+  )
+}
+
+# Implementation behind both `as_imu()` methods. Only difference is that .move2
+# methods populate `timestamp` and `track_id` from the move2 metadata
+as_imu_table <- function(x,
+                         sensor,
+                         timestamp,
+                         track_id,
+                         colset = NULL,
+                         min_freq = 0,
+                         freq_tol = 1e-2,
+                         gap_tol = 1e-6,
+                         merge_continuous = TRUE,
+                         drop = FALSE) {
+  timestamp <- timestamp_to_POSIXct(timestamp, arg = "timestamp")
+
+  # Check input arg validity, including units matching and positive values
+  if (as.numeric(as_hz(min_freq)) < 0) {
+    abort_move2imu("{.arg min_freq} must be greater than or equal to 0.")
+  }
+
+  check_freq_tol(freq_tol)
+
+  if (as.numeric(units::set_units(gap_tol, "s")) < 0) {
+    abort_move2imu("{.arg gap_tol} must be greater than or equal to 0.")
+  }
+
   if (nrow(x) == 0) {
     return(new_imu(sensor))
   }
+
+  # If NULL, treat track_id as a single track
+  track_id <- as.character(track_id %||% rep(1L, nrow(x)))
 
   colsets <- parse_colsets(x, colset, sensor)
   dup <- duplicated_imu_rows(x, colsets = colsets)
 
   if (any(dup)) {
     dup_fn <- paste0("duplicated_", sensor, "_rows")
-    cli::cli_abort(c(
-      "{.arg x} contains {sum(dup)} timestamp{?s} with multiple sources of {sensor} data.",
-      "i" = "Use {.help [{.fun {dup_fn}}](move2imu::{dup_fn})} to identify duplications."
-    ))
+    abort_move2imu(
+      c(
+        "{.arg x} contains {sum(dup)} row{?s} with multiple sources of {sensor} data.",
+        "i" = "Use {.help [{.fun {dup_fn}}](move2imu::{dup_fn})} to identify duplications."
+      ),
+      class = c("colset_duplicated_rows", "colset")
+    )
   }
 
-  # Use lapply as we don't need purr's index errors here. User likely
+  # Use lapply as we don't need purrr's index errors here. User likely
   # will not realize we are iterating over colsets.
   out <- lapply(
     colsets,
     function(cols) {
-      as_imu_move2_(
+      as_imu_(
         x,
         sensor = sensor,
         colset = cols,
+        timestamp = timestamp,
+        track_id = track_id,
         min_freq = min_freq,
         freq_tol = freq_tol,
         gap_tol = gap_tol,
         merge_continuous = merge_continuous,
-        drop = FALSE,
-        ...
+        drop = FALSE
       )
     }
   )
 
-  out <- purrr::reduce(out, function(.x, .y) dplyr::coalesce(.x, .y))
+  out <- purrr::reduce(out, coalesce_imu)
 
   if (drop) {
     out <- out[!is.na(out)]
@@ -60,57 +160,56 @@ as_imu.move2 <- function(x,
   out
 }
 
-# Pipeline internals -----------------------------------------------------------
-
-as_imu_move2_ <- function(x,
-                          sensor,
-                          colset,
-                          min_freq = 0,
-                          freq_tol = 1e-2,
-                          gap_tol = 1e-6,
-                          merge_continuous = TRUE,
-                          drop = FALSE,
-                          force_int = NULL,
-                          ...) {
+as_imu_ <- function(x,
+                    sensor,
+                    colset,
+                    timestamp,
+                    track_id,
+                    min_freq = 0,
+                    freq_tol = 1e-2,
+                    gap_tol = 1e-6,
+                    merge_continuous = TRUE,
+                    drop = FALSE) {
   check_colset(x, colset)
-  
+
   imu_rows <- imu_sample_rows(x, sensor = sensor, colset = colset)
-  
-  if (any(imu_rows) && any(is.na(move2::mt_time(x[imu_rows, ])))) {
-    cli::cli_abort("All timestamps associated with IMU data must be non-NA.")
+
+  if (any(imu_rows) && any(is.na(timestamp[imu_rows]))) {
+    abort_move2imu(
+      "All timestamps associated with IMU data must be non-NA.",
+      class = c("timestamp_missing", "timestamp")
+    )
   }
-  
-  if (any(imu_rows) && !isTRUE(move2::mt_is_time_ordered(x[imu_rows, ], non_zero = TRUE))) {
-    cli::cli_abort(c(
-      "Timestamps must be strictly increasing within each track.",
-      "i" = "Order data by track and time and remove duplicate timestamps. See `move2::mt_filter_unique()`."
-    ))
+
+  if (any(imu_rows)) {
+    # Ensure timestamps in imu rows are ordered within tracks. We don't use
+    # move2's native implementation as it only dispatches on `move2`
+    check_time_order(
+      timestamp[imu_rows],
+      track_id[imu_rows],
+      hint_move2 = inherits(x, "move2")
+    )
   }
-  
+
   type <- colset_type(colset)
 
   if (type == "expanded") {
-    out <- as_imu_move2_expanded(
+    out <- as_imu_expanded(
       x,
       colset = colset,
       sensor = sensor,
+      timestamp = timestamp,
+      track_id = track_id,
       min_freq = min_freq,
-      freq_tol = freq_tol,
-      ...
+      freq_tol = freq_tol
     )
   } else if (type == "compact") {
-    # eobs bursts are integer-encoded; other compact sources are numeric.
-    # This is the only IMU-class-specific default in the compact pipeline.
-    is_acc_eobs_cols <- sensor == "acc" && is_eobs_acc_colset(colset)
-
     out <- as_imu_compact(
       x[[colset[["bursts"]]]],
       x[[colset[["axes"]]]],
       x[[colset[["frequency"]]]],
       sensor = sensor,
-      timestamp = move2::mt_time(x),
-      force_int = force_int %||% is_acc_eobs_cols,
-      ...
+      timestamp = timestamp
     )
   } else {
     abort_missing_colset(sensor)
@@ -119,7 +218,7 @@ as_imu_move2_ <- function(x,
   if (merge_continuous) {
     out <- merge_imu(
       out,
-      ids = move2::mt_track_id(x),
+      ids = track_id,
       gap_tol = gap_tol,
       freq_tol = freq_tol,
       drop = drop
@@ -133,26 +232,12 @@ as_imu_move2_ <- function(x,
   out
 }
 
-as_imu_compact <- function(x, axes, freq, sensor, timestamp, force_int = FALSE) {
+as_imu_compact <- function(x, axes, freq, sensor, timestamp) {
   colnms <- strsplit(as.character(axes), "")
   n_axis <- nchar(as.character(axes))
-  vals_split <- strsplit(as.character(x), " ")
+  vals_split <- strsplit(as.character(x), " ", fixed = TRUE)
 
-  if (force_int) {
-    flat <- as.numeric(unlist(vals_split))
-    flat_int <- as.integer(flat)
-
-    if (any(flat_int != flat, na.rm = TRUE)) {
-      cli::cli_warn(
-        "Detected numeric values, but expected integers. Some precision will be lost."
-      )
-    }
-
-    # Re-chunk the flat integer values back into per-burst pieces
-    mlist <- vctrs::vec_chop(flat_int, sizes = lengths(vals_split))
-  } else {
-    mlist <- purrr::map(vals_split, function(x) as.numeric(x))
-  }
+  mlist <- purrr::map(vals_split, function(x) as.numeric(x))
 
   i <- !is.na(n_axis)
 
@@ -171,13 +256,13 @@ as_imu_compact <- function(x, axes, freq, sensor, timestamp, force_int = FALSE) 
   imu(sensor = sensor, bursts = mlist, frequency = freq, start = timestamp)
 }
 
-as_imu_move2_expanded <- function(x,
-                                  colset,
-                                  sensor,
-                                  min_freq = 0,
-                                  freq_tol = 1e-2,
-                                  timestamp = move2::mt_time(x),
-                                  ...) {
+as_imu_expanded <- function(x,
+                            colset,
+                            sensor,
+                            timestamp,
+                            track_id,
+                            min_freq = 0,
+                            freq_tol = 1e-2) {
   col_names <- as.character(colset)
   m <- as.matrix(as.data.frame(x)[, col_names])
 
@@ -194,6 +279,8 @@ as_imu_move2_expanded <- function(x,
   parsed <- parse_bursts(
     x,
     colset = colset,
+    timestamp = timestamp,
+    track_id = track_id,
     min_freq = min_freq,
     freq_tol = freq_tol
   )
@@ -212,7 +299,7 @@ as_imu_move2_expanded <- function(x,
       sensor,
       bursts = list(NULL),
       frequency = units::set_units(NA, "Hz"),
-      start = as.POSIXct(NA, tz = attr(timestamp, "tzone") %||% "UTC")
+      start = as.POSIXct(NA, tz = attr(timestamp, "tzone") %||% "")
     ),
     nrow(x)
   )
@@ -236,16 +323,22 @@ parse_colsets <- function(x, colset, sensor, quiet = FALSE) {
     } else if (rlang::is_list(colset) && all(purrr::map_lgl(colset, is_imu_colset))) {
       colsets <- colset
     } else {
-      cli::cli_abort(c(
-        "{.arg colset} must be an {.cls imu_colset} object or a list of {.cls imu_colset} objects.",
-        "i" = "Use {.help [{.fun imu_colset}](move2imu::imu_colset)} to create an {.cls imu_colset} object."
-      ))
+      abort_move2imu(
+        c(
+          "{.arg colset} must be an {.cls imu_colset} object or a list of {.cls imu_colset} objects.",
+          "i" = "Use {.help [{.fun imu_colset}](move2imu::imu_colset)} to create an {.cls imu_colset} object."
+        ),
+        class = c("colset_invalid", "colset")
+      )
     }
   } else {
     colsets <- active_colsets_(x, sensor = sensor)
 
     if (!quiet && length(colsets) > 1) {
-      cli::cli_warn("Detected multiple valid {sensor} column sets.")
+      warn_move2imu(
+        "Detected multiple valid {sensor} column sets.",
+        class = c("colset_multiple", "colset")
+      )
     }
   }
 
@@ -300,41 +393,41 @@ which_imu_vals <- function(x, colset) {
 #' to `freq_changes` for details on our approach.
 #'
 #' @inheritParams as_acc
-#' @param x move2 object with expanded-format IMU data
+#' @param x data.frame with expanded-format IMU data
+#' @param timestamp Timestamp of each row of `x`, as a `POSIXct` vector.
+#' @param track_id Track identifier of each row of `x`, as a `character` vector.
 #'
 #' @returns A list with elements `bursts` and `freq`. The former is a list
 #'   whose elements indicate the row indices of `x` belonging to that burst.
 #'   The latter is the derived sampling frequency of each burst. Elements of
 #'   each match by index.
 #' @noRd
-parse_bursts <- function(x, colset, min_freq = 0, freq_tol = 1e-2) {
+parse_bursts <- function(x,
+                         colset,
+                         timestamp,
+                         track_id,
+                         min_freq = 0,
+                         freq_tol = 1e-2) {
   # Coerce to Hz at the boundary so `1 / min_freq` below is in seconds,
   # matching the second-based sample intervals, regardless of the unit supplied.
   min_freq <- as_hz(min_freq)
 
-  if (as.numeric(min_freq) < 0) {
-    cli::cli_abort("{.arg min_freq} must be greater than or equal to 0.")
-  }
-
-  if (as.numeric(freq_tol) < 0) {
-    cli::cli_abort("{.arg freq_tol} must be greater than or equal to 0.")
-  }
-
   min_interval <- (1 / as.numeric(min_freq)) + fp_time_floor
 
   vals_i <- which_imu_vals(x, colset = colset)
-  idx <- split(vals_i, as.character(move2::mt_track_id(x[vals_i, ])))
+
+  idx <- split(vals_i, track_id[vals_i])
 
   grps <- lapply(
     idx,
     function(i) {
       i <- unname(i)
-      
+
       if (length(i) < 2) {
         return(list(bursts = list(i), freq = NA_real_))
       }
 
-      samp_times <- as.numeric(move2::mt_time(x[i, ]))
+      samp_times <- as.numeric(timestamp[i])
 
       # Identify runs of consistent sampling frequency, within the tolerance
       is_freq_change <- freq_changes(diff(samp_times), freq_tol = freq_tol)
@@ -350,7 +443,7 @@ parse_bursts <- function(x, colset, min_freq = 0, freq_tol = 1e-2) {
           }
         )
       )
-      
+
       too_slow <- !is.na(run_intervals) & (run_intervals > min_interval)
       run_start <- is_freq_change | too_slow[run_id]
 
@@ -468,6 +561,95 @@ new_freq_regime <- function(n, n_next = 0, prev_run = FALSE) {
   c(start, rep(FALSE, n - 1))
 }
 
+# Implementation of `move2::mt_is_track_id_cleaved()` that dispatches on an
+# ID vector. Differences from move2:
+#   - Distinct IDs checked with `unique()`, not `nlevels()`. Avoids factor
+#     with unused levels failing
+#   - length-0 inputs are TRUE instead of FALSE
+ids_cleaved <- function(id) {
+  if (length(id) < 2L) {
+    return(TRUE)
+  }
+
+  i <- as.integer(factor(id))
+
+  sum(diff(i) != 0L) + 1L == length(unique(i))
+}
+
+# Implementation of `move2::mt_is_time_ordered(..., non_zero = TRUE)`
+# that dispatches on timestamp and track ID vectors, not `move2` object.
+times_ordered <- function(timestamp, id) {
+  if (length(timestamp) < 2L) {
+    return(TRUE)
+  }
+
+  new_track <- diff(as.integer(factor(id))) != 0L
+
+  isTRUE(all(as.numeric(diff(timestamp)) > 0 | new_track))
+}
+
+# Error if tracks are not cleaved by ID and in increasing time order.
+check_time_order <- function(timestamp,
+                             track_id,
+                             hint_move2 = FALSE,
+                             call = rlang::caller_env()) {
+  if (!ids_cleaved(track_id)) {
+    abort_move2imu(
+      c(
+        "Not all tracks are grouped in {.arg x}.",
+        "i" = "Sort {.arg x} by track before building bursts."
+      ),
+      class = "track_ungrouped",
+      call = call
+    )
+  }
+
+  if (!times_ordered(timestamp, track_id)) {
+    abort_move2imu(
+      c(
+        "Timestamps must be strictly increasing within each track.",
+        "i" = if (hint_move2) {
+          "Order data by track and time and remove duplicate timestamps. See `move2::mt_filter_unique()`."
+        } else {
+          "Order data by track and time and remove duplicate timestamps."
+        }
+      ),
+      class = c("timestamp_unordered", "timestamp"),
+      call = call
+    )
+  }
+
+  invisible(NULL)
+}
+
+# `move2` methods take `timestamp` and `track_id` from the object's metadata,
+# so a user-supplied value would collide with them in `as_imu_table()`. Catch
+# that here rather than letting R report a duplicate formal match.
+check_move2_dots <- function(..., call = rlang::caller_env()) {
+  supplied <- intersect(c("timestamp", "track_id"), ...names())
+
+  if (length(supplied) > 0) {
+    abort_move2imu(
+      c(
+        "{.arg {supplied}} must not be supplied when {.arg x} is a {.cls move2}.",
+        "i" = "Timestamps and track IDs are taken from the {.cls move2} object's metadata.",
+        "i" = "Use {.fn move2::mt_set_time_column} or {.fn move2::mt_set_track_id_column} to change them."
+      ),
+      call = call
+    )
+  }
+
+  invisible(NULL)
+}
+
+# Combine two IMU vectors of the same sensor, filling missing bursts in `x`
+# with index-matched bursts in `y`. Reimplementation of `dplyr::coalesce()`
+# so we can avoid requiring dplyr for as_*.data.frame() calls.
+coalesce_imu <- function(x, y) {
+  i <- vec_detect_missing(x)
+  vec_assign(x, i, vec_slice(y, i))
+}
+
 # Colset validation ------------------------------------------------------------
 
 check_colset <- function(x, colset, call = rlang::caller_env()) {
@@ -484,11 +666,12 @@ check_colset <- function(x, colset, call = rlang::caller_env()) {
 
 assert_colset_has_data <- function(x, colset, call = rlang::caller_env()) {
   if (all(cols_empty(x, colset))) {
-    cli::cli_abort(
+    abort_move2imu(
       c(
         "The provided {.arg colset} columns contain no data.",
         "x" = "Column{?s} {.val {colset}} {?is/are} empty."
       ),
+      class = c("colset_empty", "colset"),
       call = call
     )
   }
@@ -509,11 +692,12 @@ assert_matched_units <- function(x, cols, call = rlang::caller_env()) {
   )
 
   if (length(unique_units) != 1) {
-    cli::cli_abort(
+    abort_move2imu(
       c(
         "Multiple units detected across input columns.",
         "i" = "All columns must have consistent units."
       ),
+      class = c("units_mixed", "units"),
       call = call
     )
   }
@@ -524,11 +708,12 @@ assert_colset_numeric <- function(x, colset, call = rlang::caller_env()) {
 
   if (any(!cols_num)) {
     non_numeric <- colset[!cols_num]
-    cli::cli_abort(
+    abort_move2imu(
       c(
         "Detected non-numeric column{?s}: {.val {non_numeric}}.",
         "i" = "Columns must contain numeric data."
       ),
+      class = c("colset_column_invalid", "colset"),
       call = call
     )
   }
@@ -540,22 +725,25 @@ assert_compact_col_types <- function(x, colset, call = rlang::caller_env()) {
   freq_col <- colset[["frequency"]]
 
   if (!is.character(x[[bursts_col]]) && !is.factor(x[[bursts_col]])) {
-    cli::cli_abort(
+    abort_move2imu(
       "{.arg bursts} column {.val {bursts_col}} must be character, not {.cls {class(x[[bursts_col]])[1]}}.",
+      class = c("colset_column_invalid", "colset"),
       call = call
     )
   }
 
   if (!is.character(x[[axes_col]]) && !is.factor(x[[axes_col]])) {
-    cli::cli_abort(
+    abort_move2imu(
       "{.arg axes} column {.val {axes_col}} must be character, not {.cls {class(x[[axes_col]])[1]}}.",
+      class = c("colset_column_invalid", "colset"),
       call = call
     )
   }
 
   if (!is.numeric(x[[freq_col]])) {
-    cli::cli_abort(
+    abort_move2imu(
       "{.arg frequency} column {.val {freq_col}} must be numeric, not {.cls {class(x[[freq_col]])[1]}}.",
+      class = c("colset_column_invalid", "colset"),
       call = call
     )
   }

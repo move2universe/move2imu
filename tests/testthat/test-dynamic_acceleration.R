@@ -60,7 +60,7 @@ test_that("Single-sample burst returns zero", {
   a <- acc(
     acc_burst_example(1, 2, 3),
     frequency = units::set_units(10, "Hz"),
-    start = as.POSIXct(1, tz = "UTC")
+    start = .as.POSIXct(1)
   )
 
   # A single sample has colMeans equal to itself, so centered values are all 0
@@ -133,4 +133,12 @@ test_that("vedba and odba error on mixed unitless and units bursts", {
 
   expect_error(vedba(a), "Can't combine")
   expect_error(odba(a), "Can't combine")
+})
+
+test_that("vedba() and odba() require an acc vector", {
+  m <- mag(list(cbind(X = 1:3, Y = 1:3, Z = 1:3)), frequency = 10)
+
+  expect_error(vedba(1:3), class = "move2imu_error_imu_invalid")
+  expect_error(vedba(m), class = "move2imu_error_imu_sensor_incompatible")
+  expect_error(odba(m), class = "move2imu_error_imu_sensor_incompatible")
 })

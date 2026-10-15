@@ -41,15 +41,15 @@ NULL
 #' @details
 #' `burst_intervals()` measures intervals between consecutive bursts in vector
 #' order. Missing (`NA`) bursts are ignored when calculating intervals. Thus,
-#' element `i` is the interval in between the most recent preceding non-NA burst 
+#' element `i` is the interval in between the most recent preceding non-NA burst
 #' and burst `i`.
-#' 
+#'
 #' Only bursts flagged with `is.na()` are considered missing. Bursts with
 #' data but lacking a start time are retained but will produce `NA`
 #' intervals. Bursts with data but lacking a frequency are also retained and
 #' will produce `NA` intervals when `from = "end"`, as the frequency is
 #' required to determine the burst end time.
-#' 
+#'
 #' Pass `ids` to measure intervals within groups (e.g. per animal). Intervals
 #' are not measured across group boundaries. Intervals
 #' are taken in vector order, so a vector mixing sources should be ordered by
@@ -97,11 +97,11 @@ NULL
 #' # The interval value shows the interval to the preceding present burst,
 #' # ignoring intervening NA bursts.
 #' x_na <- c(
-#'   x[1], 
+#'   x[1],
 #'   acc(list(NULL), frequency = units::set_units(NA, "Hz")),
 #'   x[2]
 #' )
-#' 
+#'
 #' burst_intervals(x_na)
 #'
 #' # Units for the burst data
@@ -120,7 +120,12 @@ NULL
 #' Frequencies assigned with `freqs<-` are converted to Hz if they are provided
 #' with compatible units attached. If no units are provided, the values are
 #' assumed to be in Hz already.
-#' 
+#'
+#' Start times assigned with `starts<-` accept `POSIXct`, `POSIXlt`, `Date`,
+#' or a number of seconds since `1970-01-01 00:00:00 UTC`. Start times are
+#' converted and stored as `POSIXct`. `Date` objects are treated as being
+#' recorded at midnight, UTC.
+#'
 #' @param x An IMU vector (`acc`, `mag`, or `gyro`)
 #' @param value Replacement value.
 #'
@@ -148,18 +153,36 @@ NULL
 #' freqs(x)
 NULL
 
+# Dimensions of every burst as a 2 x n integer matrix: row 1 is the number of
+# samples (rows), row 2 the number of axes (columns). Missing bursts, which
+# carry no `dim`, become NA in both rows.
+#
+# `nrow()`/`ncol()` are closures wrapping `dim()`, so calling either per burst
+# costs two R-level frames per element. Mapping the `dim()` primitive over the
+# burst list instead keeps the loop in C and hands back both dimensions in a
+# single pass, which is why the accessors below share this helper.
+burst_dims <- function(x) {
+  d <- lapply(bursts(x), dim)
+
+  missing <- lengths(d) != 2L
+  if (any(missing)) {
+    d[missing] <- list(c(NA_integer_, NA_integer_))
+  }
+
+  # unlist() of an empty list is NULL, which matrix() will not accept
+  matrix(unlist(d, use.names = FALSE) %||% integer(), nrow = 2L)
+}
+
 #' @export
 #' @rdname imu-properties
 n_axis <- function(x) {
-  r <- rep(NA_integer_, vec_size(x))
-  r[!is.na(x)] <- purrr::map_int(bursts(x[!is.na(x)]), ncol)
-  r
+  burst_dims(x)[2L, ]
 }
 
 #' @export
 #' @rdname imu-properties
 n_samples <- function(x) {
-  purrr::map_int(bursts(x), function(b) nrow(b) %||% NA_integer_)
+  burst_dims(x)[1L, ]
 }
 
 #' @export
@@ -176,7 +199,10 @@ burst_intervals <- function(x, ids = NULL, from = "end") {
   n <- vec_size(x)
 
   if (!is.null(ids) && length(ids) != n) {
-    cli::cli_abort("{.arg ids} must be the same length as {.arg x}.")
+    abort_move2imu(
+      "{.arg ids} must be the same length as {.arg x}.",
+      class = "size_incompatible"
+    )
   }
 
   if (n == 0) {
@@ -221,26 +247,32 @@ burst_intervals <- function(x, ids = NULL, from = "end") {
 #' @export
 #' @rdname imu-properties
 imu_units <- function(x) {
-  purrr::map_chr(
-    bursts(x),
-    function(b) {
-      if (inherits(b, "units")) as.character(units(b)) else NA_character_
-    }
+  u <- lapply(bursts(x), function(b) if (inherits(b, "units")) units(b))
+
+  # Converting units to text is slow, so do it once per distinct unit and
+  # match the result back to each burst
+  distinct_u <- unique(u)
+
+  distinct_u_str <- purrr::map_chr(
+    distinct_u,
+    function(d) if (is.null(d)) NA_character_ else as.character(d)
   )
+
+  distinct_u_str[match(u, distinct_u)]
 }
 
 #' @export
 #' @importFrom stats na.omit
 #' @rdname imu-properties
 is_uniform <- function(x) {
-  unit_str <- function(b) {
-    if (inherits(b, "units")) units::deparse_unit(b) else NA_character_
-  }
-  all(duplicated(na.omit(n_samples(x)))[-1]) &&
-    all(duplicated(na.omit(n_axis(x)))[-1]) &&
+  # Both dimensions come from one pass over the bursts
+  d <- burst_dims(x)
+
+  all(duplicated(na.omit(d[1L, ]))[-1]) &&
+    all(duplicated(na.omit(d[2L, ]))[-1]) &&
     all(duplicated(na.omit(freqs(x)))[-1]) &&
     all(duplicated(purrr::map(bursts(x[!is.na(x)]), colnames))[-1]) &&
-    all(duplicated(purrr::map_chr(bursts(x[!is.na(x)]), unit_str))[-1])
+    all(duplicated(imu_units(x[!is.na(x)]))[-1])
 }
 
 #' @export
@@ -278,7 +310,7 @@ starts <- function(x) {
 #' @rdname imu-fields
 #' @export
 `starts<-` <- function(x, value) {
-  field(x, "start") <- value
+  field(x, "start") <- timestamp_to_POSIXct(value)
   x
 }
 

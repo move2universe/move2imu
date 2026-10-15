@@ -21,12 +21,12 @@
 #' impacts the derived output frequency of the new burst. If the `gap_tol` is
 #' set to allow any timestamp noise, the gap between the two bursts may not
 #' precisely correspond with the sampling periods of the bursts being merged.
-#' In these cases, the recorded output frequency of the merged burst will 
+#' In these cases, the recorded output frequency of the merged burst will
 #' vary slightly from the values of its component bursts.
-#' 
+#'
 #' This approach preserves overall burst time span at the expense of preserving
 #' a consistent burst frequency. If you instead prefer to preserve frequency,
-#' you will need to manually adjust the frequency of the 
+#' you will need to manually adjust the frequency of the
 #' output burst (see [freqs()]) or correct timestamps in the input data.
 #'
 #' Bursts with missing frequencies (e.g. a burst with only one sample)
@@ -51,12 +51,12 @@
 #'   For example, setting `gap_tol = 0.02` would allow a burst that starts up
 #'   to 0.02 seconds after the end of the previous burst to be merged. See
 #'   details.
-#' @param freq_tol Relative tolerance to use when determining whether two bursts
-#'   share a sampling frequency. Bursts can only be merged if their
-#'   frequencies are consistent, within `freq_tol`. Bursts can be merged when
-#'   the faster frequency is at most `(1 + freq_tol)` times the slower.
-#'   For example, `freq_tol = 0.01` merges bursts whose frequencies
-#'   are within 1% of each other.
+#' @param freq_tol Bare numeric value representing the relative tolerance to use
+#'   when determining whether two bursts share a sampling frequency. Bursts can
+#'   only be merged if their frequencies are consistent, within `freq_tol`.
+#'   Bursts can be merged when the faster frequency is at most `(1 + freq_tol)`
+#'   times the slower. For example, `freq_tol = 0.01` merges bursts whose
+#'   frequencies are within 1% of each other.
 #' @param drop Logical indicating whether to drop entries that have been merged
 #'   into other bursts. If `drop = FALSE` (default), the output will have the
 #'   same length as the input `x`, with `NA` values at positions where bursts
@@ -70,7 +70,7 @@
 #' a <- acc(
 #'   list(cbind(X = 1:60, Y = 1:60), cbind(X = 61:100, Y = 61:100), cbind(X = 101:140)),
 #'   frequency = units::set_units(20, "Hz"),
-#'   start = as.POSIXct(c(0, 3, 5), tz = "UTC")
+#'   start = as.POSIXct(c(0, 3, 5), origin = "1970-01-01", tz = "UTC")
 #' )
 #'
 #' merge_imu(a)
@@ -79,22 +79,27 @@ merge_imu <- function(x,
                       gap_tol = 1e-6,
                       freq_tol = 1e-2,
                       drop = FALSE) {
+  assert_imu(x)
+
   n <- vec_size(x)
 
   if (!is.null(ids) && length(ids) != n) {
-    cli::cli_abort("{.arg ids} must be the same length as {.arg x}.")
+    abort_move2imu(
+      "{.arg ids} must be the same length as {.arg x}.",
+      class = "size_incompatible"
+    )
   }
 
-  # `gap_tol` is an absolute time; normalize to seconds for comparison.
-  gap_tol <- units::set_units(gap_tol, "s")
+  # `gap_tol` is an absolute time; normalize to seconds once here. Every time
+  # quantity below is then a plain count of seconds, so the comparisons need no
+  # further unit handling.
+  gap_tol <- as.numeric(units::set_units(gap_tol, "s"))
 
-  if (as.numeric(gap_tol) < 0) {
-    cli::cli_abort("{.arg gap_tol} must be greater than or equal to 0.")
+  if (gap_tol < 0) {
+    abort_move2imu("{.arg gap_tol} must be greater than or equal to 0.")
   }
 
-  if (as.numeric(freq_tol) < 0) {
-    cli::cli_abort("{.arg freq_tol} must be greater than or equal to 0.")
-  }
+  check_freq_tol(freq_tol)
 
   # Work only with non-NA entries; track their original positions
   valid <- which(!is.na(x))
@@ -112,11 +117,20 @@ merge_imu <- function(x,
   sv <- burst_starts[valid]
   nv <- length(valid)
 
+  # Frequencies are stored in Hz, so `n_samples / fq` is a burst's duration and
+  # `1 / fq` its sample period, both already in seconds. Deriving the times
+  # below from these numerics avoids converting the same quantities through
+  # `units` (and through `difftime`, whose unit is chosen by magnitude) once per
+  # burst-sized vector.
+  fq <- as.numeric(freqs(xv))
+  period_s <- 1 / fq
+  ns <- n_samples(xv)
+  sv_s <- as.numeric(sv)
+
   # Collapsible bursts must end at the start time of the subsequent burst,
-  # within the absolute `gap_tol`. Normalize to seconds so `as_difftime()`
-  # accepts the result regardless of what time unit `burst_dur()` returns.
-  timediff <- sv + units::as_difftime(units::set_units(burst_dur(xv), "s"))
-  is_adjacent_burst <- abs(units::as_units(sv[-1] - timediff[-nv], "s")) <= gap_tol
+  # within the absolute `gap_tol`.
+  end_s <- sv_s + ns / fq
+  is_adjacent_burst <- abs(sv_s[-1] - end_s[-nv]) <= gap_tol
 
   # If no adjacent bursts, no need to proceed
   if (!any(is_adjacent_burst, na.rm = TRUE)) {
@@ -127,10 +141,7 @@ merge_imu <- function(x,
   }
 
   # Collapsible bursts must share a sampling frequency, within `(1 + freq_tol)`:
-  # the faster is at most that many times the slower. `freqs()` is stored in Hz,
-  # so `1 / fq` is the sample period in seconds.
-  fq <- as.numeric(freqs(xv))
-  period_s <- 1 / fq
+  # the faster is at most that many times the slower.
   prev_freq <- fq[-nv]
   next_freq <- fq[-1]
   ratio_dev <- pmax(prev_freq, next_freq) / pmin(prev_freq, next_freq) - 1
@@ -141,18 +152,19 @@ merge_imu <- function(x,
   period_dev <- abs(period_s[-1] - period_s[-nv])
   is_same_freq <- !((ratio_dev > freq_tol) & (period_dev > fp_time_floor))
 
+  bv <- bursts(xv)
+
   # Collapsible bursts must have axis structure
   # Check both axis names and length to disambiguate possible name duplication
   # after collapsing to single string
-  axes <- purrr::map_chr(
-    bursts(xv),
-    function(b) paste0(colnames(b), collapse = "_")
-  )
-  is_same_n_axis <- (axes[-1] == axes[-nv]) & (n_axis(xv)[-1] == n_axis(xv)[-nv])
+  axes <- purrr::map_chr(bv, function(b) paste0(colnames(b), collapse = "_"))
+
+  n_ax <- n_axis(xv)
+  is_same_n_axis <- (axes[-1] == axes[-nv]) & (n_ax[-1] == n_ax[-nv])
 
   # Collapsible bursts must have identical units (or both be unitless)
   burst_units <- purrr::map_chr(
-    bursts(xv),
+    bv,
     function(b) if (inherits(b, "units")) units::deparse_unit(b) else NA_character_
   )
   is_same_units <- (burst_units[-1] == burst_units[-nv]) |
@@ -174,7 +186,6 @@ merge_imu <- function(x,
   # rbind burst matrices
   grp_idx <- unname(split(seq_along(to_bind), cumsum(!to_bind)))
 
-  bv <- bursts(xv)
   bursts_comb <- lapply(grp_idx, function(i) do.call(rbind, bv[i]))
 
   # Get first entry in each group. This defines the burst start time.
@@ -183,13 +194,17 @@ merge_imu <- function(x,
   # Recompute each merged burst's frequency from its new span so the merged
   # frequency reflects variations within the tolerance, rather than inheriting
   # the first burst's frequency arbitrarily.
-  ns <- n_samples(xv)
+  #
+  # A burst's last sample falls one sample period before its end. Deriving this
+  # for the whole vector up front keeps the per-group work below to arithmetic
+  # on plain seconds.
+  last_samp_s <- end_s - period_s
 
   merged_freq <- purrr::map_dbl(
     grp_idx,
     function(g) {
       if (length(g) == 1L) {
-        return(as.numeric(fq[g]))
+        return(fq[g])
       }
 
       merged_samps <- sum(ns[g])
@@ -198,11 +213,7 @@ merge_imu <- function(x,
         return(NA_real_)
       }
 
-      last_burst <- g[length(g)]
-      last_samp_time <- timediff[last_burst] -
-        units::as_difftime(units::set_units(period_s[last_burst], "s"))
-
-      merged_span <- as.numeric(last_samp_time - sv[g[1]], units = "secs")
+      merged_span <- last_samp_s[g[length(g)]] - sv_s[g[1]]
 
       if (is.na(merged_span) || merged_span <= 0) {
         return(NA_real_)
@@ -219,9 +230,21 @@ merge_imu <- function(x,
     start = sv[merged_i]
   )
 
-  # If retaining index matching, fill merged idx with NA entries
+  # If retaining index matching, fill merged idx with NA entries.
+  #
+  # The placeholder's time zone has to match the input's: `vec_assign()` casts
+  # the value to the type of the vector assigned into, so a placeholder built
+  # with the default (UTC) start would silently re-tag the merged start times.
   if (!drop) {
-    out <- vec_rep(imu(sensor = class(x)[1], bursts = list(NULL), frequency = units::set_units(NA, "Hz")), n)
+    out <- vec_rep(
+      imu(
+        sensor = class(x)[1],
+        bursts = list(NULL),
+        frequency = units::set_units(NA, "Hz"),
+        start = as.POSIXct(NA, tz = attr(burst_starts, "tzone") %||% "")
+      ),
+      n
+    )
     out[valid[merged_i]] <- merged
     merged <- out
   }
@@ -234,7 +257,7 @@ merge_imu <- function(x,
 #' Split the bursts in an IMU vector into bursts of a given time
 #' duration. The result is a list of vectors of the same length as the input,
 #' with the same class as `x`.
-#' 
+#'
 #' @details
 #' Bursts with `NA` frequency will not be split, as a burst duration can't
 #' be derived. In these cases, the burst is returned unchanged.
@@ -243,23 +266,33 @@ merge_imu <- function(x,
 #' @param interval Numeric or [units][units::units] object defining the time
 #'   intervals at which `x` will be split. If no units are provided, the
 #'   interval is assumed to be in seconds.
+#' @param flatten Logical indicating whether to combine the split pieces into
+#'   a single vector. By default (`flatten = FALSE`), the output is a list
+#'   of the same length as `x`, which retains index correspondence with the
+#'   input. If `flatten = TRUE`, all split pieces are combined into a single
+#'   vector.
 #'
-#' @returns A list of vectors (same class as `x`), the same length as `x`.
-#'   Each element contains the split pieces of the corresponding input burst.
+#' @returns If `flatten = FALSE`, a list of vectors of the same length as `x`,
+#'   each with the class of `x`.
+#'
+#'   If `flatten = TRUE`, a single vector of the same class as `x`.
+#'
 #' @export
 #'
 #' @examples
 #' a <- acc(
 #'   list(cbind(X = 1:60, Y = 1:60), cbind(X = 101:140)),
 #'   frequency = c(units::set_units(20, "Hz"), units::set_units(40, "Hz")),
-#'   start = as.POSIXct(c(0, 10), tz = "UTC")
+#'   start = as.POSIXct(c(0, 10), origin = "1970-01-01", tz = "UTC")
 #' )
 #'
 #' x <- split_imu(a, units::set_units(1, "s"))
 #' x
 #'
-#' # Flatten to a single vector
-#' flat <- purrr::reduce(x, c)
+#' # By default, `split_imu()` returns a list of the same length as `x`, which
+#' # is useful when data are stored in a data.frame (see below). To instead get
+#' # a single vector of all the split pieces, use `flatten = TRUE`:
+#' flat <- split_imu(a, units::set_units(1, "s"), flatten = TRUE)
 #' flat
 #'
 #' # Start times are updated to match the start of each split component
@@ -289,12 +322,15 @@ merge_imu <- function(x,
 #' tbl |>
 #'   mutate(burst = merge_imu(burst, ids = id, drop = FALSE))
 #' }
-split_imu <- function(x, interval) {
+split_imu <- function(x, interval, flatten = FALSE) {
+  assert_imu(x)
+
   if (!(as.numeric(interval) > 0)) {
-    cli::cli_abort("{.arg interval} must be a positive number.")
+    abort_move2imu("{.arg interval} must be a positive number.")
   }
 
   sensor <- class(x)[1]
+  ptype <- vec_ptype(x)
 
   x <- purrr::pmap(
     list(bursts(x), freqs(x), starts(x)),
@@ -338,6 +374,11 @@ split_imu <- function(x, interval) {
       )
     }
   )
+
+  # `.ptype` keeps the output class when `x` is empty
+  if (flatten) {
+    x <- vec_c(!!!x, .ptype = ptype)
+  }
 
   x
 }

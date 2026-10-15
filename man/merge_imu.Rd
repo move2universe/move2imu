@@ -22,12 +22,12 @@ For example, setting \code{gap_tol = 0.02} would allow a burst that starts up
 to 0.02 seconds after the end of the previous burst to be merged. See
 details.}
 
-\item{freq_tol}{Relative tolerance to use when determining whether two bursts
-share a sampling frequency. Bursts can only be merged if their
-frequencies are consistent, within \code{freq_tol}. Bursts can be merged when
-the faster frequency is at most \code{(1 + freq_tol)} times the slower.
-For example, \code{freq_tol = 0.01} merges bursts whose frequencies
-are within 1\% of each other.}
+\item{freq_tol}{Bare numeric value representing the relative tolerance to use
+when determining whether two bursts share a sampling frequency. Bursts can
+only be merged if their frequencies are consistent, within \code{freq_tol}.
+Bursts can be merged when the faster frequency is at most \code{(1 + freq_tol)}
+times the slower. For example, \code{freq_tol = 0.01} merges bursts whose
+frequencies are within 1\% of each other.}
 
 \item{drop}{Logical indicating whether to drop entries that have been merged
 into other bursts. If \code{drop = FALSE} (default), the output will have the
@@ -81,7 +81,7 @@ ends (a small negative time gap). This jitter will also be incorporated into
 a <- acc(
   list(cbind(X = 1:60, Y = 1:60), cbind(X = 61:100, Y = 61:100), cbind(X = 101:140)),
   frequency = units::set_units(20, "Hz"),
-  start = as.POSIXct(c(0, 3, 5), tz = "UTC")
+  start = as.POSIXct(c(0, 3, 5), origin = "1970-01-01", tz = "UTC")
 )
 
 merge_imu(a)

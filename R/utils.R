@@ -13,8 +13,90 @@ acc_example <- function() {
       cbind(X = sin(1:20 / 10 + 2), Y = cos(1:20 / 10 + 3), Z = 1)
     ),
     frequency = units::set_units(c(20, 20), "Hz"),
-    start = as.POSIXct(c(0, 10), tz = "UTC")
+    start = as.POSIXct(c(0, 10), origin = "1970-01-01", tz = "UTC")
   )
+}
+
+# Coerce a timestamp vector to POSIXct. The single conversion point for every
+# timestamp a user or a `move2` hands the package, so that interior code and
+# `imu` storage only ever see POSIXct and a time zone is always well defined.
+#
+# The accepted set is everything that already denotes an instant:
+#
+#   POSIXct  kept as-is
+#   POSIXlt  the same instant and zone, in the non-canonical layout
+#   Date     midnight UTC
+#   numeric  seconds since 1970-01-01, UTC (also what move2 means by a numeric
+#            time column)
+#   NA       R's missing marker, carried through as a missing instant
+#
+# `Date` is converted by hand rather than with `as.POSIXct()`: that method only
+# began setting a "UTC" time zone in R 4.3, and silently ignores a `tz` argument
+# before that, so relying on it would yield local-time output on older R.
+#
+# returns TRUE for anything `timestamp_to_POSIXct()` accepts.
+#
+# `inherits()` rather than a bare `is.numeric()`: difftime and units objects are
+# numeric underneath, and reading their value as seconds would drop the unit.
+is_timestamp <- function(x) {
+  inherits(x, c("POSIXct", "POSIXlt", "Date")) ||
+    (is.logical(x) && all(is.na(x))) ||
+    (is.numeric(x) && !inherits(x, c("difftime", "units")))
+}
+
+# `freq_tol` is a relative tolerance, so it should not have units. But alongside
+# other tolerance arguments that do take units this may be a source of user
+# error. Simple guard to avoid this potential confusion.
+check_freq_tol <- function(freq_tol, call = rlang::caller_env()) {
+  if (inherits(freq_tol, "units")) {
+    abort_move2imu(
+      "{.arg freq_tol} must be a bare numeric value, not a {.cls units} object.",
+      call = call
+    )
+  }
+
+  if (as.numeric(freq_tol) < 0) {
+    abort_move2imu(
+      "{.arg freq_tol} must be greater than or equal to 0.",
+      call = call
+    )
+  }
+
+  invisible(NULL)
+}
+
+timestamp_to_POSIXct <- function(x,
+                                 arg = rlang::caller_arg(x),
+                                 call = rlang::caller_env()) {
+  if (inherits(x, "POSIXct")) {
+    return(x)
+  }
+
+  if (inherits(x, "POSIXlt")) {
+    return(as.POSIXct(x))
+  }
+
+  if (inherits(x, "Date")) {
+    return(as.POSIXct(unclass(x) * 86400, origin = "1970-01-01", tz = "UTC"))
+  }
+
+  # A bare `NA` is unclassed; base `as.POSIXct()` special-cases it the same way
+  if (is.logical(x) && all(is.na(x))) {
+    return(as.POSIXct(x, tz = "UTC"))
+  }
+
+  if (!is_timestamp(x)) {
+    abort_move2imu(
+      c(
+        "{.arg {arg}} must be a timestamp, not {.cls {class(x)[1]}}.",
+        "i" = "Supply a {.cls POSIXct}, {.cls POSIXlt}, {.cls Date}, or a bare numeric value."
+      ),
+      class = c("timestamp_invalid", "timestamp"),
+      call = call
+    )
+  }
+
+  as.POSIXct(as.double(x), origin = "1970-01-01", tz = "UTC")
 }
 
 # Helper to snap a computed frequency to a stable precision.
@@ -35,18 +117,33 @@ snap_freq <- function(x, digits = 6) {
   signif(x, digits = digits)
 }
 
+# Parsed form of the canonical frequency unit. Parsing a unit string is the
+# dominant cost of a units operation, so the target unit is parsed once here
+# and reused rather than re-parsed from "Hz" on every conversion.
+HZ_UNIT <- units(units::as_units("Hz"))
+
 # Coerce a frequency to Hz. Used so interior code can easily coerce values to Hz
 # for operations that are units-sensitive. Hz is the canonical storage format
 # for IMU vector objects.
 as_hz <- function(x, arg = rlang::caller_arg(x), call = rlang::caller_env()) {
-  if (inherits(x, "units") &&
-    !units::ud_are_convertible(units::deparse_unit(x), "Hz")) {
-    cli::cli_abort(
+  if (!inherits(x, "units")) {
+    return(units::set_units(x, HZ_UNIT, mode = "standard"))
+  }
+
+  # Return input if identical to avoid unnecessary units calls
+  if (identical(units(x), HZ_UNIT)) {
+    return(x)
+  }
+
+  if (!units::ud_are_convertible(units::deparse_unit(x), "Hz")) {
+    abort_move2imu(
       "{.arg {arg}} must be convertible to a frequency unit (Hz).",
+      class = c("units_incompatible", "units"),
       call = call
     )
   }
-  units::set_units(x, "Hz")
+
+  units::set_units(x, HZ_UNIT, mode = "standard")
 }
 
 # Absolute floating-point noise floor for POSIXct-derived time differences, in

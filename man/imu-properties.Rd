@@ -96,7 +96,7 @@ burst_intervals(x, from = "start")
 # The interval value shows the interval to the preceding present burst,
 # ignoring intervening NA bursts.
 x_na <- c(
-  x[1], 
+  x[1],
   acc(list(NULL), frequency = units::set_units(NA, "Hz")),
   x[2]
 )

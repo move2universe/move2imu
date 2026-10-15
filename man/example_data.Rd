@@ -44,7 +44,7 @@ the Research Institute for Nature and Forest (INBO). Data collected by the
 tracking network for large birds for the project/study LBBG_ZEEBRUGGE.
 Acceleration data are provided in expanded format from
 trackers developed by the University of Amsterdam Bird Tracking
-System (\href{http://www.uva-bits.nl}{UvA-BiTS}).
+System (\href{https://www.uva-bits.nl/}{UvA-BiTS}).
 
 Only individual 5508292 is included.
 

@@ -4,9 +4,9 @@
 \name{move2imu-package}
 \alias{move2imu}
 \alias{move2imu-package}
-\title{move2imu: Handling Bursted IMU Data}
+\title{move2imu: Handling IMU Data from Animal-Borne Tags}
 \description{
-Standardized vector representation of bursted inertial measurement unit (IMU) data collected by animal tracking devices, including accelerometer, magnetometer, and gyroscope sensors. Extract and manipulate IMU data from move2 objects and tracking data stored in Movebank.
+Unified vector representation of inertial measurement unit (IMU) data collected by animal-borne tracking devices, including accelerometer, magnetometer, and gyroscope sensors. Extract, calibrate, visualize, and manipulate bursts of IMU data. Integrate IMU workflows directly with 'move2' trajectories and data stored in 'Movebank' \url{https://www.movebank.org/cms/movebank-main}.
 }
 \seealso{
 Useful links:
@@ -18,11 +18,12 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Bart Kranstauber \email{b.kranstauber@uva.nl} (\href{https://orcid.org/0000-0001-8303-780X}{ORCID})
+\strong{Maintainer}: Finn Roberts \email{froberts@ab.mpg.de} (\href{https://orcid.org/0009-0002-6157-3542}{ORCID})
 
 Authors:
 \itemize{
-  \item Finn Roberts \email{froberts@ab.mpg.de}
+  \item Finn Roberts \email{froberts@ab.mpg.de} (\href{https://orcid.org/0009-0002-6157-3542}{ORCID})
+  \item Bart Kranstauber \email{b.kranstauber@uva.nl} (\href{https://orcid.org/0000-0001-8303-780X}{ORCID})
 }
 
 }

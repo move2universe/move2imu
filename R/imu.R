@@ -1,10 +1,3 @@
-# Registry of supported IMU subclasses. Extend this when adding a new
-# concrete IMU type. Helpers like `assert_imu()` and
-# `parse_colsets()` read from it.
-valid_imu_types <- function() {
-  c("acc", "mag", "gyro")
-}
-
 # Parent class `imu` defines the shared (bursts, frequency, start)
 # record shape for various IMU types that vary by subclass (e.g. `acc`)
 imu <- function(sensor,
@@ -18,15 +11,9 @@ imu <- function(sensor,
   # unit
   frequency <- as_hz(frequency)
 
-  start <- start %||% NA_real_
-
-  if (inherits(start, "POSIXt")) {
-    tz <- attr(start, "tzone")
-  } else {
-    tz <- "UTC"
-  }
-
-  start <- as.POSIXct(as.double(start), tz = tz)
+  # `NULL` means the start times are unknown; every other input is a timestamp
+  start <- timestamp_to_POSIXct(start %||% NA, arg = "start")
+  tz <- attr(start, "tzone") %||% ""
 
   frequency <- vec_recycle(frequency, n)
   start <- vec_recycle(start, n)
@@ -51,7 +38,7 @@ imu <- function(sensor,
 new_imu <- function(sensor,
                     bursts = new_burst_list(list(), sensor),
                     frequency = units::set_units(double(), "Hz"),
-                    start = as.POSIXct(double(), tz = "UTC")) {
+                    start = as.POSIXct(double(), origin = "1970-01-01", tz = "UTC")) {
   new_rcrd(
     list(bursts = bursts, frequency = frequency, start = start),
     class = c(sensor, "imu")
@@ -67,13 +54,20 @@ burst_list <- function(x, sensor) {
       if (is.null(b)) {
         return(TRUE)
       }
+      if (!is.numeric(b) || length(dim(b)) != 2L) {
+        return(FALSE)
+      }
       nms <- colnames(b)
-      !is.null(nms) && length(nms) > 0 && all(nms %in% valid_axes)
+      !is.null(nms) && length(nms) > 0 &&
+        !anyDuplicated(nms) && all(nms %in% valid_axes)
     }
   )
 
   if (any(!is_valid)) {
-    cli::cli_abort("Burst matrix columns must be named {.val X}, {.val Y}, or {.val Z}.")
+    abort_move2imu(
+      "Bursts must be numeric matrices with unique columns named {.val X},
+       {.val Y}, or {.val Z}."
+    )
   }
 
   new_burst_list(x, sensor)
@@ -87,24 +81,39 @@ new_burst_list <- function(x, sensor) {
   )
 }
 
-# Assert that x is one of the supported IMU vector classes. Centralizes the
-# check so the error message lists concrete subclasses (e.g. `acc`, `mag`)
-# without exposing the internal `imu` parent class.
+# Check whether x is an IMU vector of any sensor type. Internal counterpart to
+# the exported `is_acc()`, `is_mag()`, and `is_gyro()`.
+is_imu <- function(x) {
+  inherits(x, "imu")
+}
+
+# Assert that x is an IMU vector or, if `sensor` is given, an IMU vector for
+# that sensor (e.g. "acc").
 assert_imu <- function(x,
+                       sensor = NULL,
                        arg = rlang::caller_arg(x),
                        call = rlang::caller_env()) {
-  if (inherits(x, "imu")) {
+  x_is_imu <- is_imu(x)
+
+  if (x_is_imu && (is.null(sensor) || inherits(x, sensor))) {
     return(invisible(x))
   }
 
-  types <- valid_imu_types()
-  types_fmt <- paste0(
-    vapply(types, function(t) cli::format_inline("{.cls {t}}"), character(1)),
-    collapse = "/"
-  )
+  # Expected class for the message, e.g. "an <imu>" or "a <mag>"
+  type <- sensor %||% "imu"
+  article <- if (grepl("^[aeiou]", type)) "an" else "a"
 
-  cli::cli_abort(
-    "{.arg {arg}} must be an IMU vector ({types_fmt}).",
+  # If not an `imu` at all, throw "imu_invalid" error. Otherwise, the
+  # problem must be an incompatible sensor.
+  if (!x_is_imu) {
+    err_class <- c("imu_invalid", "imu")
+  } else {
+    err_class <- c("imu_sensor_incompatible", "imu")
+  }
+
+  abort_move2imu(
+    "{.arg {arg}} must be {article} {.cls {type}} vector, not {.cls {class(x)[1]}}.",
+    class = err_class,
     call = call
   )
 }
