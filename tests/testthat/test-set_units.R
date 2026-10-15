@@ -60,9 +60,21 @@ test_that("set_imu_units.acc preserves acc structure", {
 test_that("set_imu_units.acc rejects dimensionally incompatible units", {
   a <- acc_example()
 
-  expect_error(set_imu_units(a, "kg"), "not valid for <acc> vector")
-  expect_error(set_imu_units(a, "m"), "not valid for <acc> vector")
-  expect_error(set_imu_units(a, "not-a-unit"), "not valid for <acc> vector")
+  expect_error(
+    set_imu_units(a, "kg"),
+    "not valid for <acc> vector",
+    class = "move2imu_error_units_incompatible"
+  )
+  expect_error(
+    set_imu_units(a, "m"),
+    "not valid for <acc> vector",
+    class = "move2imu_error_units_incompatible"
+  )
+  expect_error(
+    set_imu_units(a, "not-a-unit"),
+    "not valid for <acc> vector",
+    class = "move2imu_error_units_incompatible"
+  )
 })
 
 test_that("set_imu_units.mag attaches and converts magnetic flux density units", {
@@ -88,8 +100,16 @@ test_that("set_imu_units.mag rejects dimensionally incompatible units", {
     units::set_units(20, "Hz")
   )
 
-  expect_error(set_imu_units(m, "m/s^2"), "not valid for <mag> vector")
-  expect_error(set_imu_units(m, "kg"), "not valid for <mag> vector")
+  expect_error(
+    set_imu_units(m, "m/s^2"),
+    "not valid for <mag> vector",
+    class = "move2imu_error_units_incompatible"
+  )
+  expect_error(
+    set_imu_units(m, "kg"),
+    "not valid for <mag> vector",
+    class = "move2imu_error_units_incompatible"
+  )
 })
 
 test_that("set_imu_units.gyro attaches and converts angular velocity units", {
@@ -114,8 +134,16 @@ test_that("set_imu_units.gyro rejects dimensionally incompatible units", {
     units::set_units(20, "Hz")
   )
 
-  expect_error(set_imu_units(g, "m/s^2"), "not valid for <gyro> vector")
-  expect_error(set_imu_units(g, "tesla"), "not valid for <gyro> vector")
+  expect_error(
+    set_imu_units(g, "m/s^2"),
+    "not valid for <gyro> vector",
+    class = "move2imu_error_units_incompatible"
+  )
+  expect_error(
+    set_imu_units(g, "tesla"),
+    "not valid for <gyro> vector",
+    class = "move2imu_error_units_incompatible"
+  )
 })
 
 test_that("drop_imu_units strips units from acc burst matrices", {
@@ -177,4 +205,16 @@ test_that("drop_imu_units works on mag and gyro", {
 test_that("units::drop_units dispatches to drop_imu_units for imu vectors", {
   a <- set_imu_units(acc_example(), "m/s^2")
   expect_identical(units::drop_units(a), drop_imu_units(a))
+})
+
+test_that("set_imu_units() rejects non-IMU input", {
+  expect_error(
+    set_imu_units(1:3, "m/s^2"),
+    class = "move2imu_error_imu_invalid"
+  )
+})
+
+test_that("set_imu_units_() accepts any unit without a reference", {
+  a <- set_imu_units_(acc_example(), "kg")
+  expect_identical(imu_units(a), c("kg", "kg"))
 })

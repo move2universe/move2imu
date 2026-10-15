@@ -47,7 +47,7 @@ test_that("Error if no colset detected", {
 
   expect_error(
     active_acc_colsets(alb_data),
-    "Could not identify a full acc column set"
+    class = "move2imu_error_colset_not_detected"
   )
 })
 
@@ -74,7 +74,7 @@ test_that("Use data values to determine active colset if multiple present", {
   m[["eobs_acceleration_sampling_frequency_per_axis"]] <- NA
   m[["eobs_accelerations_raw"]] <- NA
 
-  expect_error(active_acc_colsets(m), "Could not identify a full")
+  expect_error(active_acc_colsets(m), class = "move2imu_error_colset_not_detected")
 })
 
 test_that("Correctly identify that a non-full compact-format colset is invalid", {
@@ -119,16 +119,22 @@ test_that("Currently supported colsets", {
 
 test_that("imu_colset() errors on invalid specifications", {
   # No columns specified
-  expect_error(imu_colset(), "No IMU data columns specified")
+  expect_error(imu_colset(), class = "move2imu_error_colset_invalid")
 
   # Incomplete burst args
-  expect_error(imu_colset(bursts = "b"), "requires")
-  expect_error(imu_colset(bursts = "b", axes = "a"), "requires")
+  expect_error(
+    imu_colset(bursts = "b"),
+    class = "move2imu_error_colset_invalid"
+  )
+  expect_error(
+    imu_colset(bursts = "b", axes = "a"),
+    class = "move2imu_error_colset_invalid"
+  )
 
   # Mixed formats
   expect_error(
     imu_colset(x = "x", bursts = "b", axes = "a", frequency = "f"),
-    "Cannot mix"
+    class = "move2imu_error_colset_invalid"
   )
 })
 
@@ -267,7 +273,10 @@ test_that("Overlapping data in API and alt col names reported as duplicated rows
   }
   
   expect_true(any(duplicated_acc_rows(g)))
-  expect_error(suppressWarnings(as_acc_df(g)), "multiple sources")
+  expect_error(
+    suppressWarnings(as_acc_df(g)),
+    class = "move2imu_error_colset_duplicated_rows"
+  )
 })
 
 test_that("Explicit colsets bypass detection, in either spelling", {

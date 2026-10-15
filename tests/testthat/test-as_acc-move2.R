@@ -9,12 +9,15 @@ test_that("Can resolve IMU timestamp ordering issues with move2 helpers", {
     acc_example_expanded(c(0, 0, 0, 1, 2, 1.5, 3), c(1, 2, 1, 1, 1, 2, 2))
   )
 
-  expect_error(as_acc(m), "Not all tracks are grouped")
-  expect_error(as_acc(m[order(move2::mt_track_id(m)), ]), "strictly increasing")
+  expect_error(as_acc(m), class = "move2imu_error_track_ungrouped")
+  expect_error(
+    as_acc(m[order(move2::mt_track_id(m)), ]),
+    class = "move2imu_error_timestamp_unordered"
+  )
 
   m <- m[order(move2::mt_track_id(m), move2::mt_time(m)), ]
 
-  expect_error(as_acc(m), "strictly increasing")
+  expect_error(as_acc(m), class = "move2imu_error_timestamp_unordered")
 
   m <- move2::mt_filter_unique(m, "first")
 

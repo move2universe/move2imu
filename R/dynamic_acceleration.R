@@ -294,9 +294,7 @@ decompose_acc <- function(x,
                           call = rlang::caller_env()) {
   component <- rlang::arg_match(component)
 
-  if (!is_acc(x)) {
-    cli::cli_abort("{.arg x} must be an {.cls acc} vector.", call = call)
-  }
+  assert_imu(x, sensor = "acc", call = call)
 
   window <- window_to_sec(smoothing_window, call = call)
 

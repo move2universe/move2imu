@@ -231,3 +231,11 @@ test_that("Components pass through missing and empty elements", {
   )
   expect_length(dynamic_acc(acc(), smoothing_window = 1), 0)
 })
+
+test_that("vedba() and odba() require an acc vector", {
+  m <- mag(list(cbind(X = 1:3, Y = 1:3, Z = 1:3)), frequency = 10)
+
+  expect_error(vedba(1:3), class = "move2imu_error_imu_invalid")
+  expect_error(vedba(m), class = "move2imu_error_imu_sensor_incompatible")
+  expect_error(odba(m), class = "move2imu_error_imu_sensor_incompatible")
+})

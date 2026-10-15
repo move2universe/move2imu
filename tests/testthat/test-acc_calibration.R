@@ -150,7 +150,7 @@ test_that("acc_calibration() output has units class attached", {
 test_that("acc_calibration() warns and returns NA on invalid units", {
   expect_warning(
     cal <- acc_calibration(offset = 0, slope = 1, units = "feet"),
-    "could not be resolved"
+    class = "move2imu_warning_calibration_unresolved"
   )
   expect_true(is.na(cal))
 })
@@ -158,7 +158,7 @@ test_that("acc_calibration() warns and returns NA on invalid units", {
 test_that("acc_calibration() warns and returns NA when no manufacturer and no offset", {
   expect_warning(
     cal <- acc_calibration(slope = 0.001),
-    "could not be resolved"
+    class = "move2imu_warning_calibration_unresolved"
   )
   expect_true(is.na(cal))
 })
@@ -166,7 +166,7 @@ test_that("acc_calibration() warns and returns NA when no manufacturer and no of
 test_that("acc_calibration() warns and returns NA when no manufacturer and no slope", {
   expect_warning(
     cal <- acc_calibration(offset = 2048),
-    "could not be resolved"
+    class = "move2imu_warning_calibration_unresolved"
   )
   expect_true(is.na(cal))
 })
@@ -175,7 +175,7 @@ test_that("acc_calibration() needs offset and slope on the same axis", {
   # offset on X but slope on Y calibrates nothing -> NA, not a usable cal
   expect_warning(
     cal <- acc_calibration(offset_x = 10, slope_y = 1),
-    "could not be resolved"
+    class = "move2imu_warning_calibration_unresolved"
   )
   expect_true(is.na(cal))
 
@@ -186,7 +186,7 @@ test_that("acc_calibration() needs offset and slope on the same axis", {
 test_that("acc_calibration() warns and returns NA on invalid orientation value", {
   expect_warning(
     cal <- acc_calibration(offset = 2048, slope = 0.001, orientation = 0),
-    "could not be resolved"
+    class = "move2imu_warning_calibration_unresolved"
   )
   expect_true(is.na(cal))
 })
@@ -194,7 +194,7 @@ test_that("acc_calibration() warns and returns NA on invalid orientation value",
 test_that("acc_calibration() warns and returns NA on unrecognized manufacturer", {
   expect_warning(
     cal <- acc_calibration(manufacturer = "foobar", offset = 1, slope = 1),
-    "could not be resolved"
+    class = "move2imu_warning_calibration_unresolved"
   )
   expect_true(is.na(cal))
 })
@@ -202,7 +202,7 @@ test_that("acc_calibration() warns and returns NA on unrecognized manufacturer",
 test_that("acc_calibration() eobs warns and returns NA without tag_id", {
   expect_warning(
     cal <- acc_calibration(manufacturer = "eobs"),
-    "could not be resolved"
+    class = "move2imu_warning_calibration_unresolved"
   )
   expect_true(is.na(cal))
 })
@@ -350,7 +350,7 @@ test_that("an explicit NA units warns and returns NA", {
   # `units = NA` is an unclear request and is treated as invalid.
   expect_warning(
     cal <- acc_calibration(offset = 2048, slope = 0.001, units = NA),
-    "could not be resolved"
+    class = "move2imu_warning_calibration_unresolved"
   )
   expect_true(is.na(cal))
 })
@@ -392,6 +392,29 @@ test_that("as_acc_calibration() NA orientation falls back to manufacturer defaul
   cal <- as_acc_calibration(df)
   cal_default <- acc_calibration(manufacturer = "eobs", tag_id = 3000)
   expect_identical(transform_burst(b, cal[1]), transform_burst(b, cal_default[1]))
+})
+
+test_that("as_acc_calibration() treats factor columns as character", {
+  df <- data.frame(
+    manufacturer = c("eobs", NA),
+    tag_id = c(1000, NA),
+    offset = c(NA, 2048),
+    offset_x = c(NA, "7"),
+    slope = c(NA, 0.001),
+    units = c("standard_free_fall", NA),
+    stringsAsFactors = TRUE
+  )
+  df_chr <- data.frame(
+    manufacturer = c("eobs", NA),
+    tag_id = c(1000, NA),
+    offset = c(NA, 2048),
+    offset_x = c(NA, 7),
+    slope = c(NA, 0.001),
+    units = c("standard_free_fall", NA)
+  )
+
+  expect_no_warning(cal <- as_acc_calibration(df))
+  expect_identical(cal, as_acc_calibration(df_chr))
 })
 
 test_that("as_acc_calibration() silently ignores unrecognized columns", {
@@ -473,6 +496,22 @@ test_that("unresolved warning caps the reason list with an overflow line", {
   )
   msg <- cli::ansi_strip(conditionMessage(w))
   expect_match(msg, "and 2 more reasons")
+})
+
+test_that("calibration building only catches calibration errors", {
+  # A calibration error becomes an NA calibration plus a warning
+  expect_warning(
+    cal <- acc_calibration(manufacturer = "eobs", tag_id = 0),
+    class = "move2imu_warning_calibration_unresolved"
+  )
+  expect_true(is.na(cal))
+
+  # Any other error is not swallowed
+  local_mocked_bindings(eobs_specs = function(...) stop("unexpected failure"))
+  expect_error(
+    acc_calibration(manufacturer = "eobs", tag_id = 1000),
+    "unexpected failure"
+  )
 })
 
 test_that("as_acc_calibration() handles mixed manufacturer and custom rows", {
@@ -609,15 +648,27 @@ test_that("eobs_specs() works with mixed sensitivities", {
 })
 
 test_that("eobs_specs() errors on NA tag_id", {
-  expect_error(eobs_specs(NA), "missing `tag_id`")
+  expect_error(
+    eobs_specs(NA),
+    "missing `tag_id`",
+    class = "move2imu_error_calibration_spec_invalid"
+  )
 })
 
 test_that("eobs_specs() errors on tag_id outside known ranges", {
-  expect_error(eobs_specs(0), "Could not find")
+  expect_error(
+    eobs_specs(0),
+    "Could not find",
+    class = "move2imu_error_calibration_spec_invalid"
+  )
 })
 
 test_that("eobs_specs() errors on invalid sensitivity value", {
-  expect_error(eobs_specs(100, sensitivity = "medium"), "sensitivity")
+  expect_error(
+    eobs_specs(100, sensitivity = "medium"),
+    "sensitivity",
+    class = "move2imu_error_calibration_spec_invalid"
+  )
 })
 
 # --- ornitela_specs() ---------------------------------------------------------

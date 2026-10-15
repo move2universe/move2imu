@@ -1,10 +1,3 @@
-# Registry of supported IMU subclasses. Extend this when adding a new
-# concrete IMU type. Helpers like `assert_imu()` and
-# `parse_colsets()` read from it.
-valid_imu_types <- function() {
-  c("acc", "mag", "gyro")
-}
-
 # Parent class `imu` defines the shared (bursts, frequency, start)
 # record shape for various IMU types that vary by subclass (e.g. `acc`)
 imu <- function(sensor,
@@ -71,7 +64,7 @@ burst_list <- function(x, sensor) {
   )
 
   if (any(!is_valid)) {
-    cli::cli_abort(
+    abort_move2imu(
       "Bursts must be numeric matrices with unique columns named {.val X},
        {.val Y}, or {.val Z}."
     )
@@ -88,24 +81,39 @@ new_burst_list <- function(x, sensor) {
   )
 }
 
-# Assert that x is one of the supported IMU vector classes. Centralizes the
-# check so the error message lists concrete subclasses (e.g. `acc`, `mag`)
-# without exposing the internal `imu` parent class.
+# Check whether x is an IMU vector of any sensor type. Internal counterpart to
+# the exported `is_acc()`, `is_mag()`, and `is_gyro()`.
+is_imu <- function(x) {
+  inherits(x, "imu")
+}
+
+# Assert that x is an IMU vector or, if `sensor` is given, an IMU vector for
+# that sensor (e.g. "acc").
 assert_imu <- function(x,
+                       sensor = NULL,
                        arg = rlang::caller_arg(x),
                        call = rlang::caller_env()) {
-  if (inherits(x, "imu")) {
+  x_is_imu <- is_imu(x)
+
+  if (x_is_imu && (is.null(sensor) || inherits(x, sensor))) {
     return(invisible(x))
   }
 
-  types <- valid_imu_types()
-  types_fmt <- paste0(
-    vapply(types, function(t) cli::format_inline("{.cls {t}}"), character(1)),
-    collapse = "/"
-  )
+  # Expected class for the message, e.g. "an <imu>" or "a <mag>"
+  type <- sensor %||% "imu"
+  article <- if (grepl("^[aeiou]", type)) "an" else "a"
 
-  cli::cli_abort(
-    "{.arg {arg}} must be an IMU vector ({types_fmt}).",
+  # If not an `imu` at all, throw "imu_invalid" error. Otherwise, the
+  # problem must be an incompatible sensor.
+  if (!x_is_imu) {
+    err_class <- c("imu_invalid", "imu")
+  } else {
+    err_class <- c("imu_sensor_incompatible", "imu")
+  }
+
+  abort_move2imu(
+    "{.arg {arg}} must be {article} {.cls {type}} vector, not {.cls {class(x)[1]}}.",
+    class = err_class,
     call = call
   )
 }

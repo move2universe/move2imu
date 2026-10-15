@@ -13,7 +13,7 @@ test_that("plot_imu_trace handles missing start times", {
 
   expect_warning(
     g <- plot_imu_trace(a),
-    "Omitting 1 burst.* no start timestamp"
+    class = "move2imu_warning_bursts_omitted"
   )
   expect_s3_class(g, "dygraphs")
 
@@ -29,7 +29,7 @@ test_that("plot_imu_trace omits bursts with a missing frequency", {
 
   expect_warning(
     g <- plot_imu_trace(a),
-    "Omitting 1 burst.* no sampling frequency"
+    class = "move2imu_warning_bursts_omitted"
   )
   expect_s3_class(g, "dygraphs")
 
@@ -72,4 +72,8 @@ test_that("plot_imu_trace unions the axes of bursts with different columns", {
   g <- plot_imu_trace(a)
 
   expect_identical(g$x$attrs$labels, c("second", "X", "Y", "Z"))
+})
+
+test_that("plot_imu_trace() rejects non-IMU input", {
+  expect_error(plot_imu_trace(1:3), class = "move2imu_error_imu_invalid")
 })
