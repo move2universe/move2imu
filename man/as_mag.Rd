@@ -149,7 +149,8 @@ other than single spaces.
 (that is, not some combination of \code{"X"}, \code{"Y"} or \code{"Z"}).
 \item The number of values in a compact-format burst is not a multiple of the
 number of axes recorded for that burst.
-\item The compact-format frequency column is not numeric.
+\item The compact-format frequency column contains values that are not positive
+numeric.
 }
 }
 

@@ -103,6 +103,34 @@ test_that("frequency must be in frequency-compatible units", {
   expect_equal(units::deparse_unit(freqs(a)), "Hz")
 })
 
+test_that("frequency must be positive and finite, or NA", {
+  b <- list(cbind(X = 1:3), cbind(X = 1:3))
+
+  expect_error(
+    acc(b, frequency = c(10, 0)),
+    class = "move2imu_error_frequency_invalid"
+  )
+  expect_error(
+    acc(b, frequency = c(10, Inf)),
+    class = "move2imu_error_frequency_invalid"
+  )
+  expect_error(
+    acc(b, frequency = c(10, -5)),
+    class = "move2imu_error_frequency_invalid"
+  )
+
+  # Unknown frequencies are allowed (R treats NaN as missing too)
+  expect_no_error(acc(b, frequency = c(10, NA)))
+  expect_no_error(acc(b, frequency = c(10, NaN)))
+
+  # A frequency for a missing burst is discarded, so isn't checked
+  expect_no_error(acc(list(cbind(X = 1:3), NULL), frequency = c(10, 0)))
+
+  a <- acc(b, frequency = 10)
+  expect_error(freqs(a) <- c(10, 0), class = "move2imu_error_frequency_invalid")
+  expect_no_error(freqs(a) <- c(10, NA))
+})
+
 test_that("`freqs<-` coerces the replacement to Hz", {
   a <- acc(list(cbind(X = 1:3)), frequency = units::set_units(20, "Hz"))
 
