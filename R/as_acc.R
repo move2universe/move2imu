@@ -79,10 +79,23 @@
 #' [move2::mt_filter_unique()] for help diagnosing issues with data
 #' organization.
 #'
-#' If the IMU data are malformed, `as_*()` will throw an error. Expanded-format
-#' columns must be numeric. Compact-format bursts must have axes and contain
-#' space-delimited numeric values, and the number of values must be divisible
-#' by the number of axes.
+#' IMU data may be stored in **expanded** format (one sample per row, with a
+#' column for each axis) or **compact** format (one burst per row, stored as a
+#' space-delimited string alongside columns giving the burst's axes and
+#' sampling frequency). See [imu_colset()] for more details.
+#'
+#' `as_*()` will throw an error if the IMU data can't be parsed. Common causes
+#' include:
+#'
+#' - An axis column (expanded format) or burst string (compact format)
+#'   contains any non-numeric data values.
+#' - The values in a compact-format burst string are separated by something
+#'   other than single spaces.
+#' - A compact-format burst has no recorded axes or incorrectly recorded axes
+#'   (that is, not some combination of `"X"`, `"Y"` or `"Z"`).
+#' - The number of values in a compact-format burst is not a multiple of the
+#'   number of axes recorded for that burst.
+#' - The compact-format frequency column is not numeric.
 #'
 #' ## Dealing with noise in recorded timestamps
 #'
