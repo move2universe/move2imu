@@ -213,6 +213,21 @@ test_that("Error on a user-supplied colset whose columns are present but empty",
     as_acc_df(g, colset = acc_colset_raw_xyz()),
     "contain no data"
   )
+
+  # A compact colset has no data when its bursts column is empty, even if the
+  # axes and frequency columns are filled
+  d <- acc_example_compact(.as.POSIXct(c(0, 10)))
+  d$eobs_accelerations_raw <- NA_character_
+  colset <- imu_colset(
+    bursts = "eobs_accelerations_raw",
+    axes = "eobs_acceleration_axes",
+    frequency = "eobs_acceleration_sampling_frequency_per_axis"
+  )
+
+  expect_error(
+    as_acc_df(d, colset = colset),
+    class = "move2imu_error_colset_empty"
+  )
 })
 
 test_that("Can split expanded-format data into bursts by inferred frequency", {

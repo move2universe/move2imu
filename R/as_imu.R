@@ -699,11 +699,18 @@ check_colset <- function(x, colset, call = rlang::caller_env()) {
 }
 
 assert_colset_has_data <- function(x, colset, call = rlang::caller_env()) {
-  if (all(cols_empty(x, colset))) {
+  # A compact colset's data are its burst values, matching `colset_active()`
+  if (colset_type(colset) == "compact") {
+    data_cols <- colset[["bursts"]]
+  } else {
+    data_cols <- colset
+  }
+
+  if (all(cols_empty(x, data_cols))) {
     abort_move2imu(
       c(
         "The provided {.arg colset} columns contain no data.",
-        "x" = "Column{?s} {.val {colset}} {?is/are} empty."
+        "x" = "Column{?s} {.val {data_cols}} {?is/are} empty."
       ),
       class = c("colset_empty", "colset"),
       call = call
