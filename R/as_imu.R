@@ -247,10 +247,10 @@ as_imu_compact <- function(x, colset, sensor, timestamp) {
     )
   )
 
-  # Error on malformed bursts: those with no axes, no values, any non-numeric
-  # value, or a value count not divisible by the number of axes.
+  # Error on malformed bursts: those with no axes, any non-numeric value, or a
+  # value count not divisible by the number of axes.
   n_vals <- lengths(vals)
-  bad <- is.na(axes) | n_axis == 0 | n_vals == 0 | n_vals %% n_axis != 0 |
+  bad <- is.na(axes) | n_axis == 0 | n_vals %% n_axis != 0 |
     purrr::map_lgl(vals, anyNA)
 
   if (any(bad)) {
@@ -395,7 +395,7 @@ which_imu_vals <- function(x, colset) {
   if (type == "expanded") {
     has_vals <- which(rowSums(!is.na(x[colset])) > 0)
   } else {
-    has_vals <- which(!is.na(x[[colset[["bursts"]]]]))
+    has_vals <- which(!vals_missing(x[[colset[["bursts"]]]]))
   }
 
   has_vals

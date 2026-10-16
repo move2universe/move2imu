@@ -601,12 +601,26 @@ to_alt_colset <- function(colset) {
   )
 }
 
+# Flag values that hold no data: NA, empty strings (as in data read with
+# `read.csv()`), or empty list elements.
+vals_missing <- function(x) {
+  missing <- is.na(x)
+
+  if (is.list(x)) {
+    missing <- missing | lengths(x) == 0
+  }
+
+  if (is.character(x) || is.factor(x)) {
+    missing <- missing | as.character(x) == ""
+  }
+
+  missing
+}
+
+# Check, for each of `cols`, whether the column holds no data at all.
 cols_empty <- function(x, cols) {
   assert_all_cols_present(x, cols)
-  purrr::map_lgl(
-    cols,
-    function(col) all(is.na(unlist(x[[col]]))) || all(rlang::is_empty(unlist(x[[col]])))
-  )
+  purrr::map_lgl(cols, function(col) all(vals_missing(x[[col]])))
 }
 
 assert_all_cols_present <- function(x, cols, call = rlang::caller_env()) {

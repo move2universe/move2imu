@@ -644,13 +644,24 @@ test_that("compact bursts must also be ordered and unique within a track", {
 
 test_that("compact rows without burst values become missing bursts", {
   d <- acc_example_compact(.as.POSIXct(c(0, 10)))
-  d$eobs_accelerations_raw[2] <- NA
 
   # Axes and frequency alone are not data
+  d$eobs_accelerations_raw[2] <- NA
   a <- as_acc_df(d)
 
   expect_identical(is.na(a), c(FALSE, TRUE))
   expect_identical(is.na(a), !acc_sample_rows(d))
+
+  # Empty strings are missing too, as in data read with `read.csv()`
+  d$eobs_accelerations_raw[2] <- ""
+  a <- as_acc_df(d)
+
+  expect_identical(is.na(a), c(FALSE, TRUE))
+  expect_identical(is.na(a), !acc_sample_rows(d))
+
+  # A bursts column with only empty strings has no data
+  d$eobs_accelerations_raw <- ""
+  expect_error(active_acc_colsets(d), class = "move2imu_error_colset_not_detected")
 })
 
 test_that("compact rows missing only a frequency keep their samples", {
@@ -677,7 +688,7 @@ test_that("compact rows missing only a frequency keep their samples", {
 test_that("compact bursts must hold a whole number of numeric samples", {
   d <- acc_example_compact(.as.POSIXct(c(0, 10)))
 
-  bad <- c("1 2 3 4 5", "", "  ", "1 2 abc")
+  bad <- c("1 2 3 4 5", "  ", "1 2 abc")
 
   for (b in bad) {
     d$eobs_accelerations_raw[2] <- b
