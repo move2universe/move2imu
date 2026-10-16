@@ -13,8 +13,10 @@
 #'
 #' @details
 #' The time of each sample is calculated from its burst's start time and
-#' sampling frequency. Samples from bursts without a start time or frequency
-#' are recorded with a `NA` time.
+#' sampling frequency. Samples from bursts without a start time are recorded
+#' with a `NA` time. For bursts without a frequency, only the first sample has
+#' a known time (the burst's start time). The rest are recorded with a `NA`
+#' time.
 #'
 #' The `burst` column shows the index position in `x` for the burst that the
 #' sample belongs to. Missing bursts contribute no rows to the output but
@@ -72,9 +74,20 @@ imu_samples <- function(x) {
   n <- n_samples(x)
   freq <- freqs(x)
 
-  # Offset time from the start of the burst to each of its samples.
+  # Offset time from the start of the burst to each of its samples. Ensure the
+  # first sample is always at the burst start time, even if the frequency is NA.
   offset <- unlist(
-    purrr::map2(as.numeric(freq), n, function(f, n) (seq_len(n) - 1) / f)
+    purrr::map2(
+      as.numeric(freq),
+      n,
+      function(f, n) {
+        if (n == 0) {
+          return(numeric())
+        }
+
+        c(0, seq_len(n - 1) / f)
+      }
+    )
   )
 
   # All bursts must share one unit (or none) so it can be applied to every
