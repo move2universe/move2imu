@@ -297,7 +297,9 @@ freqs <- function(x) {
 #' @rdname imu-fields
 #' @export
 `freqs<-` <- function(x, value) {
-  field(x, "frequency") <- as_hz(value)
+  value <- as_hz(value)
+  check_freq_values(value, arg = "value")
+  field(x, "frequency") <- value
   x
 }
 

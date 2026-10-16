@@ -27,6 +27,8 @@ imu <- function(sensor,
     start[na_burst] <- as.POSIXct(NA, tz = tz)
   }
 
+  check_freq_values(frequency)
+
   new_imu(
     sensor,
     bursts = bursts,

@@ -213,6 +213,21 @@ test_that("Error on a user-supplied colset whose columns are present but empty",
     as_acc_df(g, colset = acc_colset_raw_xyz()),
     "contain no data"
   )
+
+  # A compact colset has no data when its bursts column is empty, even if the
+  # axes and frequency columns are filled
+  d <- acc_example_compact(.as.POSIXct(c(0, 10)))
+  d$eobs_accelerations_raw <- NA_character_
+  colset <- imu_colset(
+    bursts = "eobs_accelerations_raw",
+    axes = "eobs_acceleration_axes",
+    frequency = "eobs_acceleration_sampling_frequency_per_axis"
+  )
+
+  expect_error(
+    as_acc_df(d, colset = colset),
+    class = "move2imu_error_colset_empty"
+  )
 })
 
 test_that("Can split expanded-format data into bursts by inferred frequency", {
@@ -640,6 +655,75 @@ test_that("compact bursts must also be ordered and unique within a track", {
 
   comp <- acc_example_compact(.as.POSIXct(c(0, 0)), id = c(1, 2))
   expect_no_error(as_acc_df(comp))
+})
+
+test_that("compact rows without burst values become missing bursts", {
+  d <- acc_example_compact(.as.POSIXct(c(0, 10)))
+
+  # Axes and frequency alone are not data
+  d$eobs_accelerations_raw[2] <- NA
+  a <- as_acc_df(d)
+
+  expect_identical(is.na(a), c(FALSE, TRUE))
+  expect_identical(is.na(a), !acc_sample_rows(d))
+
+  # Empty strings are missing too, as in data read with `read.csv()`
+  d$eobs_accelerations_raw[2] <- ""
+  a <- as_acc_df(d)
+
+  expect_identical(is.na(a), c(FALSE, TRUE))
+  expect_identical(is.na(a), !acc_sample_rows(d))
+
+  # A bursts column with only empty strings has no data
+  d$eobs_accelerations_raw <- ""
+  expect_error(active_acc_colsets(d), class = "move2imu_error_colset_not_detected")
+})
+
+test_that("compact rows missing only a frequency keep their samples", {
+  d <- acc_example_compact(.as.POSIXct(c(0, 10)))
+  d$eobs_acceleration_sampling_frequency_per_axis[2] <- NA
+
+  a <- as_acc_df(d)
+
+  expect_identical(is.na(a), c(FALSE, FALSE))
+  expect_identical(is.na(a), !acc_sample_rows(d))
+  expect_identical(bursts(a)[[2]], bursts(a)[[1]])
+  expect_true(is.na(freqs(a)[2]))
+
+  # The colset is still detected when no row has a frequency
+  d$eobs_acceleration_sampling_frequency_per_axis <- NA_real_
+
+  a <- as_acc_df(d)
+
+  expect_identical(is.na(a), c(FALSE, FALSE))
+  expect_identical(acc_sample_rows(d), c(TRUE, TRUE))
+  expect_true(all(is.na(freqs(a))))
+})
+
+test_that("compact bursts must hold a whole number of numeric samples", {
+  d <- acc_example_compact(.as.POSIXct(c(0, 10)))
+
+  bad <- c("1 2 3 4 5", "  ", "1 2 abc")
+
+  for (b in bad) {
+    d$eobs_accelerations_raw[2] <- b
+    expect_error(as_acc_df(d), class = "move2imu_error_colset_bursts_invalid")
+  }
+
+  # A burst with no axes can't be shaped into samples, though the row still
+  # holds data
+  d$eobs_accelerations_raw[2] <- "1 2 3"
+
+  for (axes in c("", NA)) {
+    d$eobs_acceleration_axes[2] <- axes
+    expect_identical(acc_sample_rows(d), c(TRUE, TRUE))
+    expect_error(as_acc_df(d), class = "move2imu_error_colset_bursts_invalid")
+  }
+
+  # All invalid rows are reported
+  d$eobs_acceleration_axes <- "XYZ"
+  d$eobs_accelerations_raw <- "1 2"
+  expect_error(as_acc_df(d), "rows 1 and 2")
 })
 
 test_that("tracks that are not grouped together are rejected", {

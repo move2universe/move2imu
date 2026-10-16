@@ -387,7 +387,7 @@ test_that("bin_samples validates lanes, types and lengths", {
 test_that("Warn and drop on improper frequency inputs", {
   a <- acc(
     list(cbind(X = 1:10, Y = 1:10, Z = 1), cbind(X = 1:10, Y = 1:10, Z = 1)),
-    frequency = units::set_units(c(0, 20), "Hz"),
+    frequency = units::set_units(c(NA, 20), "Hz"),
     start = .as.POSIXct(c(0, 100))
   )
 

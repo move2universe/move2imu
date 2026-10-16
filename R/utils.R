@@ -146,6 +146,23 @@ as_hz <- function(x, arg = rlang::caller_arg(x), call = rlang::caller_env()) {
   units::set_units(x, HZ_UNIT, mode = "standard")
 }
 
+# Error if any frequency is zero, negative or infinite. Missing frequencies are
+# allowed, as a burst's frequency may be unknown (e.g. for a single-sample burst)
+check_freq_values <- function(x, arg = rlang::caller_arg(x), call = rlang::caller_env()) {
+  vals <- as.numeric(x)
+  bad <- !is.na(vals) & !(is.finite(vals) & vals > 0)
+
+  if (any(bad)) {
+    abort_move2imu(
+      "{.arg {arg}} must contain positive, finite values.",
+      class = c("frequency_invalid", "frequency"),
+      call = call
+    )
+  }
+
+  invisible(x)
+}
+
 # Absolute floating-point noise floor for POSIXct-derived time differences, in
 # seconds. POSIXct is a double count of seconds since 1970; one ULP at a
 # contemporary epoch (~1.77e9 s) is ~4e-7 s, so a difference of two timestamps
