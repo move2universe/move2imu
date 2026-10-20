@@ -91,7 +91,7 @@ test_that("A compact-format colset with burst values but no axes is active but u
   alb <- albatrosses_df()
   alb$eobs_acceleration_axes <- NA_character_
   expect_length(active_acc_colsets(alb), 1)
-  expect_error(as_acc_df(alb), class = "move2imu_error_colset_bursts_invalid")
+  expect_error(as_acc_df(alb), class = "move2imu_error_bursts_invalid")
 
   alb$eobs_acceleration_axes <- rep(list(NULL), nrow(alb))
   expect_length(active_acc_colsets(alb), 1)

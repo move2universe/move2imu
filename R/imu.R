@@ -68,7 +68,8 @@ burst_list <- function(x, sensor) {
   if (any(!is_valid)) {
     abort_move2imu(
       "Bursts must be numeric matrices with unique columns named {.val X},
-       {.val Y}, or {.val Z}."
+       {.val Y}, or {.val Z}.",
+      class = c("bursts_invalid", "bursts")
     )
   }
 

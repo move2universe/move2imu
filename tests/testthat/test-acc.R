@@ -167,13 +167,13 @@ test_that("bursts must be numeric matrices with unique X, Y, or Z columns", {
   # Invalid column names
   expect_error(
     acc(list(cbind(A = 1:3, B = 4:6)), frequency = 10),
-    "named"
+    class = "move2imu_error_bursts_invalid"
   )
 
   # Duplicated column names
   expect_error(
     acc(list(cbind(X = 1:3, X = 4:6)), frequency = 10),
-    "Bursts must be"
+    class = "move2imu_error_bursts_invalid"
   )
 
   # Bursts must be 2-dimensional and numeric

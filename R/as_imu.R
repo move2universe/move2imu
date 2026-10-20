@@ -259,7 +259,7 @@ as_imu_compact <- function(x, colset, sensor, timestamp) {
         "{cli::qty(sum(bad))}Malformed burst{?s} in row{?s} {i[bad]}.",
         "i" = "Bursts must contain space-delimited numeric values, and the number of values must be divisible by the number of axes."
       ),
-      class = c("colset_bursts_invalid", "colset")
+      class = c("bursts_invalid", "bursts")
     )
   }
 

@@ -707,7 +707,7 @@ test_that("compact bursts must hold a whole number of numeric samples", {
 
   for (b in bad) {
     d$eobs_accelerations_raw[2] <- b
-    expect_error(as_acc_df(d), class = "move2imu_error_colset_bursts_invalid")
+    expect_error(as_acc_df(d), class = "move2imu_error_bursts_invalid")
   }
 
   # A burst with no axes can't be shaped into samples, though the row still
@@ -717,7 +717,7 @@ test_that("compact bursts must hold a whole number of numeric samples", {
   for (axes in c("", NA)) {
     d$eobs_acceleration_axes[2] <- axes
     expect_identical(acc_sample_rows(d), c(TRUE, TRUE))
-    expect_error(as_acc_df(d), class = "move2imu_error_colset_bursts_invalid")
+    expect_error(as_acc_df(d), class = "move2imu_error_bursts_invalid")
   }
 
   # All invalid rows are reported
