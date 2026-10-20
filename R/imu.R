@@ -4,6 +4,10 @@ imu <- function(sensor,
                 bursts = list(),
                 frequency = units::set_units(double(), "Hz"),
                 start = NULL) {
+  if (!rlang::is_string(sensor, IMU_SENSORS)) {
+    abort_move2imu("{.arg sensor} must be one of {.or {.val {IMU_SENSORS}}}.")
+  }
+
   bursts <- burst_list(bursts, sensor)
   n <- vec_size(bursts)
 
@@ -90,6 +94,29 @@ is_imu <- function(x) {
   inherits(x, "imu")
 }
 
+# Get a given `imu` object's sensor type. An `imu` must inherit from exactly one
+# sensor class.
+imu_sensor <- function(x,
+                       arg = rlang::caller_arg(x),
+                       call = rlang::caller_env()) {
+  assert_imu(x, arg = arg, call = call)
+
+  sensor <- IMU_SENSORS[inherits(x, IMU_SENSORS, which = TRUE) > 0]
+
+  if (length(sensor) != 1) {
+    abort_move2imu(
+      c(
+        "{.arg {arg}} is a malformed {.cls imu} vector.",
+        i = "An {.cls imu} vector must have exactly one sensor class: {.or {.val {IMU_SENSORS}}}."
+      ),
+      class = c("imu_invalid", "imu"),
+      call = call
+    )
+  }
+
+  sensor
+}
+
 # Assert that x is an IMU vector or, if `sensor` is given, an IMU vector for
 # that sensor (e.g. "acc").
 assert_imu <- function(x,
@@ -133,7 +160,7 @@ imu_ptype2 <- function(x, y, ..., x_arg = "", y_arg = "") {
   start_common <- vctrs::vec_ptype2(starts(x), starts(y))
 
   new_imu(
-    class(x)[1],
+    imu_sensor(x),
     frequency = freq_common,
     start = start_common
   )
@@ -142,3 +169,6 @@ imu_ptype2 <- function(x, y, ..., x_arg = "", y_arg = "") {
 imu_cast <- function(x, to, ..., x_arg = "", to_arg = "") {
   x
 }
+
+# Accepted sensor types
+IMU_SENSORS <- c("acc", "mag", "gyro")

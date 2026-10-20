@@ -224,7 +224,7 @@ merge_imu <- function(x,
   )
 
   merged <- imu(
-    sensor = class(x)[1],
+    sensor = imu_sensor(x),
     bursts = bursts_comb,
     frequency = units::set_units(merged_freq, "Hz"),
     start = sv[merged_i]
@@ -232,7 +232,7 @@ merge_imu <- function(x,
 
   # If retaining index matching, fill merged idx with NA entries.
   if (!drop) {
-    out <- empty_imu(class(x)[1], n, tz = attr(burst_starts, "tzone"))
+    out <- empty_imu(imu_sensor(x), n, tz = attr(burst_starts, "tzone"))
     out[valid[merged_i]] <- merged
     merged <- out
   }
@@ -317,7 +317,7 @@ split_imu <- function(x, interval, flatten = FALSE) {
     abort_move2imu("{.arg interval} must be a positive number.")
   }
 
-  sensor <- class(x)[1]
+  sensor <- imu_sensor(x)
   ptype <- vec_ptype(x)
 
   x <- purrr::pmap(
