@@ -18,10 +18,15 @@
 #
 # Currently, we report the following condition groups:
 #
-#   move2imu_error_calibration: Calibration object construction and application
-#   move2imu_error_colset: IMU column set specification and presence in a data source
-#   move2imu_error_imu: Input that is not an IMU vector, or not for the expected sensor
+#   move2imu_error_imu: Input that is not an IMU vector, or not for the expected
+#     sensor
+#   move2imu_error_colset: IMU column set specification, presence, and column
+#     types in a data source
+#   move2imu_error_bursts: Malformed burst data (e.g., invalid axes,
+#     non-numeric data values, etc.)
+#   move2imu_error_frequency: Invalid sampling frequency values
 #   move2imu_error_timestamp: Missing or invalid timestamps
+#   move2imu_error_calibration: Calibration object construction and application
 #   move2imu_error_units: Inconsistent or invalid units
 #
 # We also report several ungrouped individual condition classes.

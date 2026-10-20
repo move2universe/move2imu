@@ -231,6 +231,10 @@ movebank_alt_colsets <- function(config) {
 #' - `active_mag_colsets()` — column sets used by [as_mag()].
 #' - `active_gyro_colsets()` — column sets used by [as_gyro()].
 #'
+#' A column set is considered active when it contains IMU data values. These
+#' functions do not evaluate whether the values themselves are valid. `as_*()`
+#' functions will report any identified data issues when parsing.
+#'
 #' If no active colsets are found, you can use [imu_colset()] to specify
 #' a custom set of columns that contain IMU data.
 #'
@@ -536,10 +540,11 @@ gyro_colset_xyz <- function() {
 
 # Colset predicates (S3, dispatched on format subclass) ------------------------
 
-# Determine whether a colset is "active" in `x`. Active colsets
-# are present and contain data in all necessary columns. Compact colsets
-# require all columns in the set to be present and contain data. Expanded
-# colsets only require a subset of the columns to be present and have data.
+# Determine whether a colset is "active" in `x`, meaning it holds IMU data.
+# Compact colsets require all columns in the set to be present and the bursts
+# column to contain data. Expanded colsets only require a subset of the columns
+# to be present and have data. The data may still be malformed, but this is
+# checked during parsing.
 colset_active <- function(colset, x) {
   UseMethod("colset_active")
 }
@@ -551,8 +556,8 @@ colset_active.imu_colset_compact <- function(colset, x) {
     return(NULL)
   }
 
-  # All compact cols must have data
-  if (any(cols_empty(x, colset))) {
+  # The burst values are the data, so only the bursts column must have data
+  if (cols_empty(x, colset[["bursts"]])) {
     return(NULL)
   }
 
@@ -596,12 +601,26 @@ to_alt_colset <- function(colset) {
   )
 }
 
+# Flag values that hold no data: NA, empty strings (as in data read with
+# `read.csv()`), or empty list elements.
+vals_missing <- function(x) {
+  missing <- is.na(x)
+
+  if (is.list(x)) {
+    missing <- missing | lengths(x) == 0
+  }
+
+  if (is.character(x) || is.factor(x)) {
+    missing <- missing | as.character(x) == ""
+  }
+
+  missing
+}
+
+# Check, for each of `cols`, whether the column holds no data at all.
 cols_empty <- function(x, cols) {
   assert_all_cols_present(x, cols)
-  purrr::map_lgl(
-    cols,
-    function(col) all(is.na(unlist(x[[col]]))) || all(rlang::is_empty(unlist(x[[col]])))
-  )
+  purrr::map_lgl(cols, function(col) all(vals_missing(x[[col]])))
 }
 
 assert_all_cols_present <- function(x, cols, call = rlang::caller_env()) {

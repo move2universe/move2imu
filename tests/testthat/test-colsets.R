@@ -75,18 +75,31 @@ test_that("Use data values to determine active colset if multiple present", {
   m[["eobs_accelerations_raw"]] <- NA
 
   expect_error(active_acc_colsets(m), class = "move2imu_error_colset_not_detected")
+
+  # A compact colset's data are its burst values, so filled axes alone don't
+  # make it active
+  m <- vctrs::vec_rbind(gulls_df(), albatrosses_df())
+  m[["eobs_accelerations_raw"]] <- NA
+
+  expect_named(active_acc_colsets(m), "raw_xyz")
 })
 
-test_that("Correctly identify that a non-full compact-format colset is invalid", {
+# Allow malformed compact colset to pass as "active" and error instead when
+# parsing. This ensures that we don't silently drop data from colsets that
+# do seem to have data but are not properly formatted.
+test_that("A compact-format colset with burst values but no axes is active but unparseable", {
   alb <- albatrosses_df()
-  alb$eobs_acceleration_axes <- NA
-  expect_error(active_acc_colsets(alb))
+  alb$eobs_acceleration_axes <- NA_character_
+  expect_length(active_acc_colsets(alb), 1)
+  expect_error(as_acc_df(alb), class = "move2imu_error_bursts_invalid")
 
   alb$eobs_acceleration_axes <- rep(list(NULL), nrow(alb))
-  expect_error(active_acc_colsets(alb))
+  expect_length(active_acc_colsets(alb), 1)
+  expect_error(as_acc_df(alb), class = "move2imu_error_colset_column_invalid")
 
+  # A compact colset with a column absent is not detected
   alb$eobs_acceleration_axes <- NULL
-  expect_error(active_acc_colsets(alb))
+  expect_error(active_acc_colsets(alb), class = "move2imu_error_colset_not_detected")
 })
 
 test_that("Currently supported colsets", {

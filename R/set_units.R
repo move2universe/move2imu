@@ -104,7 +104,7 @@ drop_imu_units <- function(x, ...) {
     }
   )
 
-  bursts(x) <- new_burst_list(bursts_dropped, sensor = sensor)
+  field(x, "bursts") <- new_burst_list(bursts_dropped, sensor = sensor)
 
   x
 }
@@ -160,7 +160,7 @@ set_imu_units_ <- function(x, value, reference = NULL) {
     }
   )
 
-  bursts(x) <- new_burst_list(bursts_converted, sensor = sensor)
+  field(x, "bursts") <- new_burst_list(bursts_converted, sensor = sensor)
 
   x
 }

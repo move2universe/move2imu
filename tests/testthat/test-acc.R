@@ -103,6 +103,37 @@ test_that("frequency must be in frequency-compatible units", {
   expect_equal(units::deparse_unit(freqs(a)), "Hz")
 })
 
+test_that("frequency must be positive and finite, or NA", {
+  b <- list(cbind(X = 1:3), cbind(X = 1:3))
+
+  expect_error(
+    acc(b, frequency = c(10, 0)),
+    class = "move2imu_error_frequency_invalid"
+  )
+  expect_error(
+    acc(b, frequency = c(10, Inf)),
+    class = "move2imu_error_frequency_invalid"
+  )
+  expect_error(
+    acc(b, frequency = c(10, -5)),
+    class = "move2imu_error_frequency_invalid"
+  )
+
+  # Unknown frequencies are allowed (R treats NaN as missing too)
+  expect_no_error(acc(b, frequency = c(10, NA)))
+  expect_no_error(acc(b, frequency = c(10, NaN)))
+
+  # A frequency for a missing burst is still checked, though it is discarded
+  expect_error(
+    acc(list(cbind(X = 1:3), NULL), frequency = c(10, 0)),
+    class = "move2imu_error_frequency_invalid"
+  )
+
+  a <- acc(b, frequency = 10)
+  expect_error(freqs(a) <- c(10, 0), class = "move2imu_error_frequency_invalid")
+  expect_no_error(freqs(a) <- c(10, NA))
+})
+
 test_that("`freqs<-` coerces the replacement to Hz", {
   a <- acc(list(cbind(X = 1:3)), frequency = units::set_units(20, "Hz"))
 
@@ -139,13 +170,13 @@ test_that("bursts must be numeric matrices with unique X, Y, or Z columns", {
   # Invalid column names
   expect_error(
     acc(list(cbind(A = 1:3, B = 4:6)), frequency = 10),
-    "named"
+    class = "move2imu_error_bursts_invalid"
   )
 
   # Duplicated column names
   expect_error(
     acc(list(cbind(X = 1:3, X = 4:6)), frequency = 10),
-    "Bursts must be"
+    class = "move2imu_error_bursts_invalid"
   )
 
   # Bursts must be 2-dimensional and numeric
@@ -171,6 +202,14 @@ test_that("bursts must be numeric matrices with unique X, Y, or Z columns", {
   expect_no_error(
     acc(list(NULL), frequency = NA)
   )
+
+  a <- acc(list(cbind(X = 1:3)), frequency = 10)
+  expect_error(
+    bursts(a) <- list(cbind(A = 1:3)),
+    class = "move2imu_error_bursts_invalid"
+  )
+  expect_no_error(bursts(a) <- list(cbind(Y = 1:3)))
+  expect_s3_class(bursts(a), "acc_list")
 })
 
 test_that("c() normalizes different frequency units to Hz", {

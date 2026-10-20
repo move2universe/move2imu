@@ -151,7 +151,7 @@ transform_imu <- function(x, calibration) {
     )
   }
 
-  bursts(x) <- new_burst_list(out, sensor = sensor)
+  field(x, "bursts") <- new_burst_list(out, sensor = sensor)
 
   # Sync metadata so uncalibrated elements are fully missing (`is.na()` agrees)
   if (any(missing_cal)) {
