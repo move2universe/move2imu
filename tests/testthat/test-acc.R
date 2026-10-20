@@ -199,6 +199,14 @@ test_that("bursts must be numeric matrices with unique X, Y, or Z columns", {
   expect_no_error(
     acc(list(NULL), frequency = NA)
   )
+
+  a <- acc(list(cbind(X = 1:3)), frequency = 10)
+  expect_error(
+    bursts(a) <- list(cbind(A = 1:3)),
+    class = "move2imu_error_bursts_invalid"
+  )
+  expect_no_error(bursts(a) <- list(cbind(Y = 1:3)))
+  expect_s3_class(bursts(a), "acc_list")
 })
 
 test_that("c() normalizes different frequency units to Hz", {

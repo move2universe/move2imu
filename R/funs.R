@@ -284,7 +284,7 @@ bursts <- function(x) {
 #' @rdname imu-fields
 #' @export
 `bursts<-` <- function(x, value) {
-  field(x, "bursts") <- value
+  field(x, "bursts") <- burst_list(value, sensor = class(x)[1])
   x
 }
 
