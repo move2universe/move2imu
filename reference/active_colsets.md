@@ -14,6 +14,10 @@ sets for one IMU sensor.
 - `active_gyro_colsets()` — column sets used by
   [`as_gyro()`](https://move2universe.github.io/move2imu/reference/as_gyro.md).
 
+A column set is considered active when it contains IMU data values.
+These functions do not evaluate whether the values themselves are valid.
+`as_*()` functions will report any identified data issues when parsing.
+
 If no active colsets are found, you can use
 [`imu_colset()`](https://move2universe.github.io/move2imu/reference/imu_colset.md)
 to specify a custom set of columns that contain IMU data.

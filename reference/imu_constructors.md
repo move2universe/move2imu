@@ -45,7 +45,7 @@ gyro(
   with compatible
   [units](https://r-quantities.github.io/units/reference/units.html) are
   converted to Hz internally. If no units are specified, the frequency
-  is assumed to be in Hz.
+  is assumed to be in Hz. Values must be positive, or `NA` if unknown.
 
 - start:
 

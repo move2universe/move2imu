@@ -195,7 +195,22 @@ resolved before calling <code>as_*()</code>. For <code>move2</code> inputs, see
 <code><a href="https://bartk.gitlab.io/move2/reference/assertions.html" class="external-link">move2::mt_is_track_id_cleaved()</a></code>, <code><a href="https://bartk.gitlab.io/move2/reference/assertions.html" class="external-link">move2::mt_is_time_ordered()</a></code>, and
 <code><a href="https://bartk.gitlab.io/move2/reference/mt_filter_unique.html" class="external-link">move2::mt_filter_unique()</a></code> for help diagnosing issues with data
 organization.</p>
-</div>
+<p>IMU data may be stored in <strong>expanded</strong> format (one sample per row, with a
+column for each axis) or <strong>compact</strong> format (one burst per row, stored as a
+space-delimited string alongside columns giving the burst's axes and
+sampling frequency). See <code><a href="imu_colset.html">imu_colset()</a></code> for more details.</p>
+<p><code>as_*()</code> will throw an error if the IMU data can't be parsed. Common causes
+include:</p><ul><li><p>An axis column (expanded format) or burst string (compact format)
+contains any non-numeric data values.</p></li>
+<li><p>The values in a compact-format burst string are separated by something
+other than single spaces.</p></li>
+<li><p>A compact-format burst has no recorded axes or incorrectly recorded axes
+(that is, not some combination of <code>"X"</code>, <code>"Y"</code> or <code>"Z"</code>).</p></li>
+<li><p>The number of values in a compact-format burst is not a multiple of the
+number of axes recorded for that burst.</p></li>
+<li><p>The compact-format frequency column contains invalid (e.g., negative)
+values for rows with burst data.</p></li>
+</ul></div>
 
 <div class="section">
 <h3 id="dealing-with-noise-in-recorded-timestamps">Dealing with noise in recorded timestamps<a class="anchor" aria-label="anchor" href="#dealing-with-noise-in-recorded-timestamps"></a></h3>
