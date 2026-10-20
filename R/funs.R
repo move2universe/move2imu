@@ -126,6 +126,11 @@ NULL
 #' converted and stored as `POSIXct`. `Date` objects are treated as being
 #' recorded at midnight, UTC.
 #'
+#' Setters only change their own field. This means it is possible to produce
+#' incomplete records if you remove values for only certain fields. To mark a
+#' record as missing, use `x[i] <- NA`, which clears its burst, frequency, and
+#' start time together.
+#'
 #' @param x An IMU vector (`acc`, `mag`, or `gyro`)
 #' @param value Replacement value.
 #'

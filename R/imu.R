@@ -18,6 +18,8 @@ imu <- function(sensor,
   frequency <- vec_recycle(frequency, n)
   start <- vec_recycle(start, n)
 
+  check_freq_values(frequency)
+
   # Ensure metadata is NA when bursts are missing, so that the record is
   # consistently all-NA and vec_detect_missing() agrees with is.na()
   na_burst <- vec_detect_missing(bursts)
@@ -26,8 +28,6 @@ imu <- function(sensor,
     frequency[na_burst] <- units::set_units(NA, "Hz")
     start[na_burst] <- as.POSIXct(NA, tz = tz)
   }
-
-  check_freq_values(frequency)
 
   new_imu(
     sensor,

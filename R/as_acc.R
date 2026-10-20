@@ -95,8 +95,8 @@
 #'   (that is, not some combination of `"X"`, `"Y"` or `"Z"`).
 #' - The number of values in a compact-format burst is not a multiple of the
 #'   number of axes recorded for that burst.
-#' - The compact-format frequency column contains values that are not positive
-#'   numeric.
+#' - The compact-format frequency column contains invalid (e.g., negative)
+#'   values for rows with burst data.
 #'
 #' ## Dealing with noise in recorded timestamps
 #'

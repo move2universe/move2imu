@@ -123,8 +123,11 @@ test_that("frequency must be positive and finite, or NA", {
   expect_no_error(acc(b, frequency = c(10, NA)))
   expect_no_error(acc(b, frequency = c(10, NaN)))
 
-  # A frequency for a missing burst is discarded, so isn't checked
-  expect_no_error(acc(list(cbind(X = 1:3), NULL), frequency = c(10, 0)))
+  # A frequency for a missing burst is still checked, though it is discarded
+  expect_error(
+    acc(list(cbind(X = 1:3), NULL), frequency = c(10, 0)),
+    class = "move2imu_error_frequency_invalid"
+  )
 
   a <- acc(b, frequency = 10)
   expect_error(freqs(a) <- c(10, 0), class = "move2imu_error_frequency_invalid")
