@@ -270,7 +270,7 @@ as_imu_compact <- function(x, colset, sensor, timestamp) {
     }
   )
 
-  out <- empty_imu(sensor, nrow(x), timestamp)
+  out <- empty_imu(sensor, nrow(x), tz = attr(timestamp, "tzone"))
 
   out[i] <- imu(
     sensor,
@@ -320,7 +320,7 @@ as_imu_expanded <- function(x,
   })
 
   # Attach bursts to index of the first record that belongs to that burst
-  out <- empty_imu(sensor, nrow(x), timestamp)
+  out <- empty_imu(sensor, nrow(x), tz = attr(timestamp, "tzone"))
 
   i <- purrr::map_int(burst_idx, 1L) # first index of each burst
   freq <- snap_freq(parsed$freq)
@@ -333,14 +333,18 @@ as_imu_expanded <- function(x,
 }
 
 # Helper to create an empty `imu` vector of length `n`, to be filled in with
-# parsed bursts at correct index positions.
-empty_imu <- function(sensor, n, timestamp) {
+# bursts at correct index positions.
+#
+# Note that any values populated into an empty `imu` vector will have their
+# start times coerced to the time zone of the empty vector. This is why we
+# have a `tz` argument, in case a particular tz is needed in the output vector.
+empty_imu <- function(sensor, n, tz = NULL) {
   vec_rep(
     imu(
       sensor,
       bursts = list(NULL),
       frequency = units::set_units(NA, "Hz"),
-      start = as.POSIXct(NA, tz = attr(timestamp, "tzone") %||% "")
+      start = as.POSIXct(NA, tz = tz %||% "")
     ),
     n
   )
