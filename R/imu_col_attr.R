@@ -230,18 +230,20 @@ mt_imu <- function(x, sensor, call = rlang::caller_env()) {
 # Check that the values of a designated IMU column (named `col`) are an IMU
 # vector for the expected sensor. Uses the same error classes as `assert_imu()`.
 assert_imu_column_class <- function(vals, col, sensor, call = rlang::caller_env()) {
-  if (inherits(vals, sensor)) {
+  if (is_imu(vals) && inherits(vals, sensor)) {
     return(invisible(vals))
   }
 
   if (is_imu(vals)) {
     err_class <- c("imu_sensor_incompatible", "imu")
+    actual <- imu_sensor(vals, call = call)
   } else {
     err_class <- c("imu_invalid", "imu")
+    actual <- class(vals)[1]
   }
 
   abort_move2imu(
-    "Column {.val {col}} must be of class {.cls {sensor}}, not {.cls {class(vals)[1]}}.",
+    "Column {.val {col}} must be of class {.cls {sensor}}, not {.cls {actual}}.",
     class = err_class,
     call = call
   )
