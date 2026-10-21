@@ -97,27 +97,29 @@ is_imu <- function(x) {
   inherits(x, "imu")
 }
 
-# Get a given `imu` object's sensor type. An `imu` must inherit from exactly one
-# sensor class.
+# Get a given `imu` object's sensor type.
+#
+# Use this to select a single sensor to use when reconstructing `imu` objects
+# (e.g., with `merge_imu()`, etc.).
 imu_sensor <- function(x,
                        arg = rlang::caller_arg(x),
                        call = rlang::caller_env()) {
   assert_imu(x, arg = arg, call = call)
 
-  sensor <- IMU_SENSORS[inherits(x, IMU_SENSORS, which = TRUE) > 0]
+  sensor <- intersect(class(x), IMU_SENSORS)
 
-  if (length(sensor) != 1) {
+  if (length(sensor) == 0) {
     abort_move2imu(
       c(
-        "{.arg {arg}} is a malformed {.cls imu} vector.",
-        i = "An {.cls imu} vector must have exactly one sensor class: {.or {.val {IMU_SENSORS}}}."
+        "Unknown sensor for {.arg {arg}}.",
+        i = "An {.cls imu} vector must inherit from one of {.or {.cls {IMU_SENSORS}}}."
       ),
       class = c("imu_invalid", "imu"),
       call = call
     )
   }
 
-  sensor
+  sensor[1]
 }
 
 # Assert that x is an IMU vector or, if `sensor` is given, an IMU vector for
@@ -137,15 +139,18 @@ assert_imu <- function(x,
   article <- if (grepl("^[aeiou]", type)) "an" else "a"
 
   # If not an `imu` at all, throw "imu_invalid" error. Otherwise, the
-  # problem must be an incompatible sensor.
+  # problem must be an incompatible sensor, so report the sensor actually
+  # present rather than whatever class happens to come first.
   if (!x_is_imu) {
     err_class <- c("imu_invalid", "imu")
+    actual <- class(x)[1]
   } else {
     err_class <- c("imu_sensor_incompatible", "imu")
+    actual <- c(intersect(class(x), IMU_SENSORS), class(x))[1]
   }
 
   abort_move2imu(
-    "{.arg {arg}} must be {article} {.cls {type}} vector, not {.cls {class(x)[1]}}.",
+    "{.arg {arg}} must be {article} {.cls {type}} vector, not {.cls {actual}}.",
     class = err_class,
     call = call
   )

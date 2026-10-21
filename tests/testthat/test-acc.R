@@ -559,17 +559,18 @@ test_that("imu() errors on unsupported sensor", {
   expect_error(imu(c("acc", "mag")), class = "move2imu_error_imu_invalid")
 })
 
-test_that("imu_sensor() errors if multiple or no sensors present in class", {
+test_that("imu_sensor() errors if no sensor present in class", {
   a <- acc(list(cbind(X = 1:3)), frequency = 10)
 
   no_sensor <- a
   class(no_sensor) <- setdiff(class(a), "acc")
   expect_error(imu_sensor(no_sensor), class = "move2imu_error_imu_invalid")
-
-  two_sensors <- a
-  class(two_sensors) <- c("mag", class(a))
-  expect_error(imu_sensor(two_sensors), class = "move2imu_error_imu_invalid")
-  expect_error(imu_sensor(two_sensors), "`two_sensors`")
-
   expect_error(imu_sensor(1:3), class = "move2imu_error_imu_invalid")
+})
+
+test_that("imu_sensor() uses the first sensor if multiple present in class", {
+  a <- acc(list(cbind(X = 1:3)), frequency = 10)
+  class(a) <- c("my_class", "mag", class(a))
+
+  expect_identical(imu_sensor(a), "mag")
 })
