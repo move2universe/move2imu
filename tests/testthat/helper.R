@@ -160,6 +160,40 @@ acc_example_expanded <- function(ts, id = 1) {
   )
 }
 
+# Build a small move2 carrying one column of each sensor type for testing
+# column accessors/setters.
+move2_with_imu <- function() {
+  skip_if_not_installed("move2")
+  
+  df <- data.frame(
+    t = as.POSIXct("2020-01-01", tz = "UTC") + 1:2,
+    id = "a",
+    lon = 1:2,
+    lat = 1:2
+  )
+  
+  m <- move2::mt_as_move2(
+    df,
+    time_column = "t",
+    track_id_column = "id",
+    coords = c("lon", "lat")
+  )
+  
+  m$a <- acc_example()
+  
+  m$m <- mag(
+    list(cbind(X = 1:3, Y = 1:3, Z = 1:3), cbind(X = 4:6, Y = 4:6, Z = 4:6)),
+    units::set_units(20, "Hz")
+  )
+  
+  m$g <- gyro(
+    list(cbind(X = 1:3, Y = 1:3), cbind(X = 4:6, Y = 4:6)),
+    units::set_units(20, "Hz")
+  )
+  
+  m
+}
+
 # Example compact-format acc data built from an arbitrary timestamp vector.
 #
 # Each row holds one 20-sample XYZ burst spanning a hundredth of a second, so

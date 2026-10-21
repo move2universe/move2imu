@@ -20,6 +20,8 @@
 #
 #   move2imu_error_imu: Invalid IMU vectors, or IMU vectors for the wrong
 #     sensor
+#   move2imu_error_imu_column: Designated IMU column in a move2 missing or
+#     invalid
 #   move2imu_error_colset: IMU column set specification, presence, and column
 #     types in a data source
 #   move2imu_error_bursts: Malformed burst data (e.g., invalid axes,
