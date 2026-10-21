@@ -5,7 +5,10 @@ imu <- function(sensor,
                 frequency = units::set_units(double(), "Hz"),
                 start = NULL) {
   if (!rlang::is_string(sensor, IMU_SENSORS)) {
-    abort_move2imu("{.arg sensor} must be one of {.or {.val {IMU_SENSORS}}}.")
+    abort_move2imu(
+      "{.arg sensor} must be one of {.or {.val {IMU_SENSORS}}}.",
+      class = c("imu_invalid", "imu")
+    )
   }
 
   bursts <- burst_list(bursts, sensor)

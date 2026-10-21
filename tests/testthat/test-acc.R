@@ -554,6 +554,11 @@ test_that("imu sensor is detected regardless of position in class", {
   expect_identical(summary(a)$sensor, "acc")
 })
 
+test_that("imu() errors on unsupported sensor", {
+  expect_error(imu("foo"), class = "move2imu_error_imu_invalid")
+  expect_error(imu(c("acc", "mag")), class = "move2imu_error_imu_invalid")
+})
+
 test_that("imu_sensor() errors if multiple or no sensors present in class", {
   a <- acc(list(cbind(X = 1:3)), frequency = 10)
 
