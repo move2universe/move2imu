@@ -44,6 +44,11 @@ Start times assigned with \verb{starts<-} accept \code{POSIXct}, \code{POSIXlt},
 or a number of seconds since \verb{1970-01-01 00:00:00 UTC}. Start times are
 converted and stored as \code{POSIXct}. \code{Date} objects are treated as being
 recorded at midnight, UTC.
+
+Setters only change their own field. This means it is possible to produce
+incomplete records if you remove values for only certain fields. To mark a
+record as missing, use \code{x[i] <- NA}, which clears its burst, frequency, and
+start time together.
 }
 \examples{
 x <- acc(

@@ -30,6 +30,10 @@ for one IMU sensor.
 \item \code{active_gyro_colsets()} — column sets used by \code{\link[=as_gyro]{as_gyro()}}.
 }
 
+A column set is considered active when it contains IMU data values. These
+functions do not evaluate whether the values themselves are valid. \verb{as_*()}
+functions will report any identified data issues when parsing.
+
 If no active colsets are found, you can use \code{\link[=imu_colset]{imu_colset()}} to specify
 a custom set of columns that contain IMU data.
 }

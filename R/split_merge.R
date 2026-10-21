@@ -224,27 +224,15 @@ merge_imu <- function(x,
   )
 
   merged <- imu(
-    sensor = class(x)[1],
+    sensor = imu_sensor(x),
     bursts = bursts_comb,
     frequency = units::set_units(merged_freq, "Hz"),
     start = sv[merged_i]
   )
 
   # If retaining index matching, fill merged idx with NA entries.
-  #
-  # The placeholder's time zone has to match the input's: `vec_assign()` casts
-  # the value to the type of the vector assigned into, so a placeholder built
-  # with the default (UTC) start would silently re-tag the merged start times.
   if (!drop) {
-    out <- vec_rep(
-      imu(
-        sensor = class(x)[1],
-        bursts = list(NULL),
-        frequency = units::set_units(NA, "Hz"),
-        start = as.POSIXct(NA, tz = attr(burst_starts, "tzone") %||% "")
-      ),
-      n
-    )
+    out <- empty_imu(imu_sensor(x), n, tz = attr(burst_starts, "tzone"))
     out[valid[merged_i]] <- merged
     merged <- out
   }
@@ -329,14 +317,14 @@ split_imu <- function(x, interval, flatten = FALSE) {
     abort_move2imu("{.arg interval} must be a positive number.")
   }
 
-  sensor <- class(x)[1]
+  sensor <- imu_sensor(x)
   ptype <- vec_ptype(x)
 
   x <- purrr::pmap(
     list(bursts(x), freqs(x), starts(x)),
     function(.br, .fq, .st) {
       if (rlang::is_empty(.br) || nrow(.br) < 1) {
-        return(imu(sensor, list(NULL), .fq, .st))
+        return(empty_imu(sensor, 1L, tz = attr(.st, "tzone")))
       }
 
       # Return input burst if missing frequency

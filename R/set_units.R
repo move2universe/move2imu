@@ -92,7 +92,7 @@ set_units.gyro <- function(x, value, ...) {
 #' @export
 drop_imu_units <- function(x, ...) {
   assert_imu(x)
-  sensor <- class(x)[1]
+  sensor <- imu_sensor(x)
 
   bursts_dropped <- purrr::map(
     bursts(x),
@@ -104,7 +104,7 @@ drop_imu_units <- function(x, ...) {
     }
   )
 
-  bursts(x) <- new_burst_list(bursts_dropped, sensor = sensor)
+  field(x, "bursts") <- new_burst_list(bursts_dropped, sensor = sensor)
 
   x
 }
@@ -128,7 +128,7 @@ drop_units.gyro <- function(x, ...) {
 # be convertible to it (e.g. an acceleration unit for `acc`). Without a
 # reference, any unit is accepted.
 set_imu_units_ <- function(x, value, reference = NULL) {
-  sensor <- class(x)[1]
+  sensor <- imu_sensor(x)
 
   if (!is.character(value) || length(value) != 1) {
     abort_move2imu("{.arg value} must be a character string of length 1.")
@@ -160,7 +160,7 @@ set_imu_units_ <- function(x, value, reference = NULL) {
     }
   )
 
-  bursts(x) <- new_burst_list(bursts_converted, sensor = sensor)
+  field(x, "bursts") <- new_burst_list(bursts_converted, sensor = sensor)
 
   x
 }
