@@ -35,8 +35,10 @@ A data frame with one row per sample and columns:
 ## Details
 
 The time of each sample is calculated from its burst's start time and
-sampling frequency. Samples from bursts without a start time or
-frequency are recorded with a `NA` time.
+sampling frequency. Samples from bursts without a start time are
+recorded with a `NA` time. For bursts without a frequency, only the
+first sample has a known time (the burst's start time). The rest are
+recorded with a `NA` time.
 
 The `burst` column shows the index position in `x` for the burst that
 the sample belongs to. Missing bursts contribute no rows to the output

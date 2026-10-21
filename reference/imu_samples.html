@@ -82,8 +82,10 @@ that require individual sample timestamps and values.</p>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The time of each sample is calculated from its burst's start time and
-sampling frequency. Samples from bursts without a start time or frequency
-are recorded with a <code>NA</code> time.</p>
+sampling frequency. Samples from bursts without a start time are recorded
+with a <code>NA</code> time. For bursts without a frequency, only the first sample has
+a known time (the burst's start time). The rest are recorded with a <code>NA</code>
+time.</p>
 <p>The <code>burst</code> column shows the index position in <code>x</code> for the burst that the
 sample belongs to. Missing bursts contribute no rows to the output but
 are included in the index count. If <code>x</code> is a column in a <code>data.frame</code> or
