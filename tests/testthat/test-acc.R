@@ -545,3 +545,32 @@ test_that("`starts<-` accepts the same set as the constructors", {
   expect_error(starts(a) <- c("a", "b"), "must be a timestamp")
   expect_error(starts(a) <- c("a", "b"), "`value`")
 })
+
+test_that("imu sensor is detected regardless of position in class", {
+  a <- acc(list(cbind(X = 1:3)), frequency = 10)
+  class(a) <- c("my_class", class(a))
+
+  expect_identical(imu_sensor(a), "acc")
+  expect_identical(summary(a)$sensor, "acc")
+})
+
+test_that("imu() errors on unsupported sensor", {
+  expect_error(imu("foo"), class = "move2imu_error_imu_invalid")
+  expect_error(imu(c("acc", "mag")), class = "move2imu_error_imu_invalid")
+})
+
+test_that("imu_sensor() errors if no sensor present in class", {
+  a <- acc(list(cbind(X = 1:3)), frequency = 10)
+
+  no_sensor <- a
+  class(no_sensor) <- setdiff(class(a), "acc")
+  expect_error(imu_sensor(no_sensor), class = "move2imu_error_imu_invalid")
+  expect_error(imu_sensor(1:3), class = "move2imu_error_imu_invalid")
+})
+
+test_that("imu_sensor() uses the first sensor if multiple present in class", {
+  a <- acc(list(cbind(X = 1:3)), frequency = 10)
+  class(a) <- c("my_class", "mag", class(a))
+
+  expect_identical(imu_sensor(a), "mag")
+})

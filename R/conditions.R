@@ -18,7 +18,7 @@
 #
 # Currently, we report the following condition groups:
 #
-#   move2imu_error_imu: Input that is not an IMU vector, or not for the expected
+#   move2imu_error_imu: Invalid IMU vectors, or IMU vectors for the wrong
 #     sensor
 #   move2imu_error_colset: IMU column set specification, presence, and column
 #     types in a data source

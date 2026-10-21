@@ -57,7 +57,7 @@ transform_imu <- function(x, calibration) {
     )
   }
 
-  sensor <- class(x)[1]
+  sensor <- imu_sensor(x)
   expected <- paste0(sensor, "_calibration")
 
   if (!inherits(calibration, expected)) {
