@@ -484,16 +484,186 @@ burst times with `move2::mt_interpolate()`.
 
 Some tags record acceleration continuously, producing very long "bursts" in the
 resulting `acc` vector. In these cases, `vedba()` would return a single value
-for hours of data. Instead, you can separate the dynamic component of the 
-whole recording with `dynamic_acc()`, then split it into intervals with
-`split_imu()` and calculate VeDBA for each interval (see the examples in
-`?dynamic_acc`). Each interval's start time can then be used to link it to
-GPS fixes with a rolling join, as above.
+for potentially hours of data, which tells us little about how activity changes
+across the recording period.
 
-Separating the dynamic component
-before splitting means that only the samples at the two ends of the full
-recording are lost when calculating the static acceleration, rather than the
-samples at the edges of every interval.
+To demonstrate, we'll simulate two minutes of continuous 20 Hz data that
+alternates between 30-second periods of rest and movement (in this case, a
+4 Hz oscillation on the Z axis):
+
+```{r}
+set.seed(1)
+secs <- seq(0, 120 - 1 / 20, by = 1 / 20)
+
+# A 4 Hz oscillation on the Z axis during every second 30 s period
+moving <- (secs %/% 30) %% 2 == 1
+movement <- ifelse(moving, 0.4 * sin(2 * pi * 4 * secs), 0)
+
+acc_cont <- acc(
+  list(cbind(
+    X = rnorm(length(secs), sd = 0.05),
+    Y = rnorm(length(secs), sd = 0.05),
+    Z = 1 + movement + rnorm(length(secs), sd = 0.05)
+  )),
+  frequency = units::set_units(20, "Hz"),
+  start = as.POSIXct("2024-01-01", tz = "UTC")
+)
+
+# The simulated values are in units of g
+acc_cont <- set_imu_units(acc_cont, "standard_free_fall")
+```
+
+The whole recording is a single burst:
+
+```{r}
+acc_cont
+```
+
+The trace below shows periods of increased movement on the Z axis, as well
+as a 1 *g* offset due to gravity.
+
+```{r cont-trace, fig.width = 6}
+plot_imu_trace(acc_cont, ylab = "Acceleration (g)") |>
+  dygraphs::dyOptions(labelsUTC = TRUE)
+```
+
+And as expected, `vedba()` gives a single value for the entire recording:
+
+```{r}
+vedba(acc_cont, smoothing_window = 1)
+```
+
+To produce more meaningful values, we can instead use `dynamic_acc()` to
+separate out the dynamic component of the signal without calculating any
+DBA metrics. This returns an `acc` vector containing the dynamic component
+estimated with the given `smoothing_window`:
+
+```{r}
+dyn_acc <- dynamic_acc(acc_cont, smoothing_window = 1)
+
+dyn_acc
+```
+
+As we can see, the 1 *g* offset from gravity on the Z axis has been removed, but
+the periods of increased activity remain:
+
+```{r}
+plot_imu_trace(dyn_acc, ylab = "Acceleration (g)") |>
+  dygraphs::dyOptions(labelsUTC = TRUE)
+```
+
+Now that we have the dynamic component alone, we can split it into intervals
+of a given length to calculate VeDBA at points throughout the recording:
+
+```{r}
+dyn_split <- split_imu(dyn_acc, units::set_units(2, "s"), flatten = TRUE)
+
+head(dyn_split)
+```
+
+At this point, we can calculate VeDBA for each interval. However, we can't
+use `vedba()` here, because it would decompose the signal again, which we've
+already done by calling `dynamic_acc()`. Instead, we calculate VeDBA
+ourselves, as the mean of $\sqrt{X^2 + Y^2 + Z^2}$ across each interval's
+samples:
+
+```{r}
+# Apply the VeDBA formula to each interval. We set na.rm = TRUE because samples
+# at the start and end of the recording have no static estimate, so their
+# dynamic component is NA
+v <- purrr::map_dbl(
+  bursts(dyn_split),
+  function(b) mean(sqrt(rowSums(b^2)), na.rm = TRUE)
+)
+
+cont_vedba <- data.frame(start = starts(dyn_split), vedba = v)
+
+head(cont_vedba)
+```
+
+As we would expect, VeDBA is higher in the intervals where the simulated data
+contains more movement:
+
+```{r cont-vedba, fig.height = 3.5}
+ggplot(cont_vedba, aes(x = start, y = vedba)) +
+  geom_line(colour = "#c4561d", linewidth = 0.7) +
+  geom_point(colour = "#c4561d", size = 1.5) +
+  labs(
+    x = NULL,
+    y = "VeDBA (g)",
+    title = "VeDBA in 2-second intervals"
+  )
+```
+
+### Decompose, then split
+
+You might wonder why we don't just split our signal *first* and then
+calculate VeDBA, like so:
+
+```{r}
+vedba(
+  split_imu(acc_cont, units::set_units(2, "s"), flatten = TRUE),
+  smoothing_window = 1
+)
+```
+
+The reason is that this approach discards useful data. When we apply the
+smoothing window, we can't use samples near the beginning and end of a burst,
+because we need data for the full window to be present. Decomposing after
+splitting therefore discards the starting and ending samples of **each
+interval**.
+
+The result is that splitting first requires that each interval be longer than
+the smoothing window, limiting the resolution at which we can compute metrics
+like VeDBA. Furthermore, when fewer values are available in each interval, these
+metrics become noisier and potentially less accurate. In contrast, decomposing
+the signal first only discards samples from the beginning and end of the entire
+recording, making much better use of the recorded data. In this example,
+splitting first discards 1,200 samples, while decomposing first discards only
+20.
+
+### Applying a window function across continuous data
+
+`split_imu()` splits the signal into non-overlapping intervals. In some cases,
+you may instead want to apply a function within a sequence of overlapping
+windows that move along the signal.
+
+Several R packages, such as [slider](https://slider.r-lib.org/) and
+[zoo](https://CRAN.R-project.org/package=zoo), provide moving window functions,
+which can be used with the decomposed acceleration signal to calculate these
+kinds of metrics.
+
+For instance, with the slider package we can calculate VeDBA in a
+2-second window centered on each sample of the dynamic component.
+
+```{r cont-rolling, fig.height = 3.5}
+# Convert to a data frame of samples.
+# slider needs plain numbers, so we drop the units first.
+dyn_samples <- imu_samples(drop_imu_units(dyn_acc))
+
+# Calculate VeDBA in a 2-second window centered on each sample
+dyn_rolling <- dyn_samples |>
+  group_by(burst) |> # Don't calculate across burst boundaries
+  mutate(
+    norm = sqrt(X^2 + Y^2 + Z^2),
+    vedba = slider::slide_index_dbl(
+      norm,
+      time,
+      ~ mean(.x, na.rm = TRUE),
+      .before = 1,
+      .after = 1
+    )
+  ) |>
+  ungroup()
+
+ggplot(dyn_rolling, aes(x = time, y = vedba)) +
+  geom_line(colour = "#c4561d", linewidth = 0.7) +
+  labs(x = NULL, y = "VeDBA (g)", title = "VeDBA in a moving 2-second window")
+```
+
+Here we use `imu_samples()` to convert our `acc` vector to a single data frame,
+which provides sample timestamps. This allows us to easily define the window
+length in seconds, rather than as a number of samples.
 
 ## References
 
