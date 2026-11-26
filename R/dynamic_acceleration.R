@@ -107,7 +107,7 @@
 #'
 #' @name dba
 #'
-#' @examples
+#' @examplesIf rlang::is_installed("move2")
 #' a <- as_acc(albatrosses())
 #'
 #' a <- transform_imu(

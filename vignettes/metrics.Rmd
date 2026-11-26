@@ -8,7 +8,16 @@ vignette: >
 ---
 
 ```{r setup, include = FALSE}
+# Guard against possible unavailable suggested packages
+pkgs_available <- unlist(
+  lapply(
+    c("move2", "dplyr", "ggplot2", "dygraphs", "sf", "slider"),
+    function(pkg) requireNamespace(pkg, quietly = TRUE)
+  )
+)
+
 knitr::opts_chunk$set(
+  eval = all(pkgs_available),
   collapse = TRUE,
   comment = "#>",
   fig.width = 6,
@@ -18,18 +27,20 @@ knitr::opts_chunk$set(
 )
 
 # Shared style for the plots in this vignette
-ggplot2::theme_set(
-  ggplot2::theme_minimal(base_size = 12) +
-    ggplot2::theme(
-      panel.grid.minor = ggplot2::element_blank(),
-      plot.title = ggplot2::element_text(
-        size = ggplot2::rel(1.4),
-        face = "bold"
-      ),
-      plot.subtitle = ggplot2::element_text(colour = "grey35"),
-      plot.title.position = "plot"
-    )
-)
+if (all(pkgs_available)) {
+  ggplot2::theme_set(
+    ggplot2::theme_minimal(base_size = 12) +
+      ggplot2::theme(
+        panel.grid.minor = ggplot2::element_blank(),
+        plot.title = ggplot2::element_text(
+          size = ggplot2::rel(1.4),
+          face = "bold"
+        ),
+        plot.subtitle = ggplot2::element_text(colour = "grey35"),
+        plot.title.position = "plot"
+      )
+  )
+}
 ```
 
 After extracting IMU data into a vector of bursts (see
