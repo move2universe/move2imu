@@ -112,6 +112,7 @@ bursts that are shorter than \code{smoothing_window}, for windows of fewer than
 }
 }
 \examples{
+\dontshow{if (rlang::is_installed("move2")) withAutoprint(\{ # examplesIf}
 a <- as_acc(albatrosses())
 
 a <- transform_imu(
@@ -127,6 +128,7 @@ odba(a, smoothing_window = 3)
 
 # Burst mean is used as the static acceleration for each burst
 vedba(a, smoothing_window = "burst")
+\dontshow{\}) # examplesIf}
 }
 \references{
 Shepard, E. L. C., Wilson, R. P., Halsey, L. G., Quintana, F.,
