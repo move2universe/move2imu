@@ -87,9 +87,16 @@ m
 identical(m, a)
 #> [1] TRUE
 
-if (FALSE) { # \dontrun{
-# In a dataframe, split and unnest to retain index matching
+# In a data frame, split and unnest to give each piece its own row
 library(dplyr)
+#> 
+#> Attaching package: ‘dplyr’
+#> The following objects are masked from ‘package:stats’:
+#> 
+#>     filter, lag
+#> The following objects are masked from ‘package:base’:
+#> 
+#>     intersect, setdiff, setequal, union
 library(tidyr)
 
 tbl <- tibble::tibble(id = c("a", "b"), burst = a)
@@ -100,9 +107,22 @@ tbl <- tbl |>
   mutate(timestamp = starts(burst))
 
 tbl
+#> # A tibble: 4 × 3
+#>   id          burst timestamp          
+#>   <chr>       <acc> <dttm>             
+#> 1 a     (10.5 10.5) 1970-01-01 00:00:00
+#> 2 a     (30.5 30.5) 1970-01-01 00:00:01
+#> 3 a     (50.5 50.5) 1970-01-01 00:00:02
+#> 4 b         (120.5) 1970-01-01 00:00:10
 
 # Use merge_imu() to recover original bursts
 tbl |>
   mutate(burst = merge_imu(burst, ids = id, drop = FALSE))
-} # }
+#> # A tibble: 4 × 3
+#>   id          burst timestamp          
+#>   <chr>       <acc> <dttm>             
+#> 1 a     (30.5 30.5) 1970-01-01 00:00:00
+#> 2 a              NA 1970-01-01 00:00:01
+#> 3 a              NA 1970-01-01 00:00:02
+#> 4 b         (120.5) 1970-01-01 00:00:10
 ```

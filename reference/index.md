@@ -107,6 +107,18 @@ orientation, and look up tag manufacturer calibration defaults.
   [`drop_imu_units()`](https://move2universe.github.io/move2imu/reference/set_imu_units.md)
   : Manage units in IMU burst data
 
+## Activity metrics
+
+Summarize acceleration bursts into measures of movement, or separate
+acceleration into its static and dynamic components.
+
+- [`vedba()`](https://move2universe.github.io/move2imu/reference/dba.md)
+  [`odba()`](https://move2universe.github.io/move2imu/reference/dba.md)
+  : Compute per-burst dynamic body acceleration
+- [`static_acc()`](https://move2universe.github.io/move2imu/reference/static_acc.md)
+  [`dynamic_acc()`](https://move2universe.github.io/move2imu/reference/static_acc.md)
+  : Decompose acceleration into static and dynamic components
+
 ## Example data
 
 Bundled datasets used throughout examples and vignettes.

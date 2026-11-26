@@ -551,7 +551,7 @@ see the [calibration
 vignette](https://move2universe.github.io/move2imu/articles/calibration.md)
 to learn how to convert them.
 
-See the [programming with
-bursts](https://move2universe.github.io/move2imu/articles/programming.md)
-vignette for a demonstration of how to compute values from `acc` bursts
-and link them back to GPS coordinates in a `move2` object.
+See the [measuring
+activity](https://move2universe.github.io/move2imu/articles/metrics.md)
+vignette for a demonstration of how to compute activity metrics from
+`acc` bursts and link them back to GPS coordinates in a `move2` object.

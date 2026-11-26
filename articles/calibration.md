@@ -111,16 +111,17 @@ move2imu currently has built-in support for two tag manufacturers:
 These sample data were collected with e-obs tags. The default
 calibration suggested by e-obs differs by tag generation. Thus, to build
 a calibration, we need to specify both the tag manufacturer and the tag
-ID, which identifies the tag generation. In this case, imagine that
-these data were collected with the latest generation of e-obs tags (tags
-with IDs greater than 4117):
+ID, which identifies the tag generation. Based on the timestamps in
+these data, these tags are generation 1 (tag IDs up to 2241). For the
+purposes of demonstration, we’ll suppose these were collected on low
+sensitivity:
 
 ``` r
 
-cal <- acc_calibration(manufacturer = "eobs", tag_id = 4266)
+cal <- acc_calibration(manufacturer = "eobs", tag_id = 1000, sensitivity = "low")
 cal
 #> <acc_calibration[1]>
-#> [1] {offset=[2048] slope=[0.00195]}
+#> [1] {offset=[2048] slope=[0.0027] orientation=[1, -1, 1]}
 ```
 
 Then, we simply use
@@ -133,8 +134,8 @@ alb$acc_cal <- transform_imu(alb$acceleration, calibration = cal)
 
 head(alb$acc_cal)
 #> <acceleration[6]>
-#> [1] <NA>                  (-4.29 -2.57) [m/s^2] (-2.75 -2.33) [m/s^2]
-#> [4] (-4.3 -2.58) [m/s^2]  (-4.24 -2.53) [m/s^2] (-6.3 -2.67) [m/s^2] 
+#> [1] <NA>                 (-5.93 3.55) [m/s^2] (-3.8 3.22) [m/s^2] 
+#> [4] (-5.95 3.56) [m/s^2] (-5.86 3.5) [m/s^2]  (-8.71 3.69) [m/s^2]
 #> # frequency: 5 [Hz]
 ```
 
@@ -148,33 +149,33 @@ with
 
 set_imu_units(alb$acc_cal, "standard_free_fall")
 #> <acceleration[54]>
-#>  [1] <NA>                               (-0.44 -0.26) [standard_free_fall]
-#>  [3] (-0.28 -0.24) [standard_free_fall] (-0.44 -0.26) [standard_free_fall]
-#>  [5] (-0.43 -0.26) [standard_free_fall] (-0.64 -0.27) [standard_free_fall]
-#>  [7] <NA>                               (-0.2 -0.04) [standard_free_fall] 
-#>  [9] (-0.23 -0.07) [standard_free_fall] (-0.24 -0.08) [standard_free_fall]
-#> [11] (-0.21 -0.05) [standard_free_fall] (-0.21 -0.05) [standard_free_fall]
-#> [13] (-0.15 -0.01) [standard_free_fall] <NA>                              
-#> [15] (-0.17 -0.03) [standard_free_fall] (0.03 -0.05) [standard_free_fall] 
-#> [17] (0.08 -0.04) [standard_free_fall]  (0.07 0.01) [standard_free_fall]  
-#> [19] (-0.31 -0.24) [standard_free_fall] <NA>                              
-#> [21] (-0.39 -0.2) [standard_free_fall]  (-0.33 -0.21) [standard_free_fall]
-#> [23] (-0.4 0.09) [standard_free_fall]   (-0.53 0.16) [standard_free_fall] 
-#> [25] (-0.46 -0.19) [standard_free_fall] <NA>                              
-#> [27] (-0.5 -0.24) [standard_free_fall]  (-0.46 -0.24) [standard_free_fall]
-#> [29] (-0.48 -0.22) [standard_free_fall] (-0.46 -0.22) [standard_free_fall]
-#> [31] (-0.07 0.35) [standard_free_fall]  <NA>                              
-#> [33] (-0.15 0.37) [standard_free_fall]  (0.16 0.07) [standard_free_fall]  
-#> [35] (-0.1 0.05) [standard_free_fall]   (0 0.02) [standard_free_fall]     
-#> [37] (-0.14 -0.35) [standard_free_fall] <NA>                              
-#> [39] (-0.25 0.16) [standard_free_fall]  (-0.33 -0.25) [standard_free_fall]
-#> [41] (-0.24 -0.21) [standard_free_fall] (-0.19 -0.17) [standard_free_fall]
-#> [43] (-0.22 -0.25) [standard_free_fall] <NA>                              
-#> [45] (-0.73 -0.36) [standard_free_fall] (-0.21 -0.25) [standard_free_fall]
-#> [47] (0.05 -0.19) [standard_free_fall]  (-0.84 -0.2) [standard_free_fall] 
-#> [49] (-0.39 -0.25) [standard_free_fall] <NA>                              
-#> [51] (-0.41 -0.23) [standard_free_fall] (-0.4 -0.23) [standard_free_fall] 
-#> [53] (-0.38 -0.23) [standard_free_fall] (-0.43 -0.23) [standard_free_fall]
+#>  [1] <NA>                               (-0.6 0.36) [standard_free_fall]  
+#>  [3] (-0.39 0.33) [standard_free_fall]  (-0.61 0.36) [standard_free_fall] 
+#>  [5] (-0.6 0.36) [standard_free_fall]   (-0.89 0.38) [standard_free_fall] 
+#>  [7] <NA>                               (-0.28 0.05) [standard_free_fall] 
+#>  [9] (-0.32 0.09) [standard_free_fall]  (-0.33 0.11) [standard_free_fall] 
+#> [11] (-0.29 0.06) [standard_free_fall]  (-0.29 0.07) [standard_free_fall] 
+#> [13] (-0.21 0.01) [standard_free_fall]  <NA>                              
+#> [15] (-0.23 0.04) [standard_free_fall]  (0.04 0.07) [standard_free_fall]  
+#> [17] (0.12 0.06) [standard_free_fall]   (0.1 -0.01) [standard_free_fall]  
+#> [19] (-0.43 0.33) [standard_free_fall]  <NA>                              
+#> [21] (-0.54 0.27) [standard_free_fall]  (-0.45 0.3) [standard_free_fall]  
+#> [23] (-0.56 -0.12) [standard_free_fall] (-0.73 -0.22) [standard_free_fall]
+#> [25] (-0.64 0.26) [standard_free_fall]  <NA>                              
+#> [27] (-0.7 0.33) [standard_free_fall]   (-0.64 0.34) [standard_free_fall] 
+#> [29] (-0.66 0.3) [standard_free_fall]   (-0.64 0.3) [standard_free_fall]  
+#> [31] (-0.1 -0.48) [standard_free_fall]  <NA>                              
+#> [33] (-0.21 -0.51) [standard_free_fall] (0.22 -0.09) [standard_free_fall] 
+#> [35] (-0.14 -0.07) [standard_free_fall] (0 -0.03) [standard_free_fall]    
+#> [37] (-0.19 0.49) [standard_free_fall]  <NA>                              
+#> [39] (-0.35 -0.22) [standard_free_fall] (-0.46 0.34) [standard_free_fall] 
+#> [41] (-0.33 0.29) [standard_free_fall]  (-0.27 0.23) [standard_free_fall] 
+#> [43] (-0.3 0.35) [standard_free_fall]   <NA>                              
+#> [45] (-1.01 0.49) [standard_free_fall]  (-0.29 0.34) [standard_free_fall] 
+#> [47] (0.07 0.26) [standard_free_fall]   (-1.16 0.28) [standard_free_fall] 
+#> [49] (-0.55 0.34) [standard_free_fall]  <NA>                              
+#> [51] (-0.56 0.32) [standard_free_fall]  (-0.55 0.32) [standard_free_fall] 
+#> [53] (-0.53 0.32) [standard_free_fall]  (-0.59 0.31) [standard_free_fall] 
 #> # frequency: 5 [Hz]
 ```
 
@@ -185,11 +186,12 @@ itself:
 
 acc_calibration(
   manufacturer = "eobs",
-  tag_id = 4266,
+  tag_id = 1000,
+  sensitivity = "low",
   units = "standard_free_fall"
 )
 #> <acc_calibration[1]>
-#> [1] {offset=[2048] slope=[0.00195]}
+#> [1] {offset=[2048] slope=[0.0027] orientation=[1, -1, 1]}
 ```
 
 Note the difference between these two approaches:
@@ -221,9 +223,8 @@ set_imu_units(alb$acceleration[2], "standard_free_fall")
 ## Vectorized calibration
 
 The problem with the above approach is that it assumes that *all* tags
-used in the study had ID `4266` (generation 3). If all the albatrosses
-tagged in the study used generation 3 e-obs tags, then this wouldn’t be
-a problem.
+used in the study were first-generation tags with the same sensitivity
+setting. If that were true, then this wouldn’t be a problem.
 
 However, e-obs has revised the default calibration over time, so earlier
 generations of tags don’t necessarily have the same transformation
