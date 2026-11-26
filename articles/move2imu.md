@@ -1,8 +1,8 @@
 # Introduction to move2imu
 
 Biologging devices often record information about an animal’s behavior
-using an inertial measurement unit (IMU) that collects acceleration,
-magnetometer, and/or orientation data. Because collecting these data can
+using an inertial measurement unit (IMU) that collects accelerometer,
+magnetometer, and/or gyroscope data. Because collecting these data can
 be battery- and storage-intensive, they are often recorded
 intermittently in rapid sets of samples at a fixed frequency, which we
 will refer to as *bursts*. These bursts of IMU measurements provide
@@ -55,7 +55,7 @@ raw_acc <- cbind(
 
 a1 <- acc(
   bursts = list(raw_acc),
-  frequency = units::as_units(40, "Hz")
+  frequency = units::set_units(40, "Hz")
 )
 
 a1
@@ -78,7 +78,7 @@ a2 <- acc(
     cbind(X = sin(1:20 / 10), Y = cos(1:20 / 10)),
     cbind(X = sin(1:20 / 10 + 2), Y = cos(1:20 / 10 + 3))
   ),
-  frequency = units::as_units(30, "Hz"),
+  frequency = units::set_units(30, "Hz"),
   start = as.POSIXct(c("2026-06-01 00:00:00", "2026-06-01 00:01:00"), tz = "UTC")
 )
 ```
@@ -286,6 +286,17 @@ acceleration data differently, because each adheres to the Movebank data
 model,
 [`as_acc()`](https://move2universe.github.io/move2imu/reference/as_acc.md)
 seamlessly parses the data into a set of `acc` burst matrices.
+
+There are two general ways IMU data are stored:
+
+- In **compact format** (like the albatross data), each burst is stored
+  in a single row. The IMU values are provided as a space-delimited
+  string, and the axes and sampling frequency are recorded in separate
+  columns.
+
+- In **expanded format** (like the gulls data), each row holds an
+  individual sample with its own timestamp. Burst boundaries and
+  sampling frequencies are derived from the sequence of timestamps.
 
 For more details about the ways Movebank stores acceleration data, see
 [`movebank_acc_colsets()`](https://move2universe.github.io/move2imu/reference/movebank_colsets.md).
@@ -524,8 +535,8 @@ a <- as_acc(gulls())
 plot_imu_trace(a)
 ```
 
-You can also pass a single burst (or a subset) for a focused view —
-here, the wing beats are clearly visible on the Z axis:
+You can also pass a single burst (or a subset) for a focused view— here,
+the wingbeats are clearly visible on the Z axis:
 
 ``` r
 
@@ -540,7 +551,7 @@ of the browser’s local time zone:
 
 ``` r
 
-plot_imu_trace(a[422], main = "Wing beats", ylab = "Acceleration (g)") |>
+plot_imu_trace(a[422], main = "Wingbeats", ylab = "Acceleration (raw)") |>
   dygraphs::dyOptions(labelsUTC = TRUE)
 ```
 
@@ -555,3 +566,8 @@ See the [measuring
 activity](https://move2universe.github.io/move2imu/articles/metrics.md)
 vignette for a demonstration of how to compute activity metrics from
 `acc` bursts and link them back to GPS coordinates in a `move2` object.
+
+If your bursts have unexpected frequencies or sample counts, see the
+[timestamp noise
+vignette](https://move2universe.github.io/move2imu/articles/timestamps.md)
+for strategies to diagnose and correct irregular timestamps.

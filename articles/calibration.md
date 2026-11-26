@@ -5,7 +5,8 @@ produced by the analog-to-digital converter (ADC). By themselves, these
 values have no physical units. To convert the raw ADC values to
 interpretable acceleration units (e.g., m/s²), we need to define the
 transformation that maps each ADC value to its corresponding value in
-the target unit.
+the target unit. (This vignette focuses on acceleration data, as
+move2imu currently supports calibration for accelerometer data only.)
 
 For acceleration, this is a simple linear transformation, requiring:
 
@@ -25,8 +26,8 @@ same axis orientation definitions.
 For a set of acceleration bursts that all come from the same tag
 manufacturer and tag generation, the transformation from ADC to physical
 units is likely to be essentially identical. However, for a more complex
-dataset with long-running deployments and/or multiple tag manufacturers,
-each tag will need its own transformation.
+dataset with various tag settings and/or tag manufacturers, each tag
+will need its own transformation.
 
 move2imu facilitates this transformation process with two functions:
 
@@ -214,6 +215,7 @@ alb$acceleration[2]
 #> [1] (1824.17 1913.83)
 #> # frequency: 5 [Hz]
 
+# Highly implausible acceleration values!
 set_imu_units(alb$acceleration[2], "standard_free_fall")
 #> <acceleration[1]>
 #> [1] (1824.17 1913.83) [standard_free_fall]
@@ -391,18 +393,24 @@ direction:
 
 ``` r
 
+# An example burst of "Ornitela" data
+orn <- acc(
+  list(cbind(X = c(-20, 15, 5), Y = c(240, 180, 210), Z = c(970, 990, 980))),
+  frequency = units::set_units(25, "Hz")
+)
+
 cal1 <- acc_calibration("ornitela")
 cal2 <- acc_calibration("ornitela", orientation_y = -1)
 
-transform_imu(alb$acceleration[2], cal1)
+transform_imu(orn, cal1)
 #> <acceleration[1]>
-#> [1] (17.89 18.77) [m/s^2]
-#> # frequency: 5 [Hz]
+#> [1] (0 2.06 9.61) [m/s^2]
+#> # frequency: 25 [Hz]
 
-transform_imu(alb$acceleration[2], cal2)
+transform_imu(orn, cal2)
 #> <acceleration[1]>
-#> [1] (17.89 -18.77) [m/s^2]
-#> # frequency: 5 [Hz]
+#> [1] (0 -2.06 9.61) [m/s^2]
+#> # frequency: 25 [Hz]
 ```
 
 User-supplied values always take precedence over the manufacturer
