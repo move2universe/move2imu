@@ -29,8 +29,10 @@ that require individual sample timestamps and values.
 }
 \details{
 The time of each sample is calculated from its burst's start time and
-sampling frequency. Samples from bursts without a start time or frequency
-are recorded with a \code{NA} time.
+sampling frequency. Samples from bursts without a start time are recorded
+with a \code{NA} time. For bursts without a frequency, only the first sample has
+a known time (the burst's start time). The rest are recorded with a \code{NA}
+time.
 
 The \code{burst} column shows the index position in \code{x} for the burst that the
 sample belongs to. Missing bursts contribute no rows to the output but

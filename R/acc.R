@@ -17,7 +17,7 @@
 #'   either length 1 (recycled to all bursts) or the same length as
 #'   `bursts`. Frequencies with compatible [units][units::units] are converted
 #'   to Hz internally. If no units are specified, the frequency is assumed to
-#'   be in Hz.
+#'   be in Hz. Values must be positive, or `NA` if unknown.
 #' @param start Optional; burst start times. Either length 1 (recycled), the
 #'   same length as `bursts`, or `NULL` if start times are unknown.
 #'

@@ -126,6 +126,11 @@ NULL
 #' converted and stored as `POSIXct`. `Date` objects are treated as being
 #' recorded at midnight, UTC.
 #'
+#' Setters only change their own field. This means it is possible to produce
+#' incomplete records if you remove values for only certain fields. To mark a
+#' record as missing, use `x[i] <- NA`, which clears its burst, frequency, and
+#' start time together.
+#'
 #' @param x An IMU vector (`acc`, `mag`, or `gyro`)
 #' @param value Replacement value.
 #'
@@ -284,7 +289,7 @@ bursts <- function(x) {
 #' @rdname imu-fields
 #' @export
 `bursts<-` <- function(x, value) {
-  field(x, "bursts") <- value
+  field(x, "bursts") <- burst_list(value, sensor = imu_sensor(x))
   x
 }
 
@@ -297,7 +302,9 @@ freqs <- function(x) {
 #' @rdname imu-fields
 #' @export
 `freqs<-` <- function(x, value) {
-  field(x, "frequency") <- as_hz(value)
+  value <- as_hz(value)
+  check_freq_values(value, arg = "value")
+  field(x, "frequency") <- value
   x
 }
 

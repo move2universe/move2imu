@@ -89,20 +89,27 @@ test_that("Row names of burst matrices are not kept", {
   expect_equal(rownames(s), c("1", "2"))
 })
 
-test_that("Bursts without a start time or frequency get missing times", {
+test_that("Correctly assign times when bursts have missing freqs or starts", {
   m <- mag(list(cbind(X = 1:3)), 1)
   s <- imu_samples(m)
 
   expect_true(all(is.na(s$time)))
   expect_equal(s$X, c(1, 2, 3))
 
+  # Without a frequency, only the first sample's time is known
   freqs(m) <- NA
   starts(m) <- 1
 
   s <- imu_samples(m)
 
   expect_true(all(is.na(s$frequency)))
-  expect_true(all(is.na(s$time)))
+  expect_equal(s$time, .as.POSIXct(c(1, NA, NA)))
+
+  # A single-sample burst keeps its time
+  m <- mag(list(cbind(X = 1)), NA, start = 1)
+  s <- imu_samples(m)
+
+  expect_equal(s$time, .as.POSIXct(1))
 })
 
 test_that("Empty input gives a data frame with no rows", {

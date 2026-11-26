@@ -4,6 +4,13 @@ imu <- function(sensor,
                 bursts = list(),
                 frequency = units::set_units(double(), "Hz"),
                 start = NULL) {
+  if (!rlang::is_string(sensor, IMU_SENSORS)) {
+    abort_move2imu(
+      "{.arg sensor} must be one of {.or {.val {IMU_SENSORS}}}.",
+      class = c("imu_invalid", "imu")
+    )
+  }
+
   bursts <- burst_list(bursts, sensor)
   n <- vec_size(bursts)
 
@@ -17,6 +24,8 @@ imu <- function(sensor,
 
   frequency <- vec_recycle(frequency, n)
   start <- vec_recycle(start, n)
+
+  check_freq_values(frequency)
 
   # Ensure metadata is NA when bursts are missing, so that the record is
   # consistently all-NA and vec_detect_missing() agrees with is.na()
@@ -66,7 +75,8 @@ burst_list <- function(x, sensor) {
   if (any(!is_valid)) {
     abort_move2imu(
       "Bursts must be numeric matrices with unique columns named {.val X},
-       {.val Y}, or {.val Z}."
+       {.val Y}, or {.val Z}.",
+      class = c("bursts_invalid", "bursts")
     )
   }
 
@@ -87,6 +97,31 @@ is_imu <- function(x) {
   inherits(x, "imu")
 }
 
+# Get a given `imu` object's sensor type.
+#
+# Use this to select a single sensor to use when reconstructing `imu` objects
+# (e.g., with `merge_imu()`, etc.).
+imu_sensor <- function(x,
+                       arg = rlang::caller_arg(x),
+                       call = rlang::caller_env()) {
+  assert_imu(x, arg = arg, call = call)
+
+  sensor <- intersect(class(x), IMU_SENSORS)
+
+  if (length(sensor) == 0) {
+    abort_move2imu(
+      c(
+        "Unknown sensor for {.arg {arg}}.",
+        i = "An {.cls imu} vector must inherit from one of {.or {.cls {IMU_SENSORS}}}."
+      ),
+      class = c("imu_invalid", "imu"),
+      call = call
+    )
+  }
+
+  sensor[1]
+}
+
 # Assert that x is an IMU vector or, if `sensor` is given, an IMU vector for
 # that sensor (e.g. "acc").
 assert_imu <- function(x,
@@ -104,15 +139,18 @@ assert_imu <- function(x,
   article <- if (grepl("^[aeiou]", type)) "an" else "a"
 
   # If not an `imu` at all, throw "imu_invalid" error. Otherwise, the
-  # problem must be an incompatible sensor.
+  # problem must be an incompatible sensor, so report the sensor actually
+  # present rather than whatever class happens to come first.
   if (!x_is_imu) {
     err_class <- c("imu_invalid", "imu")
+    actual <- class(x)[1]
   } else {
     err_class <- c("imu_sensor_incompatible", "imu")
+    actual <- c(intersect(class(x), IMU_SENSORS), class(x))[1]
   }
 
   abort_move2imu(
-    "{.arg {arg}} must be {article} {.cls {type}} vector, not {.cls {class(x)[1]}}.",
+    "{.arg {arg}} must be {article} {.cls {type}} vector, not {.cls {actual}}.",
     class = err_class,
     call = call
   )
@@ -130,7 +168,7 @@ imu_ptype2 <- function(x, y, ..., x_arg = "", y_arg = "") {
   start_common <- vctrs::vec_ptype2(starts(x), starts(y))
 
   new_imu(
-    class(x)[1],
+    imu_sensor(x),
     frequency = freq_common,
     start = start_common
   )
@@ -139,3 +177,6 @@ imu_ptype2 <- function(x, y, ..., x_arg = "", y_arg = "") {
 imu_cast <- function(x, to, ..., x_arg = "", to_arg = "") {
   x
 }
+
+# Accepted sensor types
+IMU_SENSORS <- c("acc", "mag", "gyro")

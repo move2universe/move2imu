@@ -32,7 +32,7 @@ summary.imu <- function(object, ...) {
   x <- object[!is.na(object)]
 
   out <- list(
-    sensor = class(object)[1],
+    sensor = imu_sensor(object),
     n = length(object),
     n_na = sum(is.na(object))
   )
