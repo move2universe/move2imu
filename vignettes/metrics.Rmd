@@ -642,8 +642,9 @@ For instance, with the slider package we can calculate VeDBA in a
 dyn_samples <- imu_samples(drop_imu_units(dyn_acc))
 
 # Calculate VeDBA in a 2-second window centered on each sample
+# `group_by()` is superfluous here, but avoids computing across burst boundaries
 dyn_rolling <- dyn_samples |>
-  group_by(burst) |> # Don't calculate across burst boundaries
+  group_by(burst) |>
   mutate(
     norm = sqrt(X^2 + Y^2 + Z^2),
     vedba = slider::slide_index_dbl(
@@ -664,6 +665,10 @@ ggplot(dyn_rolling, aes(x = time, y = vedba)) +
 Here we use `imu_samples()` to convert our `acc` vector to a single data frame,
 which provides sample timestamps. This allows us to easily define the window
 length in seconds, rather than as a number of samples.
+
+A similar approach can be used to apply other custom functions across a stream
+of continuous samples, or can even be used with `static_acc()` for analyses
+focused on animal posture instead of motion.
 
 ## References
 
