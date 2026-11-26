@@ -160,18 +160,18 @@ odba <- function(x, smoothing_window) {
 #' @export
 #'
 #' @examples
-#' # Two minutes of simulated continuous 20 Hz data from a bird alternating
-#' # between 30 seconds of gliding and 30 seconds of flapping (4 Hz wingbeats)
+#' # Two minutes of simulated continuous 20 Hz data that alternates between
+#' # 30-second periods of rest and movement (a 4 Hz oscillation on the Z axis)
 #' set.seed(1)
 #' secs <- seq(0, 120 - 1 / 20, by = 1 / 20)
-#' flapping <- (secs %/% 30) %% 2 == 1
-#' wingbeats <- ifelse(flapping, 0.4 * sin(2 * pi * 4 * secs), 0)
+#' moving <- (secs %/% 30) %% 2 == 1
+#' movement <- ifelse(moving, 0.4 * sin(2 * pi * 4 * secs), 0)
 #'
 #' a <- acc(
 #'   list(cbind(
 #'     X = rnorm(length(secs), sd = 0.05),
 #'     Y = rnorm(length(secs), sd = 0.05),
-#'     Z = 1 + wingbeats + rnorm(length(secs), sd = 0.05)
+#'     Z = 1 + movement + rnorm(length(secs), sd = 0.05)
 #'   )),
 #'   frequency = units::set_units(20, "Hz"),
 #'   start = as.POSIXct("2024-01-01", tz = "UTC")
@@ -195,13 +195,10 @@ odba <- function(x, smoothing_window) {
 #'   plot_imu_trace(s_acc)
 #' }
 #'
-#' # Split the dynamic component into 10 second chunks to calculate periodic
-#' # VeDBA.
-#' d_split <- split_imu(
-#'   drop_imu_units(d_acc),
-#'   units::set_units(10, "s"),
-#'   flatten = TRUE
-#' )
+#' # Split the dynamic component into 10 second intervals and calculate VeDBA
+#' # for each one. (vedba() would decompose the signal again, so we apply the
+#' # VeDBA formula directly.)
+#' d_split <- split_imu(d_acc, units::set_units(10, "s"), flatten = TRUE)
 #'
 #' data.frame(
 #'   start = starts(d_split),
