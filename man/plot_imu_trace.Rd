@@ -36,7 +36,7 @@ plot_imu_trace(a)
 plot_imu_trace(a[move2::mt_track_id(alb) == "4261-2228"])
 
 # Label axes by passing arguments to `dygraph()`:
-plot_imu_trace(acc_example(), main = "Wing beats", ylab = "Acceleration (g)")
+plot_imu_trace(acc_example(), main = "Wingbeats", ylab = "Acceleration (g)")
 
 # Use other `dygraphs` layers to further modify the plot. For instance,
 # to label the time axis in UTC instead of the browser time zone:
