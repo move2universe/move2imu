@@ -169,9 +169,9 @@ gaps
 
 Each interval represents a local estimate of the sampling frequency. For
 instance, a signal collected at 20 Hz would produce intervals of 0.05 seconds.
-When a sequence of intervals are all identical, the samples are grouped into
-a single burst with a frequency derived from that interval. Whenever the
-time interval between samples changes, a new burst is initiated.
+When all intervals in a sequence are essentially identical, the samples are
+grouped into a single burst with a frequency derived from that interval.
+Whenever the time interval between samples changes, a new burst is initiated.
 
 The problem is that without an explicitly-recorded sampling frequency, it is
 impossible to distinguish a change in sampling frequency from noise in the recorded
@@ -229,7 +229,7 @@ n_samples(a)
 ```
 
 Note that the second burst, recorded at 1 Hz, does not get subsumed into the
-first, as the sampling frequencies are much more than 10.5% different.
+first, as the sampling frequencies are much more than 11% different.
 However, at very extreme values of `freq_tol`, you *could* in theory force these
 signals to merge as well:
 
@@ -351,8 +351,8 @@ seconds long:
 burst_dur(a)
 ```
 
-This means that in some cases each of our bursts lasts nearly as long as the
-time gap between bursts.
+This means that in some cases each of our bursts lasts almost exactly as long
+as the time gap between bursts.
 
 This pattern typically indicates that the data were collected *continuously*,
 despite being reported in individual "bursts." This stems from the fact that
