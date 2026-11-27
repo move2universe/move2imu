@@ -24,7 +24,7 @@ mt_set_gyro_column(x, value)
 }
 \arguments{
 \item{x}{A \code{move2} object with an IMU vector column (for instance, produced
-by \code{\link[=as_acc]{as_acc()}} or \code{\link[=as_mag]{as_mag()}}).}
+by \code{\link[=as_acc]{as_acc()}}, \code{\link[=as_mag]{as_mag()}}, or \code{\link[=as_gyro]{as_gyro()}}).}
 
 \item{value}{A string giving the name of the column in \code{x} that contains
 the extracted IMU data. The column must contain a vector of the
@@ -35,7 +35,7 @@ corresponding sensor type (e.g. \code{acc}).}
 column.
 
 \verb{mt_set_*_column()} returns \code{x} with the corresponding attribute set to
-\code{value}
+\code{value}.
 }
 \description{
 Designate columns in a \code{move2} object that contain a given class of IMU

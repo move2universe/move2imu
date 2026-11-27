@@ -35,7 +35,7 @@
 #' `mt_set_*_column()` to update the column name accordingly.
 #'
 #' @param x A `move2` object with an IMU vector column (for instance, produced
-#'   by [as_acc()] or [as_mag()]).
+#'   by [as_acc()], [as_mag()], or [as_gyro()]).
 #' @param value A string giving the name of the column in `x` that contains
 #'   the extracted IMU data. The column must contain a vector of the
 #'   corresponding sensor type (e.g. `acc`).
@@ -45,7 +45,7 @@
 #' column.
 #'
 #' `mt_set_*_column()` returns `x` with the corresponding attribute set to
-#' `value`
+#' `value`.
 #'
 #' @seealso [mt_acc()], [mt_mag()], [mt_gyro()] to extract the column values.
 #'
@@ -197,7 +197,7 @@ mt_set_imu_column <- function(x, sensor, value, call = rlang::caller_env()) {
 
   if (!rlang::is_string(value)) {
     abort_move2imu(
-      "{.arg value} must be a length-1 character.",
+      "{.arg value} must be a single non-missing string.",
       call = call
     )
   }
@@ -243,7 +243,10 @@ mt_imu <- function(x, sensor, call = rlang::caller_env()) {
 
 # Check that the values of a designated IMU column (named `col`) are an IMU
 # vector for the expected sensor. Uses the same error classes as `assert_imu()`.
-assert_imu_column_class <- function(vals, col, sensor, call = rlang::caller_env()) {
+assert_imu_column_class <- function(vals,
+                                    col,
+                                    sensor,
+                                    call = rlang::caller_env()) {
   if (is_imu(vals) && inherits(vals, sensor)) {
     return(invisible(vals))
   }
@@ -257,7 +260,8 @@ assert_imu_column_class <- function(vals, col, sensor, call = rlang::caller_env(
   }
 
   abort_move2imu(
-    "Column {.val {col}} must be of class {.cls {sensor}}, not {.cls {actual}}.",
+    "Column {.val {col}} must be of class {.cls {sensor}},
+     not {.cls {actual}}.",
     class = err_class,
     call = call
   )

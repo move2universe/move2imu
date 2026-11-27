@@ -1,10 +1,10 @@
 test_that("setter records the column and getter returns it", {
   df <- move2_with_imu()
-  
+
   df <- mt_set_acc_column(df, "a")
   df <- mt_set_mag_column(df, "m")
   df <- mt_set_gyro_column(df, "g")
-  
+
   expect_identical(attr(df, "acc_column"), "a")
   expect_identical(attr(df, "mag_column"), "m")
   expect_identical(attr(df, "gyro_column"), "g")
@@ -15,21 +15,21 @@ test_that("setter records the column and getter returns it", {
 
 test_that("Value accessor extracts data from correct column", {
   df <- move2_with_imu()
-  
+
   df <- mt_set_acc_column(df, "a")
   df <- mt_set_mag_column(df, "m")
   df <- mt_set_gyro_column(df, "g")
-  
+
   a <- mt_acc(df)
   m <- mt_mag(df)
   g <- mt_gyro(df)
-  
+
   expect_true(is_acc(a))
   expect_identical(a, df$a)
-  
+
   expect_true(is_mag(m))
   expect_identical(m, df$m)
-  
+
   expect_true(is_gyro(g))
   expect_identical(g, df$g)
 })
@@ -54,8 +54,15 @@ test_that("setter rejects a column of the wrong sensor type", {
 test_that("setter rejects a non-string or non-existent column", {
   m <- move2_with_imu()
 
-  expect_error(mt_set_acc_column(m, 1), "length-1 character")
-  expect_error(mt_set_acc_column(m, c("a", "m")), "length-1 character")
+  expect_error(mt_set_acc_column(m, 1), "single non-missing string")
+  expect_error(
+    mt_set_acc_column(m, c("a", "m")),
+    "single non-missing string"
+  )
+  expect_error(
+    mt_set_acc_column(m, NA_character_),
+    "single non-missing string"
+  )
   expect_error(
     mt_set_acc_column(m, "foobar"),
     class = "move2imu_error_imu_column_not_found"

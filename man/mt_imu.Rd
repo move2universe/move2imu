@@ -15,7 +15,7 @@ mt_gyro(x)
 }
 \arguments{
 \item{x}{A \code{move2} object with an IMU vector column (for instance, produced
-by \code{\link[=as_acc]{as_acc()}} or \code{\link[=as_mag]{as_mag()}}).}
+by \code{\link[=as_acc]{as_acc()}}, \code{\link[=as_mag]{as_mag()}}, or \code{\link[=as_gyro]{as_gyro()}}).}
 }
 \value{
 An object inheriting from class \code{imu} containing the data in the indicated
