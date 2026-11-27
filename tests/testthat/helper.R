@@ -1,5 +1,5 @@
 # `as.POSIXct()` only gained a default `origin` in R 4.3, and this package
-# supports R >= 4.1. Calls must have an explicit origin to successfully pass
+# supports R >= 4.2. Calls must have an explicit origin to successfully pass
 # tests on old R releases.
 .as.POSIXct <- function(x, tz = "UTC") {
   as.POSIXct(x, origin = "1970-01-01", tz = tz)
