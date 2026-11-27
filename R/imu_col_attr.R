@@ -5,52 +5,62 @@
 #' data. This allows you to flexibly store IMU data produced by `as_acc()`,
 #' `as_mag()`, or `as_gyro()` in a column in a `move2` and access it
 #' programmatically, without needing to hard-code column names.
-#' 
+#'
 #' - `mt_*_column()` returns the name of the column in the input `move2` that
 #'   contains data from the indicated sensor.
 #' - `mt_set_*_column()` sets the column that contains data from the indicated
 #'   sensor.
-#' 
+#'
 #' @details
 #' These functions behave similarly to move2's native helpers (e.g.
 #' [move2::mt_time_column()]). They work by storing a character attribute
 #' in the input `move2` object naming the relevant column of IMU data.
-#' 
-#' Be careful when modifying these columns with other methods. Operations 
-#' that rename a column without updating the attribute (e.g.
-#' [dplyr::rename()]) can create a mismatch between the stored column name
-#' and the name of the column in the data themselves. The column name will
-#' then need to be updated accordingly using `mt_set_*_column()`.
-#' 
-#' Further, some operations may drop these attributes, including
-#' [dplyr::distinct()], [dplyr::summarize()], and [move2::mt_stack()].
-#' 
+#'
+#' Save your data to RDS (e.g. with `saveRDS()`) so the attributes are kept
+#' when data are loaded again.
+#'
+#' @section Current limitations:
+#' The stored column name is an ordinary attribute of the `move2`, so it is
+#' not always kept when the data are modified.
+#'
+#' For instance, some common data manipulation operations drop these
+#' attributes, like [dplyr::distinct()], [dplyr::summarize()],
+#' [dplyr::ungroup()], grouped [dplyr::mutate()], and [move2::mt_stack()]. This
+#' behavior depends on how lower-level packages like sf and move2 handle these
+#' attributes, so many of these discrepancies may be resolved in the future.
+#'
+#' Further, renaming the column (e.g. with [dplyr::rename()]) does not update
+#' the attribute simultaneously, which can create a mismatch between the stored
+#' column name and the name of the column in the data themselves. Use
+#' `mt_set_*_column()` to update the column name accordingly.
+#'
 #' @param x A `move2` object with an IMU vector column (for instance, produced
 #'   by [as_acc()] or [as_mag()]).
 #' @param value A string giving the name of the column in `x` that contains
 #'   the extracted IMU data. The column must contain a vector of the
-#'   corresponding sensor type (e.g. `acc`). 
+#'   corresponding sensor type (e.g. `acc`).
 #'
 #' @returns
 #' `mt_*_column()` returns a length-one character vector naming the designated
 #' column.
-#' 
+#'
 #' `mt_set_*_column()` returns `x` with the corresponding attribute set to
 #' `value`
-#' 
+#'
 #' @seealso [mt_acc()], [mt_mag()], [mt_gyro()] to extract the column values.
-#' 
+#'
 #'   [as_acc()], [as_mag()], [as_gyro()] to build IMU columns.
 #'
 #' @name mt_imu_column
+#' @keywords internal
 #'
 #' @examplesIf rlang::is_installed("move2")
 #' alb <- albatrosses()
 #' alb$acc <- as_acc(alb)
 #' alb <- mt_set_acc_column(alb, "acc")
-#' 
+#'
 #' mt_acc_column(alb)
-#' 
+#'
 #' mt_acc(alb)[1:10]
 NULL
 
@@ -95,7 +105,7 @@ mt_set_gyro_column <- function(x, value) {
 #' @description
 #' Return the values contained in the currently designated column storing
 #' data for the indicated sensor.
-#' 
+#'
 #' To set a column that contains data from a given sensor, use the corresponding
 #' setting function. For instance, [mt_set_acc_column()].
 #'
@@ -105,16 +115,20 @@ mt_set_gyro_column <- function(x, value) {
 #' [mt_set_acc_column()] must contain an `acc` vector. `mt_acc()` validates
 #' the data class before returning.
 #'
+#' The designated column can be lost or become out of date when the data are
+#' modified. See the "Current limitations" section of [mt_acc_column()].
+#'
 #' @inheritParams mt_imu_column
 #'
-#' @returns 
+#' @returns
 #' An object inheriting from class `imu` containing the data in the indicated
 #' column of `x`.
-#' 
+#'
 #' @seealso [mt_acc_column()], [mt_mag_column()], [mt_gyro_column()] to get or
 #'   set the column that contains parsed data for a given sensor.
 #'
 #' @name mt_imu
+#' @keywords internal
 #'
 #' @examplesIf rlang::is_installed("move2")
 #' alb <- albatrosses()
@@ -146,7 +160,7 @@ mt_gyro <- function(x) {
 # IMU sensor type.
 mt_imu_column <- function(x, sensor, call = rlang::caller_env()) {
   assert_move2(x, call = call)
-  
+
   nm <- imu_column_attr(sensor)
   col <- attr(x, nm, exact = TRUE)
 
@@ -175,7 +189,7 @@ mt_imu_column <- function(x, sensor, call = rlang::caller_env()) {
   col
 }
 
-# Designate a new IMU column. Sets an attribute on the input move2 that 
+# Designate a new IMU column. Sets an attribute on the input move2 that
 # defines the name of the column containing a particular class of IMU data.
 # Validates that the column exists and contains the correct IMU data class.
 mt_set_imu_column <- function(x, sensor, value, call = rlang::caller_env()) {
@@ -201,7 +215,7 @@ mt_set_imu_column <- function(x, sensor, value, call = rlang::caller_env()) {
   assert_imu_column_class(col, value, sensor, call = call)
 
   attr(x, imu_column_attr(sensor)) <- value
-  
+
   x
 }
 
@@ -256,8 +270,9 @@ imu_column_attr <- function(sensor) {
   paste0(sensor, "_column")
 }
 
-# accessors for IMU columns is restricted to use in move2 objects
-# for consistency with similar columns (time, track ID)
+# IMU column accessors and setters only accept move2 objects. This matches their
+# `mt_*` prefix and serves their primary purpose of use in MoveApps, where
+# data are in move2 format, not data.frame format.
 assert_move2 <- function(x, call = rlang::caller_env()) {
   if (!inherits(x, "move2")) {
     abort_move2imu("{.arg x} must be a {.cls move2} object.", call = call)

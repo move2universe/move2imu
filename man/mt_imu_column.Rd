@@ -51,18 +51,29 @@ sensor.
 }
 \details{
 These functions behave similarly to move2's native helpers (e.g.
-\code{\link[move2:column_name]{move2::mt_time_column()}}). They work by storing a character attribute
+\code{\link[move2:mt_time_column]{move2::mt_time_column()}}). They work by storing a character attribute
 in the input \code{move2} object naming the relevant column of IMU data.
 
-Be careful when modifying these columns with other methods. Operations
-that rename a column without updating the attribute (e.g.
-\code{\link[dplyr:rename]{dplyr::rename()}}) can create a mismatch between the stored column name
-and the name of the column in the data themselves. The column name will
-then need to be updated accordingly using \verb{mt_set_*_column()}.
-
-Further, some operations may drop these attributes, including
-\code{\link[dplyr:distinct]{dplyr::distinct()}}, \code{\link[dplyr:summarise]{dplyr::summarize()}}, and \code{\link[move2:mt_stack]{move2::mt_stack()}}.
+Save your data to RDS (e.g. with \code{saveRDS()}) so the attributes are kept
+when data are loaded again.
 }
+\section{Current limitations}{
+
+The stored column name is an ordinary attribute of the \code{move2}, so it is
+not always kept when the data are modified.
+
+For instance, some common data manipulation operations drop these
+attributes, like \code{\link[dplyr:distinct]{dplyr::distinct()}}, \code{\link[dplyr:summarize]{dplyr::summarize()}},
+\code{\link[dplyr:ungroup]{dplyr::ungroup()}}, grouped \code{\link[dplyr:mutate]{dplyr::mutate()}}, and \code{\link[move2:mt_stack]{move2::mt_stack()}}. This
+behavior depends on how lower-level packages like sf and move2 handle these
+attributes, so many of these discrepancies may be resolved in the future.
+
+Further, renaming the column (e.g. with \code{\link[dplyr:rename]{dplyr::rename()}}) does not update
+the attribute simultaneously, which can create a mismatch between the stored
+column name and the name of the column in the data themselves. Use
+\verb{mt_set_*_column()} to update the column name accordingly.
+}
+
 \examples{
 \dontshow{if (rlang::is_installed("move2")) withAutoprint(\{ # examplesIf}
 alb <- albatrosses()
@@ -79,3 +90,4 @@ mt_acc(alb)[1:10]
 
 \code{\link[=as_acc]{as_acc()}}, \code{\link[=as_mag]{as_mag()}}, \code{\link[=as_gyro]{as_gyro()}} to build IMU columns.
 }
+\keyword{internal}

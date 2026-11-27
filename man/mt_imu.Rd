@@ -33,6 +33,9 @@ The data contained in the designated IMU column for the given sensor must
 be in the corresponding class. For instance, the \code{acc_column} set by
 \code{\link[=mt_set_acc_column]{mt_set_acc_column()}} must contain an \code{acc} vector. \code{mt_acc()} validates
 the data class before returning.
+
+The designated column can be lost or become out of date when the data are
+modified. See the "Current limitations" section of \code{\link[=mt_acc_column]{mt_acc_column()}}.
 }
 \examples{
 \dontshow{if (rlang::is_installed("move2")) withAutoprint(\{ # examplesIf}
@@ -47,3 +50,4 @@ mt_acc(alb)
 \code{\link[=mt_acc_column]{mt_acc_column()}}, \code{\link[=mt_mag_column]{mt_mag_column()}}, \code{\link[=mt_gyro_column]{mt_gyro_column()}} to get or
 set the column that contains parsed data for a given sensor.
 }
+\keyword{internal}
